@@ -30,6 +30,7 @@ def decode_ctc(model, audio):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, required=True)
+    parser.add_argument("--full", action="store_true", help="Include all synthetic Hindi and Kannada commands and mixed inputs.")
     parser.add_argument("--models", type=Path, required=True)
     parser.add_argument("--hindi-dir", type=Path)
     parser.add_argument("--output", type=Path, required=True)
@@ -51,8 +52,12 @@ def main():
                     num_threads=4, provider="cpu",
                 )
             for phrase in CASES:
-                if phrase["id"] not in MATCHED or phrase["language"] != language:
+                group = {"hinglish": "hi", "kanglish": "kn"}.get(phrase["language"], phrase["language"])
+                included = phrase.get("audio") if args.full else phrase["id"] in MATCHED
+                if not included or group != language:
                     continue
+                expected = phrase.get("intent", "Clarify")
+                reference, _ = router.route(phrase["text"], requested_language=language)
                 audio = samples(synthesize(client, phrase))
                 # Benchmark stock Whisper separately from AURA's Kannada specialist.
                 with whisper._lock:
@@ -70,8 +75,10 @@ def main():
                     actual = intent.intent_name.value if intent else "Unrouted"
                     wer, cer = compute_wer_cer(phrase["text"], text)
                     row = {"id": phrase["id"], "language": language, "engine": engine, "expected_text": phrase["text"],
-                           "transcript": text, "expected_intent": phrase["intent"], "actual_intent": actual,
-                           "intent_match": actual == phrase["intent"], "wer": wer, "cer": cer, "decode_ms": round(ms, 2)}
+                           "transcript": text, "expected_intent": expected, "actual_intent": actual,
+                           "intent_match": actual == expected,
+                           "slots_match": bool(reference and intent and reference.slots == intent.slots and actual == expected),
+                           "slots": intent.slots if intent else {}, "wer": wer, "cer": cer, "decode_ms": round(ms, 2)}
                     rows.append(row)
                     print(engine, phrase["id"], actual, row["intent_match"], row["decode_ms"], flush=True)
     args.output.parent.mkdir(parents=True, exist_ok=True)

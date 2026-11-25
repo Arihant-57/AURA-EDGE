@@ -1,0 +1,680 @@
+{
+  "kind": "devices",
+  "turns": [],
+  "devices": [
+    {
+      "id": "inventory",
+      "expected": {
+        "devices": 19,
+        "rooms": 5
+      },
+      "actual": {
+        "devices": 19,
+        "rooms": 5
+      },
+      "passed": true
+    },
+    {
+      "id": "ac.bedroom",
+      "expected": {
+        "action": "mode",
+        "value": "fan"
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "mode": "fan",
+          "power": true,
+          "temperature": 24
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "ac.bedroom",
+      "expected": {
+        "action": "power",
+        "value": false
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "mode": "fan",
+          "power": false,
+          "temperature": 24
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "ac.bedroom",
+      "expected": {
+        "action": "temperature",
+        "value": 16
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "mode": "fan",
+          "power": true,
+          "temperature": 16
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "curtain.bedroom",
+      "expected": {
+        "action": "position",
+        "value": 100
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "position": 100
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "fan.bedroom_ceiling",
+      "expected": {
+        "action": "power",
+        "value": true
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "speed": 2
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "fan.bedroom_ceiling",
+      "expected": {
+        "action": "speed",
+        "value": 1
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "speed": 1
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "light.bedroom_main",
+      "expected": {
+        "action": "power",
+        "value": true
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "brightness": 40
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "light.bedroom_main",
+      "expected": {
+        "action": "brightness",
+        "value": 0
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "brightness": 0
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "sensor.bedroom_climate",
+      "expected": {
+        "read_only": true
+      },
+      "actual": {
+        "humidity": 48.0,
+        "temperature": 25.0
+      },
+      "passed": true
+    },
+    {
+      "id": "light.kitchen_main",
+      "expected": {
+        "action": "power",
+        "value": true
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "brightness": 80
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "light.kitchen_main",
+      "expected": {
+        "action": "brightness",
+        "value": 0
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "brightness": 0
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "refrigerator.kitchen",
+      "expected": {
+        "action": "door_open",
+        "value": true
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "door_open": true,
+          "temperature": 4
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "refrigerator.kitchen",
+      "expected": {
+        "action": "temperature",
+        "value": 2
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "door_open": true,
+          "temperature": 2
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "ac.living",
+      "expected": {
+        "action": "mode",
+        "value": "fan"
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "mode": "fan",
+          "power": false,
+          "temperature": 24
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "ac.living",
+      "expected": {
+        "action": "power",
+        "value": true
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "mode": "fan",
+          "power": true,
+          "temperature": 24
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "ac.living",
+      "expected": {
+        "action": "temperature",
+        "value": 16
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "mode": "fan",
+          "power": true,
+          "temperature": 16
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "curtain.living",
+      "expected": {
+        "action": "position",
+        "value": 100
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "position": 100
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "fan.living_ceiling",
+      "expected": {
+        "action": "power",
+        "value": true
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "speed": 2
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "fan.living_ceiling",
+      "expected": {
+        "action": "speed",
+        "value": 1
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "speed": 1
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "light.living_main",
+      "expected": {
+        "action": "power",
+        "value": true
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "brightness": 70
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "light.living_main",
+      "expected": {
+        "action": "brightness",
+        "value": 0
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "brightness": 0
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "purifier.living",
+      "expected": {
+        "action": "power",
+        "value": true
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "speed": 1
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "purifier.living",
+      "expected": {
+        "action": "speed",
+        "value": 5
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "speed": 5
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "tv.living",
+      "expected": {
+        "action": "power",
+        "value": false
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": false,
+          "volume": 20
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "tv.living",
+      "expected": {
+        "action": "volume",
+        "value": 0
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "volume": 0
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "fan.study",
+      "expected": {
+        "action": "power",
+        "value": true
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "speed": 2
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "fan.study",
+      "expected": {
+        "action": "speed",
+        "value": 1
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "speed": 1
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "light.study_desk",
+      "expected": {
+        "action": "power",
+        "value": true
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "brightness": 75
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "light.study_desk",
+      "expected": {
+        "action": "brightness",
+        "value": 0
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "brightness": 0
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "heater.utility",
+      "expected": {
+        "action": "power",
+        "value": true
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "temperature": 50
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "heater.utility",
+      "expected": {
+        "action": "temperature",
+        "value": 30
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true,
+          "temperature": 30
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "pump.utility",
+      "expected": {
+        "action": "power",
+        "value": true
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "power": true
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "vacuum.home",
+      "expected": {
+        "action": "activity",
+        "value": "start"
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "activity": "cleaning",
+          "remaining_seconds": 1800
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "vacuum.home",
+      "expected": {
+        "action": "activity",
+        "value": "pause"
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "activity": "paused",
+          "remaining_seconds": 1800
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "vacuum.home",
+      "expected": {
+        "action": "activity",
+        "value": "resume"
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "activity": "cleaning",
+          "remaining_seconds": 1800
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "vacuum.home",
+      "expected": {
+        "action": "activity",
+        "value": "dock"
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "activity": "docked",
+          "remaining_seconds": 0
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "washer.utility",
+      "expected": {
+        "action": "cycle",
+        "value": "quick"
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "cycle": "quick",
+          "activity": "idle",
+          "remaining_seconds": 0
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "washer.utility",
+      "expected": {
+        "action": "activity",
+        "value": "start"
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "cycle": "quick",
+          "activity": "running",
+          "remaining_seconds": 3600
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "washer.utility",
+      "expected": {
+        "action": "activity",
+        "value": "pause"
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "cycle": "quick",
+          "activity": "paused",
+          "remaining_seconds": 3600
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "washer.utility",
+      "expected": {
+        "action": "activity",
+        "value": "resume"
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "cycle": "quick",
+          "activity": "running",
+          "remaining_seconds": 3600
+        },
+        "websocket": true
+      },
+      "passed": true
+    },
+    {
+      "id": "washer.utility",
+      "expected": {
+        "action": "activity",
+        "value": "cancel"
+      },
+      "actual": {
+        "status": "verified",
+        "state": {
+          "cycle": "quick",
+          "activity": "idle",
+          "remaining_seconds": 0
+        },
+        "websocket": true
+      },
+      "passed": true
+    }
+  ],
+  "placement": {},
+  "resources": {},
+  "summary": {}
+}

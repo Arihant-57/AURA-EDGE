@@ -13,3 +13,5 @@ The supplied `Synapse_2.0_Problem_Statements.pdf` lists “A Voice Assistant Tha
 | Refuse unclear or unsupported requests | Negative typed cases, silence, noise and failed transcriptions | Verified observed safe outcomes. The temporary-power routing regression now clarifies without mutating the device. |
 
 Overall acceptance remains open until a user completes the physical microphone, audibility and disconnected checks. Recorded substitutions in the synthetic corpus also keep broad multilingual voice reliability open.
+
+The updated build also provides a browser dashboard, a simulator in the nine-page dashboard and an optional strict Hindi recognizer. English Auto and strict Hindi are distinct demo paths. The dedicated Hindi synthesis-to-tool test passed 8/8 on its first run and 6/8 on a fresh synthesis. Two later transcripts lost the intended room or temperature. Live volunteer speech and network-disconnected restart remain open. [Testing TODO](TESTING_TODO.md)

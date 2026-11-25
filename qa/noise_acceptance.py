@@ -52,6 +52,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--extra-only", action="store_true", help="Test room echo, nearby speech and synthesized speaker bleed.")
     options = parser.parse_args()
     if not 8010 <= options.port <= 8099:
         parser.error("Use a disposable loopback backend.")
@@ -62,6 +63,9 @@ def main():
         status = json_api(client, "/readiness")
         if status["connectivity"]["mode"] != "strict_offline":
             parser.error("Expected a strict-offline disposable backend.")
+        if options.extra_only:
+            background = samples(synthesize(client, {"text": "There is a book on the table.", "language": "en"}))
+            bleed = samples(synthesize(client, {"text": "The time is four fifteen.", "language": "en"}))
         for case in CASES:
             if case["id"] not in selected:
                 continue
@@ -72,6 +76,15 @@ def main():
             variants = {"clean": signal, "quiet_-24db": signal * 10 ** (-24 / 20),
                         **{f"fan_{db}db": mix(signal, fan, db) for db in (20, 10, 5)},
                         "keyboard_10db": mix(signal, keyboard, 10)}
+            if options.extra_only:
+                # Two delayed reflections at 55 and 95 ms. Motion and sounds are synthetic.
+                echo = np.zeros(len(signal) + 1520)
+                echo[:len(signal)] = signal
+                echo[880:880 + len(signal)] += .35 * signal
+                echo[1520:] += .22 * signal
+                variants = {"two_reflections": echo / max(1, np.max(np.abs(echo))),
+                            "nearby_speech_8db": mix(signal, np.resize(background, len(signal)), 8),
+                            "speaker_bleed_6db": mix(signal, np.resize(bleed, len(signal)), 6)}
             for name, audio in variants.items():
                 row = replay(client, case, "auto", pcm=pcm(audio))
                 rows.append(dict(row, condition=name))

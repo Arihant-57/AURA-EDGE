@@ -17,3 +17,7 @@ The matched noise probe used five offline synthesized commands, one each for Eng
 No failed noisy trial verified a device action. The kitchen and bedroom simulation state was isolated from personal data. Three clean utterances in this small cohort already failed, so noisy-case differences cannot be attributed solely to background sound. The WAV endpoint exercises recognition and the quality gate. Physical capture/VAD and uploaded audio use different paths. [Voice command accuracy](VOICE_COMMAND_ACCURACY_REPORT.md)
 
 The application keeps the measured Silero/AGC settings. RNNoise and DeepFilterNet were assessed from their project requirements. No compatible existing Windows noise-suppression runtime was found in this project, so no denoiser A/B measurement or performance claim is made. Nearby speech, actual competition fan noise and room reverberation remain for live acceptance. [RNNoise](https://github.com/xiph/rnnoise) · [DeepFilterNet](https://github.com/Rikorose/DeepFilterNet)
+
+## Additional synthetic acoustic trials
+
+The release replay added five prompts under each of three controlled conditions. Two simulated room reflections passed 3/5, nearby speech mixed at 8 dB passed 2/5, and simulated speaker bleed at 6 dB passed 3/5. The separate fan-only probe was safely rejected. None of the seven failed speech trials reported executing an action. Real rooms, human voices and physical speaker feedback remain in the [testing checklist](TESTING_TODO.md). [Per-trial records](../qa/results/final-noise.json)

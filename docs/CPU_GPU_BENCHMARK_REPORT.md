@@ -41,4 +41,16 @@ The revised engine passed all 36 matched turns and all of their callback checks.
 | GPU | 85 → 77 | 252 → 245 | 344 → 337 | 3,205 → 3,528 | 4,941 → 7,079 |
 | Auto | 73 → 76 | 238 → 246 | 330 → 328 | 3,156 → 3,346 | 4,796 → 6,666 |
 
-Those conversation results reflect the trade-off of waiting for a complete validated answer before speech. The dashboard still receives early text. In Auto the recorded deterministic device command continued to reach the first output callback in about 0.33 seconds. Revised host snapshots were 33.6%, 26.1%, and 18.3% CPU, 14.94, 13.06, and 13.59 GB RAM, and 1,795, 1,813 and 1,831 MB total system VRAM. The regular desktop backend was also active during this pass, so host snapshots cannot be attributed to this isolated process alone. Audio callback completion measures local output delivery. Human listening still determines if a reply sounds smooth.
+Those conversation results reflect the trade-off of waiting for a complete validated answer before speech. At that checkpoint the dashboard received early text. The release now validates the complete response before displaying it. In Auto the recorded deterministic device command continued to reach the first output callback in about 0.33 seconds. Revised host snapshots were 33.6%, 26.1%, and 18.3% CPU, 14.94, 13.06, and 13.59 GB RAM, and 1,795, 1,813 and 1,831 MB total system VRAM. The regular desktop backend was also active during this pass, so host snapshots cannot be attributed to this isolated process alone. Audio callback completion measures local output delivery. Human listening still determines if a reply sounds smooth.
+
+## Final product build
+
+All 36 turns passed with first non-silent output and completed playback. The warm medians below are milliseconds across three repetitions per mode on this laptop. Regression tests also used the machine during this run.
+
+| Mode | Clock first output | Recorded device STT | Recorded device first output | Conversation first model token | Conversation first output |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| CPU | 260 | 3,820 | 3,965 | 6,665 | 11,888 |
+| GPU | 112 | 301 | 440 | 7,530 | 15,145 |
+| Auto | 93 | 252 | 385 | 5,761 | 10,423 |
+
+The clock and conversation benchmarks use typed input. The device benchmark starts with a recorded utterance. Time to first output ends at a local audio callback. It does not establish intelligibility at the speaker. Conversational output had a noticeable wait in every mode. [Per-turn measurements](../qa/results/final-benchmark.json)

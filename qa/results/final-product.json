@@ -1,0 +1,224 @@
+[
+  {
+    "case": "3 months",
+    "intent": "Clarify",
+    "passed": true
+  },
+  {
+    "case": "5 sandwiches",
+    "intent": "Clarify",
+    "passed": true
+  },
+  {
+    "case": "-5 minutes",
+    "intent": "Clarify",
+    "passed": true
+  },
+  {
+    "case": "2.5 minutes",
+    "intent": "Clarify",
+    "passed": true
+  },
+  {
+    "case": "30 milliseconds",
+    "intent": "Clarify",
+    "passed": true
+  },
+  {
+    "case": "Do not turn on the bedroom light",
+    "intent": "Clarify",
+    "outcome": "clarification",
+    "history_unchanged": true,
+    "passed": true
+  },
+  {
+    "case": "बेडरूम की लाइट बंद मत करो",
+    "intent": "Clarify",
+    "outcome": "clarification",
+    "history_unchanged": true,
+    "passed": true
+  },
+  {
+    "case": "ಬೆಡ್‌ರೂಮ್ ಲೈಟ್ ಆಫ್ ಮಾಡಬೇಡಿ",
+    "intent": "Clarify",
+    "outcome": "clarification",
+    "history_unchanged": true,
+    "passed": true
+  },
+  {
+    "case": "What happens if I switch off the study fan?",
+    "intent": "Conversation",
+    "outcome": "success",
+    "history_unchanged": true,
+    "passed": true
+  },
+  {
+    "case": "Turn on the bedroom light and set the bedroom AC to 99 degrees",
+    "intent": "DeviceControl",
+    "outcome": "refusal",
+    "history_unchanged": true,
+    "passed": true
+  },
+  {
+    "case": "Turn on the bedroom light and turn off the fan",
+    "intent": "DeviceControl",
+    "outcome": "refusal",
+    "history_unchanged": true,
+    "passed": true
+  },
+  {
+    "case": "device_and_reminder",
+    "steps": [
+      "verified",
+      "verified"
+    ],
+    "temperature": 24,
+    "reminder_found": true,
+    "passed": true
+  },
+  {
+    "case": "referent_after_compound",
+    "intent": "DeviceControl",
+    "passed": true
+  },
+  {
+    "case": "briefing_and_tasks",
+    "passed": true
+  },
+  {
+    "case": "turn-38",
+    "mode": "strict Hindi",
+    "model": "indic-conformer-hi",
+    "transcript": "अभी कितने बजे हैं",
+    "intent": "GetTime",
+    "slots": {},
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true
+  },
+  {
+    "case": "turn-40",
+    "mode": "strict Hindi",
+    "model": "indic-conformer-hi",
+    "transcript": "आज तारीख क्या है",
+    "intent": "GetDate",
+    "slots": {},
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true
+  },
+  {
+    "case": "turn-41",
+    "mode": "strict Hindi",
+    "model": "indic-conformer-hi",
+    "transcript": "आज कौन सा दिन है",
+    "intent": "GetDate",
+    "slots": {},
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true
+  },
+  {
+    "case": "turn-42",
+    "mode": "strict Hindi",
+    "model": "indic-conformer-hi",
+    "transcript": "दस सेकंड का टाइमर लगाओ",
+    "intent": "SetTimer",
+    "slots": {
+      "duration_seconds": 10
+    },
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "duration": true,
+      "persisted_timer": true
+    },
+    "passed": true
+  },
+  {
+    "case": "turn-43",
+    "mode": "strict Hindi",
+    "model": "indic-conformer-hi",
+    "transcript": "एक मिनट का टाइमर शुरू करो",
+    "intent": "SetTimer",
+    "slots": {
+      "duration_seconds": 60
+    },
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "duration": true,
+      "persisted_timer": true
+    },
+    "passed": true
+  },
+  {
+    "case": "turn-44",
+    "mode": "strict Hindi",
+    "model": "indic-conformer-hi",
+    "transcript": "बेडरूम की लाइट चालू करो",
+    "intent": "DeviceControl",
+    "slots": {
+      "room": "bedroom",
+      "device_type": "light",
+      "action": "power",
+      "value": true
+    },
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "persisted_state": true
+    },
+    "passed": true
+  },
+  {
+    "case": "turn-45",
+    "mode": "strict Hindi",
+    "model": "indic-conformer-hi",
+    "transcript": "बेड हूम की लाइट बंद करो",
+    "intent": "DeviceControl",
+    "slots": {
+      "room": null,
+      "device_type": "light",
+      "action": "power",
+      "value": false
+    },
+    "checks": {
+      "intent": true,
+      "outcome": false,
+      "verified": false,
+      "persisted_state": false
+    },
+    "passed": false
+  },
+  {
+    "case": "turn-47",
+    "mode": "strict Hindi",
+    "model": "indic-conformer-hi",
+    "transcript": "बेडरूम का एसी चौबिस डिग्री पर सेट करो",
+    "intent": "Clarify",
+    "slots": {},
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "persisted_state": false
+    },
+    "passed": false
+  }
+]
