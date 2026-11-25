@@ -1,5 +1,11 @@
 # Third-Party Software, Models & Provenance Inventory
 
+## Phase 2
+
+The simulator adds no dependency. It uses existing FastAPI, SQLAlchemy and
+PostgreSQL components. Device behavior is original AURA EDGE implementation
+informed by documented Home Assistant/Lyra research; no source was copied.
+
 > **License Separation Policy:** Runtime library licenses (e.g., Apache-2.0 / MIT) are tracked separately from downloaded model weights, voice datasets, and evaluation corpora.
 
 ## 1. Verified Python Runtime & Dev Packages (`.venv`, Python 3.13.2)

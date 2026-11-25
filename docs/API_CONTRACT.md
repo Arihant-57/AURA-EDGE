@@ -19,6 +19,26 @@ Additional WebSocket events include `transcript_ready`, `response_text_delta`,
 conversation lifecycle events. Clients must render deltas as provisional and
 use `response_completed` as the authoritative final response.
 
+## Phase 2 smart-home API
+
+Base path: `/api/v1/smart-home`.
+
+- `GET /rooms`; `GET /devices?room=bedroom`; `GET /devices/{id}`.
+- `POST /devices/{id}/command` body:
+  `{"action":"brightness","value":42,"source":"ui","context_id":null}`.
+  Invalid capability/value returns 422, unavailable returns 409, unknown returns 404.
+- `GET /activities`, `/history`, `/energy`, and `/routines`.
+- `POST /routines/{morning|night|study|away}/run`.
+- `PUT /simulator/devices/{id}/availability` body `{"available":false}`.
+- `POST /simulator/devices/{id}/complete`.
+- `POST /simulator/devices/{id}/sensor` with numeric temperature/humidity.
+
+Devices expose stable ID, room, type, multilingual aliases, capabilities, state,
+availability, simulated source, essential flag, rated/estimated power and updated
+timestamp. WebSocket events: `device_state_changed`,
+`device_availability_changed`, `activity_completed`,
+`simulated_sensor_changed`, and `routine_completed`.
+
 > **Current Version:** Phase 0 (Baseline) + Phase 1 (Multilingual Voice, Persistent Timers, 10-State WebSocket FSM)  
 > **Base URL:** `http://127.0.0.1:8000/api/v1`  
 > **Vite UI Proxy:** `/api/v1` (proxied to `http://127.0.0.1:8000` via `vite.config.ts`)  

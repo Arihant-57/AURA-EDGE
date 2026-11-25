@@ -35,9 +35,10 @@ _PHASE1_EXECUTABLE_INTENTS = {
 class ToolRegistry:
     """Validates and executes typed Phase 1 tools (reserves Phase 2 extension hook)."""
 
-    def __init__(self, datetime_tool: DateTimeTool, timer_manager: TimerManager) -> None:
+    def __init__(self, datetime_tool: DateTimeTool, timer_manager: TimerManager, smart_home: Any | None = None) -> None:
         self.datetime_tool = datetime_tool
         self.timer_manager = timer_manager
+        self.smart_home = smart_home
         self._phase2_hooks: dict[str, Any] = {}
 
     def register_extension(self, intent_name: str, handler: Any) -> None:
@@ -55,6 +56,8 @@ class ToolRegistry:
         ]
         for action in actions:
             if action.intent_name in (IntentName.CLARIFY, IntentName.UNSUPPORTED):
+                continue
+            if action.intent_name == IntentName.DEVICE_CONTROL and self.smart_home is not None:
                 continue
             if action.intent_name not in _PHASE1_EXECUTABLE_INTENTS:
                 return False, f"Intent '{action.intent_name.value}' is not enabled in Phase 1."
@@ -186,6 +189,8 @@ class ToolRegistry:
                 status="verified",
                 message=get_phrase("stopped", lang),
             )
+        if name == IntentName.DEVICE_CONTROL and self.smart_home is not None:
+            return await self.smart_home.execute_slots(slots, source="voice", language=lang)
         return VerifiedActionResult(
             success=False,
             action=name.value,

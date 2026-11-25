@@ -1,5 +1,13 @@
 # AURA EDGE — System Architecture (Phase 0 + Phase 1)
 
+## Phase 2 smart-home simulator
+
+`SmartHomeService` is the single command dispatcher for REST/UI, multilingual
+voice, routines and simulator controls. PostgreSQL stores stable device IDs,
+capabilities, current state, availability, rated power, routines and append-only
+history. A local simulation loop advances appliance remaining time and publishes
+completion events. No MQTT, ESP32 or external service is required.
+
 ## 1. Architectural Pattern
 
 AURA EDGE uses a **layered modular monolith** combined with an **event-driven automation & voice pipeline**. One deployable core FastAPI application houses bounded modules backed by local supporting processes (PostgreSQL 16 + `pgvector`, local Ollama, and offline ONNX/CTranslate2 speech runtimes).

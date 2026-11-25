@@ -27,7 +27,7 @@ async def test_live_postgres_timers_crud_ambiguity_restart_and_dedup() -> None:
                 pytest.fail(f"PostgreSQL required but unreachable: {readiness.error}")
             pytest.skip(f"PostgreSQL unreachable: {readiness.error}")
 
-        assert readiness.alembic_revision == "0002_phase1_voice_timers"
+        assert readiness.alembic_revision == "0003_phase2_smart_home"
 
         events: list[tuple[str, str]] = []
 

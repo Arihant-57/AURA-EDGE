@@ -1,5 +1,12 @@
 # AURA EDGE — Phase 0 Engineering Decisions, Reuse Audit & Open Questions
 
+## Persistent simulator before hardware adapters
+
+Phase 2 uses PostgreSQL-authoritative simulated devices and one validated
+dispatcher. Stable IDs and context history were adopted from the research;
+volatile topology and publish-only fake success were rejected. Energy is labeled
+estimated and simulated. MQTT was deferred because it is not required offline.
+
 ## 1. Key Phase 0 Decisions
 
 | ID | Decision | Rationale |

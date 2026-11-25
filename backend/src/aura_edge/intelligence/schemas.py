@@ -43,6 +43,7 @@ class IntentName(str, Enum):
     FAREWELL = "Farewell"
     SWITCH_LANGUAGE = "SwitchLanguage"
     CONVERSATION = "Conversation"
+    DEVICE_CONTROL = "DeviceControl"
 
 
 class TypedAction(BaseModel):

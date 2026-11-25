@@ -12,6 +12,14 @@ do not display a model outage as a successful assistant refusal.
 The backend emits actual state and latency fields. Do not synthesize success,
 streaming, or timing values in production integration.
 
+## Phase 2 integration
+
+Use `/api/v1/smart-home/rooms` for navigation and filter `/devices` by room.
+Render controls only from device `capabilities`; update UI from verified command
+responses or `device_state_changed`. Activities, history, routines and estimated
+energy have dedicated endpoints in `API_CONTRACT.md`. Preserve simulated and
+estimated labels. No frontend implementation file was changed.
+
 **Date:** 2026-11-25  
 **Backend Branch:** `feat/backend-intelligence`  
 **Contract Reference:** [`docs/API_CONTRACT.md`](./API_CONTRACT.md)

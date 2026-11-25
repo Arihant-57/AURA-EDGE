@@ -1,5 +1,13 @@
 # AURA EDGE — Project Progress Log
 
+## Phase 2 implemented
+
+- Five persistent rooms and 19 simulated devices.
+- Validated controls, availability, activities, estimated energy and history.
+- Morning, Night, Study and Away routines.
+- Simulator availability, sensor injection and forced completion controls.
+- Shared REST and EN/HI/KN voice dispatcher with ambiguity clarification.
+
 ## Phase 0 — Foundation (Authorized)
 
 **Status:** Verified and ready for Phase 0 gate review (subject to unresolved competition rules noted below).

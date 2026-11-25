@@ -155,3 +155,54 @@ class VoiceTurnMetric(Base):
         default=_utc_now,
         server_default=func.now(),
     )
+
+
+class SmartHomeDevice(Base):
+    """Persistent simulated device and its authoritative current state."""
+
+    __tablename__ = "smart_home_devices"
+
+    id: Mapped[str] = mapped_column(String(96), primary_key=True)
+    room: Mapped[str] = mapped_column(String(48), nullable=False, index=True)
+    device_type: Mapped[str] = mapped_column(String(48), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(96), nullable=False)
+    aliases: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    capabilities: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    state: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    source: Mapped[str] = mapped_column(String(24), nullable=False, default="simulated")
+    is_essential: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    power_rating_w: Mapped[float | None] = mapped_column(Float, nullable=True)
+    updated_at_utc: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now, server_default=func.now()
+    )
+
+
+class SmartHomeStateHistory(Base):
+    """Append-only audit log for every verified simulated device transition."""
+
+    __tablename__ = "smart_home_state_history"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    device_id: Mapped[str] = mapped_column(String(96), nullable=False, index=True)
+    action: Mapped[str] = mapped_column(String(48), nullable=False)
+    old_state: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    new_state: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    context_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    context_source: Mapped[str] = mapped_column(String(24), nullable=False)
+    recorded_at_utc: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now, server_default=func.now()
+    )
+
+
+class SmartHomeRoutine(Base):
+    """Persistent deterministic routine definition."""
+
+    __tablename__ = "smart_home_routines"
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    name: Mapped[str] = mapped_column(String(96), nullable=False)
+    aliases: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    actions: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, default=list)
+    last_run_at_utc: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

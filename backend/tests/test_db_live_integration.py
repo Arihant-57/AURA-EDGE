@@ -28,6 +28,7 @@ def test_live_postgres_pgvector_roundtrip_and_distance_query() -> None:
         assert readiness.alembic_revision in {
             "0001_phase0_foundation",
             "0002_phase1_voice_timers",
+                "0003_phase2_smart_home",
         }
 
         token = uuid.uuid4().hex[:12]

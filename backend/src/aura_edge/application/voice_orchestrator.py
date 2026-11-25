@@ -91,6 +91,7 @@ class VoiceOrchestrator:
         enforcer: NetworkPolicyEnforcer,
         engine: Any,
         ws_hub: WebSocketEventHub,
+        smart_home: Any | None = None,
     ) -> None:
         self.settings = settings
         self.enforcer = enforcer
@@ -140,7 +141,7 @@ class VoiceOrchestrator:
         self.conversation = ConversationSession(max_turns=12, idle_timeout_sec=1800.0)
         self.datetime_tool = DateTimeTool()
         self.timer_manager = TimerManager(engine, on_timer_event=self._handle_timer_event)
-        self.tool_registry = ToolRegistry(self.datetime_tool, self.timer_manager)
+        self.tool_registry = ToolRegistry(self.datetime_tool, self.timer_manager, smart_home)
         self.metric_repo = VoiceMetricRepository(engine)
 
         self.fsm = AssistantStateMachine(on_change=self._handle_state_change)

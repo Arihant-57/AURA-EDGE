@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import time
 from pathlib import Path
+from typing import Any
 
 from hassil import Intents, recognize_best
 
@@ -100,6 +101,72 @@ _RESTRICTED_ACTION_RE = re.compile(
     r"(?:ಆರ್ಡರ್|ಹಣ\s+ಕಳುಹಿಸು|ಬ್ಯಾಂಕ್\s+ಖಾತೆ|ಇಮೇಲ್\s+ಕಳುಹಿಸು))",
     flags=re.IGNORECASE | re.UNICODE,
 )
+
+_SMART_HOME_ROOMS = {
+    "living_room": ("living room", "hall", "बैठक", "ಹಾಲ್"),
+    "bedroom": ("bedroom", "बेडरूम", "ಮಲಗುವ ಕೋಣೆ", "ಬೆಡ್ ರೂಮ್"),
+    "kitchen": ("kitchen", "रसोई", "ಅಡುಗೆಮನೆ"),
+    "study": ("study", "अध्ययन", "ಪഠಣ", "ಅಧ್ಯಯನ"),
+    "utility_room": ("utility", "यूटिलिटी", "ಯುಟಿಲಿಟಿ"),
+}
+_SMART_HOME_TYPES = {
+    "light": ("light", "lights", "lamp", "लाइट", "बत्ती", "ಲೈಟ್", "ದೀಪ"),
+    "fan": ("fan", "पंखा", "फैन", "ಫ್ಯಾನ್"),
+    "air_conditioner": ("ac", "air conditioner", "एसी", "ಏಸಿ"),
+    "television": ("tv", "television", "टीवी", "ಟಿವಿ"),
+    "curtain": ("curtain", "curtains", "पर्दा", "पर्दे", "ಪರದೆ"),
+    "washing_machine": ("washing machine", "washer", "वॉशिंग मशीन", "ವಾಷಿಂಗ್ ಮೆಷಿನ್"),
+    "robot_vacuum": ("vacuum", "robot", "वैक्यूम", "ವ್ಯಾಕ್ಯೂಮ್"),
+    "air_purifier": ("purifier", "प्यूरिफायर", "ಪ್ಯೂರಿಫೈಯರ್"),
+    "water_heater": ("water heater", "geyser", "गीजर", "ಗೀಸರ್"),
+    "water_pump": ("water pump", "pump", "पंप", "ಪಂಪ್"),
+    "refrigerator": ("refrigerator", "fridge", "फ्रिज", "ರೆಫ್ರಿಜರೇಟರ್"),
+}
+
+
+def _contains_alias(text: str, aliases: tuple[str, ...]) -> bool:
+    return any(alias in text for alias in aliases)
+
+
+def _try_smart_home_action(text: str) -> TypedAction | None:
+    low = text.lower()
+    room = next((key for key, aliases in _SMART_HOME_ROOMS.items() if _contains_alias(low, aliases)), None)
+    kind = next((key for key, aliases in _SMART_HOME_TYPES.items() if _contains_alias(low, aliases)), None)
+    if kind is None:
+        return None
+    slots: dict[str, Any] = {"room": room, "device_type": kind}
+    number = re.search(r"(?<!\d)(\d{1,3})(?:\s*(?:degrees?|percent|%|डिग्री|ಡಿಗ್ರಿ))?", low)
+    if re.search(r"\b(?:turn|switch)\s+on\b|\bon\s+करो|चालू|ಆನ್\s+ಮಾಡು|ಆನ್", low):
+        slots.update(action="power", value=True)
+    elif re.search(r"\b(?:turn|switch)\s+off\b|\boff\s+करो|बंद\s+करो|ಆಫ್\s+ಮಾಡು|ಆಫ್", low):
+        slots.update(action="power", value=False)
+    elif kind == "curtain" and re.search(r"\bopen\b|खोलो|ತೆರೆ", low):
+        slots.update(action="position", value=100)
+    elif kind == "curtain" and re.search(r"\bclose\b|बंद|ಮುಚ್ಚು", low):
+        slots.update(action="position", value=0)
+    elif kind in {"washing_machine", "robot_vacuum"} and re.search(r"\bstart\b|शुरू|ಪ್ರಾರಂಭ", low):
+        slots.update(action="activity", value="start")
+    elif kind in {"washing_machine", "robot_vacuum"} and re.search(r"\bpause\b|रोको|ವಿರಾಮ", low):
+        slots.update(action="activity", value="pause")
+    elif kind in {"washing_machine", "robot_vacuum"} and re.search(r"\bresume\b|जारी|ಮುಂದುವರಿಸು", low):
+        slots.update(action="activity", value="resume")
+    elif kind == "robot_vacuum" and re.search(r"\bdock\b|चार्जिंग|ಡಾಕ್", low):
+        slots.update(action="activity", value="dock")
+    elif kind in {"washing_machine", "robot_vacuum"} and re.search(r"\bcancel\b|रद्द|ರದ್ದು", low):
+        slots.update(action="activity", value="cancel")
+    elif number and re.search(r"brightness|bright|रोशनी|ब्राइटनेस|ಪ್ರಕಾಶ", low):
+        slots.update(action="brightness", value=int(number.group(1)))
+    elif number and re.search(r"speed|गति|स्पीड|ವೇಗ", low):
+        slots.update(action="speed", value=int(number.group(1)))
+    elif number and kind == "air_conditioner":
+        slots.update(action="temperature", value=int(number.group(1)))
+    elif number and kind == "television" and re.search(r"volume|आवाज़|ವಾಲ್ಯೂಮ್", low):
+        slots.update(action="volume", value=int(number.group(1)))
+    elif re.search(r"status|state|how long|remaining|स्थिति|कितना समय|ಸ್ಥಿತಿ|ಎಷ್ಟು ಸಮಯ", low):
+        slots.update(action="status", value=None)
+    else:
+        return None
+    return TypedAction(intent_name=IntentName.DEVICE_CONTROL, slots=slots, confidence=0.94)
 
 
 def extract_requested_target_language(text: str) -> LanguageCode | None:
@@ -431,7 +498,11 @@ class MultilingualFastRouter:
                 round((time.perf_counter() - t0) * 1000.0, 2),
             )
 
-        action = self._try_hassil_single(norm) or self._try_keyword_timer_or_clock(norm)
+        action = (
+            self._try_hassil_single(norm)
+            or self._try_keyword_timer_or_clock(norm)
+            or _try_smart_home_action(norm.normalized)
+        )
         if action is not None:
             router_ms = round((time.perf_counter() - t0) * 1000.0, 2)
             return (

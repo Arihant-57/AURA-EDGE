@@ -10,9 +10,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from aura_edge import __version__
 from aura_edge.api.routes_health import router as health_router
+from aura_edge.api.routes_smart_home import router as smart_home_router
 from aura_edge.api.routes_timers import router as timers_router
 from aura_edge.api.routes_voice import router as voice_router
 from aura_edge.api.ws_events import WebSocketEventHub, ws_router
+from aura_edge.application.smart_home import SmartHomeService
 from aura_edge.application.voice_orchestrator import VoiceOrchestrator
 from aura_edge.config import Settings, apply_offline_env_guards, get_settings
 from aura_edge.data.database import create_db_engine
@@ -27,14 +29,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     enforcer = NetworkPolicyEnforcer.from_settings(cfg)
     engine = create_db_engine(cfg.database_url)
     ws_hub = WebSocketEventHub()
-    orchestrator = VoiceOrchestrator(cfg, enforcer, engine, ws_hub)
+    smart_home = SmartHomeService(engine, ws_hub)
+    orchestrator = VoiceOrchestrator(cfg, enforcer, engine, ws_hub, smart_home)
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         await orchestrator.startup()
+        await smart_home.startup()
         try:
             yield
         finally:
+            await smart_home.shutdown()
             await orchestrator.shutdown()
 
     app = FastAPI(
@@ -57,10 +62,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.engine = engine
     app.state.ws_hub = ws_hub
     app.state.orchestrator = orchestrator
+    app.state.smart_home = smart_home
 
     app.include_router(health_router)
     app.include_router(voice_router)
     app.include_router(timers_router)
+    app.include_router(smart_home_router)
     app.include_router(ws_router)
     return app
 

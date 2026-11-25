@@ -1,5 +1,15 @@
 # AURA EDGE — Phase 0 Test & Verification Report
 
+## Phase 2 focused verification
+
+`pytest -q backend/tests/test_phase2_smart_home.py`: **3 passed**. Coverage includes
+topology, restart persistence, validation, WebSocket events, appliance actions,
+routines, energy labels, sensor injection, EN/HI/KN voice parity, ambiguity and
+UI/voice history causality. The final full-suite result is recorded separately.
+
+Full Phase 0–2 backend acceptance: **141 passed in 103.03 seconds**, with
+`AURA_EDGE_REQUIRE_LIVE_DB=1`.
+
 **Date:** 2026-11-25
 **Host Hardware & Toolchain (Observed):**
 - **OS:** Microsoft Windows 11 Home Single Language (`10.0.26300`, 64-bit)
