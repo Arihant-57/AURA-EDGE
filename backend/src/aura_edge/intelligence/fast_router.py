@@ -224,6 +224,9 @@ def _contains_alias(text: str, aliases: tuple[str, ...]) -> bool:
 
 def _try_smart_home_action(text: str) -> TypedAction | None:
     low = text.lower()
+    # Guard against physics / general knowledge idioms like "speed of light"
+    if re.search(r"\bspeed\s+of\s+light\b", low):
+        return None
     room = next((key for key, aliases in _SMART_HOME_ROOMS.items() if _contains_alias(low, aliases)), None)
     kind = next((key for key, aliases in _SMART_HOME_TYPES.items() if _contains_alias(low, aliases)), None)
 
@@ -245,6 +248,25 @@ def _try_smart_home_action(text: str) -> TypedAction | None:
     if kind is None:
         return None
     slots: dict[str, Any] = {"room": room, "device_type": kind}
+
+    # Personalized smart-home command: "set the bedroom AC to my preferred temperature"
+    if re.search(
+        r"\b(?:preferred|preference|favorite|usual)\b|पसंदीदा|मनपसंद|ಇಷ್ಟದ|ಆದ್ಯತೆಯ",
+        low,
+        flags=re.UNICODE,
+    ):
+        prop = "temperature"
+        if kind == "fan" or re.search(r"speed|स्पीड|ವೇಗ", low):
+            prop = "speed"
+        elif kind == "light" or re.search(r"brightness|रोशनी|ಪ್ರಕಾಶ", low):
+            prop = "brightness"
+        elif kind == "curtain":
+            prop = "position"
+        elif kind == "television":
+            prop = "volume"
+        slots.update(action=prop, value=None, use_preferred=True)
+        return TypedAction(intent_name=IntentName.DEVICE_CONTROL, slots=slots, confidence=0.95)
+
     number = re.search(r"(?<!\d)(\d{1,3})(?:\s*(?:degrees?|percent|%|डिग्री|ಡಿಗ್ರಿ))?", low)
     if _STATUS_QUERY_RE.search(low) or (
         kind == "climate_sensor" and _CLIMATE_QUERY_RE.search(low) and number is None
@@ -404,6 +426,463 @@ def _extract_label_from_timer_text(text: str) -> str | None:
             }:
                 return candidate
     return None
+
+
+_SAVE_MEMORY_PREFIX_RE = re.compile(
+    r"^(?:please\s+)?(?:remember(?:\s+that)?|save\s+to\s+memory(?:\s+that)?|note\s+that|don'?t\s+forget(?:\s+that)?|"
+    r"(?:कृपया\s+)?याद\s+(?:रखो|रखना|रखें)(?:\s+कि)?|"
+    r"(?:ದಯವಿಟ್ಟು\s+)?ನೆನಪಿ(?:ಡು|ಟ್ಟುಕೋ|ಡಿ|ಟ್ಟುಕೊಳ್ಳಿ)(?:\s+ಅಂತ)?)\s+(.+)$",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+_LIST_MEMORY_RE = re.compile(
+    r"^(?:list|show|what\s+are)\s+(?:all\s+)?(?:my\s+)?memor(?:y|ies)|"
+    r"^what\s+do\s+you\s+remember(?:\s+about\s+me)?\s*[?]?$|"
+    r"(?:तुम्हें|आपको)\s+(?:मेरे\s+बारे\s+में\s+)?क्या\s+याद\s+है|"
+    r"मेरी\s+यादें\s+(?:दिखाओ|बताओ)|"
+    r"(?:ನನ್ನ\s+ಬಗ್ಗೆ\s+)?ನಿಮಗೆ\s+ಏನು\s+ನೆನಪಿದೆ|"
+    r"ನನ್ನ\s+ನೆನಪುಗಳ?ನ್ನು\s+(?:ತೋರಿಸು|ಹೇಳು)",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+_RETRIEVE_PREF_RE = re.compile(
+    r"(?:what\s+(?:temperature|temp|speed|brightness|volume|position|[a-z\s]+)?\s*(?:do\s+i|is\s+my)\s*(?:prefer(?:red)?|favorite)|"
+    r"what\s+do\s+you\s+remember\s+about\s+(.+)|"
+    r"मेरा\s+(?:पसंदीदा|मनपसंद)\s+(.+?)\s*(?:क्या|कितना)\s+है|"
+    r"मुझे\s+कौन\s*सा\s+(.+?)\s+पसंद\s+है|"
+    r"(?:ನನ್ನ\s+)?(?:ಇಷ್ಟದ|ಆದ್ಯತೆಯ)\s+(.+?)\s*(?:ಎಷ್ಟು|ಏನು))",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+_UPDATE_PREF_RE = re.compile(
+    r"(?:change|update|modify)\s+(?:my\s+)?(?:preferred|preference|favorite)\s+(.+?)\s+to\s+(.+)|"
+    r"मेरा\s+(?:पसंदीदा|मनपसंद)\s+(.+?)\s+(?:बदलकर\s+)?(.+?)\s+(?:करो|कर\s+दो|रखो)|"
+    r"(?:ನನ್ನ\s+)?(?:ಇಷ್ಟದ|ಆದ್ಯತೆಯ)\s+(.+?)\s+(?:ಅನ್ನು\s+)?(.+?)\s*(?:ಗೆ|ಕ್ಕೆ)\s*(?:ಬದಲಾಯಿಸು|ಮಾಡು|ಬದಲಿಸು)",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+_DELETE_MEMORY_RE = re.compile(
+    r"^(?:please\s+)?(?:forget(?:\s+that|\s+about|\s+my)?|delete\s+(?:my\s+)?memory(?:\s+about)?|"
+    r"(?:कृपया\s+)?भूल\s+जाओ(?:\s+कि)?|"
+    r"(?:ದಯವಿಟ್ಟು\s+)?ಮರೆತುಬಿಡು(?:\s+ಅಂತ)?)\s+(.+)$",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+
+_WEEKDAY_MAP: dict[str, int] = {
+    "monday": 0, "mon": 0, "सोमवार": 0, "ಸೋಮವಾರ": 0,
+    "tuesday": 1, "tue": 1, "मंगलवार": 1, "ಮಂಗಳವಾರ": 1,
+    "wednesday": 2, "wed": 2, "बुधवार": 2, "ಬುಧವಾರ": 2,
+    "thursday": 3, "thu": 3, "गुरुवार": 3, "ಗುರುವಾರ": 3,
+    "friday": 4, "fri": 4, "शुक्रवार": 4, "ಶುಕ್ರವಾರ": 4,
+    "saturday": 5, "sat": 5, "शनिवार": 5, "ಶನಿವಾರ": 5,
+    "sunday": 6, "sun": 6, "रविवार": 6, "ರವಿವಾರ": 6,
+}
+
+
+def _extract_delay_from_phrase(text: str) -> tuple[int | None, str]:
+    """Match 'in 10 minutes' / '10 मिनट में' / '10 ನಿಮಿಷದಲ್ಲಿ' and return (seconds, remainder)."""
+    patterns = (
+        r"\b(?:in|after)\s+(\d+\s*(?:hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)(?:\s+(?:and\s+)?\d+\s*(?:minutes?|mins?|min|seconds?|secs?|sec))?)\b",
+        r"(\d+\s*(?:घंट[ाेों]|मिनट(?:ों)?|सेक[ंडण्ड]+|ghant[ae]|minat))\s*(?:में|के\s+बाद|baad|mein)",
+        r"(\d+\s*(?:ಗಂಟೆ(?:ಗಳು)?|ನಿಮಿಷ(?:ಗಳು|ದ)?|ಸೆಕೆಂಡ್(?:‌ಗಳು|ಗಳು)?|gante|nimisha))\s*(?:ದಲ್ಲಿ|ನಂತರ|ಒಳಗೆ)",
+    )
+    for pat in patterns:
+        m = re.search(pat, text, flags=re.IGNORECASE | re.UNICODE)
+        if m:
+            dur = extract_duration_seconds(m.group(1))
+            if dur is not None and dur > 0:
+                remainder = (text[: m.start()] + " " + text[m.end() :]).strip()
+                return dur, re.sub(r"\s+", " ", remainder)
+    return None, text
+
+
+def _parse_clock_and_recurrence(text: str) -> dict[str, Any] | None:
+    """Parse local clock times, tomorrow/today, and daily/weekly recurrence specs."""
+    low = text.lower()
+    is_daily = bool(
+        re.search(
+            r"\bevery\s+(?:day|morning|evening|night|afternoon)\b|\bdaily\b|रोज़|हर\s+(?:दिन|सुबह|शाम|रात)|ಪ್ರತಿದಿನ|ಪ್ರತಿ\s+(?:ಬೆಳಗ್ಗೆ|ಸಂಜೆ|ರಾತ್ರಿ)",
+            low,
+            flags=re.UNICODE,
+        )
+    )
+    weekdays: list[int] = []
+    if re.search(r"\bevery\b|हर|ಪ್ರತಿ", low):
+        for name, idx in _WEEKDAY_MAP.items():
+            if re.search(rf"(?<!\w){re.escape(name)}(?!\w)", low, flags=re.UNICODE) and idx not in weekdays:
+                weekdays.append(idx)
+
+    day_offset = 1 if re.search(r"\btomorrow\b|कल|ನಾಳೆ", low) else 0
+
+    # Require an explicit time indicator word/marker so device numbers ("24 degrees") don't match!
+    has_time_marker = bool(
+        re.search(
+            r"\bat\s+\d{1,2}\b|\d{1,2}:\d{2}|\d{1,2}\s*(?:a\.?m\.?|p\.?m\.?|बजे|ಗಂಟೆಗೆ)",
+            low,
+            flags=re.UNICODE,
+        )
+    )
+    if not has_time_marker and not is_daily and not weekdays and day_offset == 0:
+        return None
+
+    if not has_time_marker:
+        # E.g. "remind me tomorrow" with NO clock time -> ambiguous!
+        return {"ambiguous": True, "reason": "missing_time"}
+
+    # Re-search specifically at the time marker
+    tm = re.search(
+        r"(?:\bat\s+)?(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?|बजे|ಗಂಟೆಗೆ)?",
+        re.search(
+            r"(?:\bat\s+\d{1,2}(?::\d{2})?(?:\s*(?:a\.?m\.?|p\.?m\.?))?|"
+            r"\d{1,2}:\d{2}(?:\s*(?:a\.?m\.?|p\.?m\.?))?|"
+            r"\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?|बजे|ಗಂಟೆಗೆ))",
+            low,
+            flags=re.UNICODE,
+        ).group(0),  # type: ignore[union-attr]
+        flags=re.UNICODE,
+    )
+    if tm is None:
+        return {"ambiguous": True, "reason": "missing_time"}
+
+    hour = int(tm.group(1))
+    minute = int(tm.group(2) or 0)
+    if hour > 23 or minute > 59:
+        return {"ambiguous": True, "reason": "invalid_time"}
+
+    meridiem = (tm.group(3) or "").replace(".", "").lower()
+    if re.search(r"\bmorning\b|सुबह|ಬೆಳಗ್ಗೆ|ಬೆಳಿಗ್ಗೆ", low) and not meridiem:
+        meridiem = "am"
+    elif re.search(r"\b(?:evening|night|afternoon)\b|शाम|रात|दोपहर|ಸಂಜೆ|ರಾತ್ರಿ|ಮಧ್ಯಾಹ್ನ", low) and not meridiem:
+        meridiem = "pm"
+
+    if meridiem == "pm" and hour < 12:
+        hour += 12
+    elif meridiem == "am" and hour == 12:
+        hour = 0
+    elif not meridiem and hour <= 12 and ":" not in tm.group(0) and hour < 24:
+        # Bare "at 5" without AM/PM when no morning/evening cue
+        return {"ambiguous": True, "reason": "ambiguous_ampm"}
+
+    recurrence_kind = "weekly" if weekdays else ("daily" if is_daily else "once")
+    return {
+        "ambiguous": False,
+        "hour": hour,
+        "minute": minute,
+        "day_offset": day_offset,
+        "recurrence": {
+            "kind": recurrence_kind,
+            "hour": hour,
+            "minute": minute,
+            **({"weekdays": weekdays} if weekdays else {}),
+        },
+    }
+
+
+def _try_memory_action(norm: NormalizedText) -> TypedIntent | None:
+    text = norm.normalized.strip()
+    if not text:
+        return None
+
+    m_save = _SAVE_MEMORY_PREFIX_RE.match(text)
+    if m_save:
+        body = m_save.group(1).strip().rstrip(".")
+        return TypedIntent(
+            intent_name=IntentName.SAVE_MEMORY,
+            confidence=0.96,
+            source="hassil_fast",
+            route_category="tool",
+            language=norm.language,
+            input_script=norm.script,
+            slots={"text": body, "raw_text": text},
+            raw_text=norm.raw,
+        )
+
+    m_del = _DELETE_MEMORY_RE.match(text)
+    if m_del:
+        query = m_del.group(1).strip().rstrip(".")
+        return TypedIntent(
+            intent_name=IntentName.DELETE_MEMORY,
+            confidence=0.95,
+            source="hassil_fast",
+            route_category="tool",
+            language=norm.language,
+            input_script=norm.script,
+            slots={"query": query},
+            raw_text=norm.raw,
+        )
+
+    if _LIST_MEMORY_RE.match(text.lower()):
+        return TypedIntent(
+            intent_name=IntentName.LIST_MEMORIES,
+            confidence=0.96,
+            source="hassil_fast",
+            route_category="tool",
+            language=norm.language,
+            input_script=norm.script,
+            slots={},
+            raw_text=norm.raw,
+        )
+
+    m_upd = _UPDATE_PREF_RE.search(text)
+    if m_upd:
+        return TypedIntent(
+            intent_name=IntentName.UPDATE_MEMORY,
+            confidence=0.94,
+            source="hassil_fast",
+            route_category="tool",
+            language=norm.language,
+            input_script=norm.script,
+            slots={"text": text},
+            raw_text=norm.raw,
+        )
+
+    m_ret = _RETRIEVE_PREF_RE.search(text)
+    if m_ret:
+        low = text.lower()
+        room = next((k for k, al in _SMART_HOME_ROOMS.items() if _contains_alias(low, al)), None)
+        dev_type = next((k for k, al in _SMART_HOME_TYPES.items() if _contains_alias(low, al)), None)
+        return TypedIntent(
+            intent_name=IntentName.RETRIEVE_MEMORY,
+            confidence=0.95,
+            source="hassil_fast",
+            route_category="tool",
+            language=norm.language,
+            input_script=norm.script,
+            slots={"query": text, "room": room, "device_type": dev_type},
+            raw_text=norm.raw,
+        )
+    return None
+
+
+def _try_schedule_or_reminder_action(norm: NormalizedText) -> TypedIntent | None:
+    text = norm.normalized.strip()
+    low = text.lower()
+    if not text:
+        return None
+
+    # List / Cancel reminders & schedules
+    if re.search(
+        r"\b(?:list|show|what\s+are)\b.*\breminders?\b|रिमाइंडर\s*(?:दिखाओ|बताओ|लिस्ट)|ಜ್ಞಾಪನೆಗಳ?ನ್ನು\s*(?:ತೋರಿಸು|ಹೇಳು)",
+        low,
+        flags=re.UNICODE,
+    ):
+        return TypedIntent(
+            intent_name=IntentName.LIST_REMINDERS,
+            confidence=0.95,
+            source="hassil_fast",
+            route_category="tool",
+            language=norm.language,
+            input_script=norm.script,
+            slots={},
+            raw_text=norm.raw,
+        )
+
+    if re.search(
+        r"\b(?:list|show|what\s+are)\b.*\bschedules?\b|शेड्यूल\s*(?:दिखाओ|बताओ)|ವೇಳಾಪಟ್ಟಿ\s*(?:ತೋರಿಸು|ಹೇಳು)",
+        low,
+        flags=re.UNICODE,
+    ):
+        return TypedIntent(
+            intent_name=IntentName.LIST_SCHEDULES,
+            confidence=0.95,
+            source="hassil_fast",
+            route_category="tool",
+            language=norm.language,
+            input_script=norm.script,
+            slots={},
+            raw_text=norm.raw,
+        )
+
+    is_cancel = bool(re.search(r"\b(?:cancel|delete|remove)\b|रद्द|हटाओ|ರದ್ದು|ತೆಗೆ", low, flags=re.UNICODE))
+    if is_cancel and re.search(r"\breminder\b|रिमाइंडर|ಜ್ಞಾಪನೆ|ರಿಮೈಂಡರ್", low, flags=re.UNICODE):
+        return TypedIntent(
+            intent_name=IntentName.CANCEL_REMINDER,
+            confidence=0.92,
+            source="hassil_fast",
+            route_category="tool",
+            language=norm.language,
+            input_script=norm.script,
+            slots={"query": text},
+            raw_text=norm.raw,
+        )
+    if is_cancel and re.search(r"\bschedule\b|शेड्यूल|ವೇಳಾಪಟ್ಟಿ", low, flags=re.UNICODE):
+        return TypedIntent(
+            intent_name=IntentName.CANCEL_SCHEDULE,
+            confidence=0.92,
+            source="hassil_fast",
+            route_category="tool",
+            language=norm.language,
+            input_script=norm.script,
+            slots={"query": text},
+            raw_text=norm.raw,
+        )
+
+    delay_sec, rem_text = _extract_delay_from_phrase(text)
+    clock_spec = None if delay_sec is not None else _parse_clock_and_recurrence(text)
+
+    # Do not intercept plain timers ("set a timer in/for 5 minutes")
+    if re.search(r"\btimers?\b|टाइमर|ಟೈಮರ್", low, flags=re.UNICODE):
+        return None
+
+    # A. Explicit reminder intent
+    is_reminder = bool(
+        re.search(
+            r"\bremind\s+me\b|\bset\s+(?:a\s+)?reminder\b|याद\s+दिलाओ|रिमाइंडर|ನೆನಪಿಸು|ರಿಮೈಂಡರ್",
+            low,
+            flags=re.UNICODE,
+        )
+    )
+    if is_reminder:
+        if delay_sec is None and (clock_spec is None or clock_spec.get("ambiguous")):
+            q_msg = {
+                "en": "When should I remind you, and what should I remind you about?",
+                "hi": "मैं आपको कब और किस बारे में याद दिलाऊँ?",
+                "kn": "ನಾನು ನಿಮಗೆ ಯಾವಾಗ ಮತ್ತು ಯಾವುದರ ಬಗ್ಗೆ ನೆನಪಿಸಲಿ?",
+            }[norm.language]
+            if clock_spec and clock_spec.get("ambiguous"):
+                q_msg = {
+                    "en": "Please specify the exact time with AM or PM for this reminder.",
+                    "hi": "कृपया रिमाइंडर के लिए सुबह या शाम का सही समय बताएं।",
+                    "kn": "ದಯವಿಟ್ಟು ಜ್ಞಾಪನೆಗಾಗಿ ಬೆಳಗ್ಗೆ ಅಥವಾ ಸಂಜೆ ಎಂಬ ನಿಖರ ಸಮಯವನ್ನು ತಿಳಿಸಿ.",
+                }[norm.language]
+            return TypedIntent(
+                intent_name=IntentName.CLARIFY,
+                confidence=0.92,
+                source="clarification",
+                route_category="clarification",
+                language=norm.language,
+                input_script=norm.script,
+                clarification_question=q_msg,
+                raw_text=norm.raw,
+            )
+
+        # Strip reminder boilerplate & time clause to extract reminder content
+        body = rem_text if delay_sec is not None else text
+        body = re.sub(
+            r"^(?:please\s+)?(?:remind\s+me(?:\s+to)?|set\s+(?:a\s+)?reminder(?:\s+to|\s+for)?)|"
+            r"(?:कल\s+|आज\s+)?(?:सुबह|शाम|दोपहर|रात)?\s*\d{1,2}(?::\d{2})?\s*(?:बजे)?\s*(?:याद\s+दिलाना|याद\s+दिलाओ)?|"
+            r"(?:ನಾಳೆ\s+|ಇಂದು\s+)?(?:ಬೆಳಗ್ಗೆ|ಸಂಜೆ|ಮಧ್ಯಾಹ್ನ|ರಾತ್ರಿ)?\s*\d{1,2}(?::\d{2})?\s*(?:ಗಂಟೆಗೆ)?\s*(?:ನೆನಪಿಸು)?",
+            " ",
+            body,
+            flags=re.IGNORECASE | re.UNICODE,
+        )
+        body = re.sub(
+            r"\b(?:every\s+(?:day|morning|evening|night)|daily|tomorrow|today|at\s+\d{1,2}(?::\d{2})?(?:\s*(?:a\.?m\.?|p\.?m\.?))?)\b",
+            " ",
+            body,
+            flags=re.IGNORECASE,
+        )
+        body = re.sub(
+            r"(?:मुझे\s+|ನನಗೆ\s+|को\s+|अंत\s+|ಗೆ\s+|ನ್ನು\s+)",
+            " ",
+            body,
+            flags=re.UNICODE,
+        )
+        body = re.sub(r"\s+", " ", body).strip(" ,.-")
+        if len(body) < 2:
+            q_msg = {
+                "en": "What should I remind you about?",
+                "hi": "मैं आपको किस बारे में याद दिलाऊँ?",
+                "kn": "ನಾನು ನಿಮಗೆ ಯಾವುದರ ಬಗ್ಗೆ ನೆನಪಿಸಲಿ?",
+            }[norm.language]
+            return TypedIntent(
+                intent_name=IntentName.CLARIFY,
+                confidence=0.92,
+                source="clarification",
+                route_category="clarification",
+                language=norm.language,
+                input_script=norm.script,
+                clarification_question=q_msg,
+                raw_text=norm.raw,
+            )
+        return TypedIntent(
+            intent_name=IntentName.CREATE_REMINDER,
+            confidence=0.95,
+            source="hassil_fast",
+            route_category="tool",
+            language=norm.language,
+            input_script=norm.script,
+            slots={
+                "message": body,
+                "delay_seconds": delay_sec,
+                "time_spec": clock_spec,
+            },
+            raw_text=norm.raw,
+        )
+
+    # B. Scheduled smart-home action or routine (requires delay_sec OR valid clock_spec)
+    if delay_sec is None and clock_spec is None:
+        return None
+    if clock_spec is not None and clock_spec.get("ambiguous"):
+        # Only intercept if it actually references a smart-home device or routine
+        has_device_or_routine = bool(
+            _try_smart_home_action(text)
+        )
+        if not has_device_or_routine:
+            return None
+        q_msg = {
+            "en": "Please specify the exact time (AM or PM) to schedule that device action.",
+            "hi": "कृपया उस उपकरण को शेड्यूल करने के लिए सुबह या शाम का सही समय बताएं।",
+            "kn": "ಆ ಸಾಧನವನ್ನು ನಿಗದಿಪಡಿಸಲು ದಯವಿಟ್ಟು ನಿಖರ ಸಮಯವನ್ನು (ಬೆಳಗ್ಗೆ ಅಥವಾ ಸಂಜೆ) ತಿಳಿಸಿ.",
+        }[norm.language]
+        return TypedIntent(
+            intent_name=IntentName.CLARIFY,
+            confidence=0.92,
+            source="clarification",
+            route_category="clarification",
+            language=norm.language,
+            input_script=norm.script,
+            clarification_question=q_msg,
+            raw_text=norm.raw,
+        )
+
+    # Try stripping the time expression and parsing the smart-home command
+    clean_cmd = rem_text if delay_sec is not None else re.sub(
+        r"\b(?:every\s+(?:day|morning|evening|night)|daily|tomorrow|today|at\s+\d{1,2}(?::\d{2})?(?:\s*(?:a\.?m\.?|p\.?m\.?))?)\b",
+        " ",
+        text,
+        flags=re.IGNORECASE,
+    )
+    clean_cmd = re.sub(
+        r"(?:रोज़|कल|आज|हर\s+(?:दिन|सुबह|शाम))?\s*(?:\d{1,2}(?::\d{2})?\s*बजे)|"
+        r"(?:ಪ್ರತಿದಿನ|ನಾಳೆ|ಇಂದು)?\s*(?:\d{1,2}(?::\d{2})?\s*ಗಂಟೆಗೆ)",
+        " ",
+        clean_cmd,
+        flags=re.UNICODE,
+    )
+    sh_action = _try_smart_home_action(re.sub(r"\s+", " ", clean_cmd).strip())
+    if sh_action is None:
+        return None
+
+    if sh_action.slots.get("action") == "routine":
+        return TypedIntent(
+            intent_name=IntentName.SCHEDULE_ROUTINE,
+            confidence=0.94,
+            source="hassil_fast",
+            route_category="tool",
+            language=norm.language,
+            input_script=norm.script,
+            slots={
+                "routine_id": sh_action.slots["routine_id"],
+                "delay_seconds": delay_sec,
+                "time_spec": clock_spec,
+            },
+            raw_text=norm.raw,
+        )
+
+    return TypedIntent(
+        intent_name=IntentName.SCHEDULE_DEVICE_ACTION,
+        confidence=0.94,
+        source="hassil_fast",
+        route_category="tool",
+        language=norm.language,
+        input_script=norm.script,
+        slots={
+            "room": sh_action.slots.get("room"),
+            "device_type": sh_action.slots.get("device_type"),
+            "action": sh_action.slots.get("action"),
+            "value": sh_action.slots.get("value"),
+            "delay_seconds": delay_sec,
+            "time_spec": clock_spec,
+        },
+        raw_text=norm.raw,
+    )
 
 
 class MultilingualFastRouter:
@@ -595,6 +1074,37 @@ class MultilingualFastRouter:
                     ),
                     round((time.perf_counter() - t0) * 1000.0, 2),
                 )
+
+        mem_intent = _try_memory_action(norm)
+        if mem_intent is not None:
+            return mem_intent, round((time.perf_counter() - t0) * 1000.0, 2)
+
+        # Preserve explicit Phase 1 Hassil countdown timers ("Remind me in 45 seconds", etc.)
+        if "to " not in norm.normalized.lower() and not re.search(
+            r"\b(?:light|fan|ac|tv|curtain|washer|vacuum|routine|reminder|शेड्यूल|रिमाइंडर|ಜ್ಞಾಪನೆ|ರಿಮೈಂಡರ್)\b",
+            norm.normalized.lower(),
+            flags=re.UNICODE,
+        ):
+            hassil_timer = self._try_hassil_single(norm)
+            if hassil_timer is not None and hassil_timer.intent_name == IntentName.SET_TIMER:
+                return (
+                    TypedIntent(
+                        intent_name=hassil_timer.intent_name,
+                        confidence=hassil_timer.confidence,
+                        source="hassil_fast",
+                        route_category="tool",
+                        language=norm.language,
+                        input_script=norm.script,
+                        slots=hassil_timer.slots,
+                        sub_actions=[hassil_timer],
+                        raw_text=raw_text,
+                    ),
+                    round((time.perf_counter() - t0) * 1000.0, 2),
+                )
+
+        sched_intent = _try_schedule_or_reminder_action(norm)
+        if sched_intent is not None:
+            return sched_intent, round((time.perf_counter() - t0) * 1000.0, 2)
 
         # Split compound commands safely (preserving "1 minute and 30 seconds")
         clauses = [c.strip() for c in _COMPOUND_SPLIT_RE.split(norm.normalized) if c.strip()]

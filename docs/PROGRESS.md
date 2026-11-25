@@ -1,5 +1,18 @@
 # AURA EDGE — Project Progress Log
 
+## Phase 3 — Persistent Memory, Scheduling, Routines & Proactive Notifications (`feat/backend-intelligence`)
+
+**Status:** Automated & empirical verification **COMPLETE** (`ruff check .\backend` 0 errors; **`183 passed, 0 failed, 0 skipped`** in `411.41s` against live PostgreSQL `0004_phase3_memory_events`). `frontend/` and `main` remain untouched.
+
+### Verified Phase 3 Deliverables
+- [x] **Remaining Voice Defects (3/3 Fixed)**: Preserved Kannada virama `\u0CCD` in `normalizer.py` (`"ಟೈಮ್ ಎಷ್ಟು"` -> `GetTime`); guaranteed single `response_completed` on mid-STT & `StaleTurnError` cancellations; serialized `cancel_turn()` `_turn_lock` cleanup and single `resume_after_playback()`.
+- [x] **Database Migration `0004_phase3_memory_events`**: Added `memory_settings`, `memory_items` (`Vector(768)` + partial unique canonical index + `'simple'` GIN FTS index), opt-in `conversation_history_items`, `scheduled_jobs`, `job_executions` (`UNIQUE(job_id, scheduled_occurrence_utc)`), `notifications` (`dedup_key`), `notification_preferences`, and extended `smart_home_routines`; verified reversible upgrade/downgrade round-trip on disposable DB.
+- [x] **Personal Memory & Local CPU Embeddings**: `LocalEmbedder` (`nomic-embed-text:latest`, `dim=768`, `num_gpu=0`) + `MemoryService` with prompt-injection & credential filter, structured appliance preference resolution/updates, runtime `memory_enabled` toggle, untrusted `<untrusted_user_memory>` LLM context, and 3-tier exact/keyword/`pgvector` retrieval.
+- [x] **Persistent Scheduler & Extended Routines**: `SchedulerService` (`SELECT ... FOR UPDATE SKIP LOCKED`, `Asia/Kolkata` once/daily/weekly recurrence, crash-interrupted & missed-job policies) + `SmartHomeService` custom/conditional/`simulator_event` routines, partial failure reporting, and recursion guards.
+- [x] **Proactive Notifications, AI Tools & REST/WS APIs**: `NotificationService` (DB-before-WS, quiet hours, bounded audio queue shared with timers & simulator completions), EN/HI/KN fast routing + Qwen planner + `ToolRegistry` execution, REST routes (`/api/v1/memory`, `/reminders`, `/schedules`, `/notifications`, `/smart-home/routines`), and real 10-step E2E scenario + benchmarks (`backend/scripts/benchmark_phase3.py`).
+
+---
+
 ## Voice Pipeline Stabilization Milestone (`feat/backend-intelligence`, R1–R9)
 
 **Status:** Automated & empirical verification **COMPLETE** (`ruff check .\backend` 0 errors; **`170 passed, 0 failed, 0 skipped`** in `281.65s` against live PostgreSQL). `frontend/` and `main` remain untouched.  
@@ -30,5 +43,5 @@
 
 ## Next Gate & Deferred Phases
 
-- **Immediate Gate:** Complete the 3–5 minute human microphone acceptance test in [`docs/VOICE_BUGFIX_REPORT.md`](./VOICE_BUGFIX_REPORT.md) (echo suppression, speaker pronunciation, and regional Karnataka Kannada verification).
-- **Phase 3+ (Not Started — Awaiting User Approval after Acceptance):** PostgreSQL preferences/history, local RAG, persistent scheduler, notification bus, personal assistant tools, full frontend dashboard.
+- **Live Microphone Verification:** Complete the physical microphone acceptance check in [`docs/VOICE_BUGFIX_REPORT.md`](./VOICE_BUGFIX_REPORT.md) + confirm Synapse 2.0 competition reuse/model-prep rules before final submission.
+- **Phase 4+ (Deferred — Not Started):** Tasks/calendar/briefings, groceries/recipes, expenses/parcels, local PDF RAG, desktop/file launcher tools, and React dashboard implementation on `feat/frontend-experience`.

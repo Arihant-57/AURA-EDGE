@@ -176,17 +176,21 @@ class ConversationSession:
         *,
         reply_language: LanguageCode,
         capability_summary: str | None = None,
+        memory_context: str = "",
         max_history_messages: int = 10,
     ) -> list[dict[str, str]]:
         """Assemble bounded chat messages for Ollama with language-targeted system prompt."""
         caps = capability_summary or (
             "Registered local tools: DateTimeTool (time/date), TimerManager (persistent timers), "
-            "and SmartHomeService (simulated local rooms/devices and routines)."
+            "SmartHomeService (simulated local rooms/devices and routines), "
+            "MemoryService (persistent preferences), and SchedulerService (reminders and schedules)."
         )
         sys_prompt = _CONVERSATION_SYSTEM_PROMPT.format(
             lang_name=_LANGUAGE_NAMES.get(reply_language, "English"),
             capabilities_description=caps,
         )
+        if memory_context.strip():
+            sys_prompt = f"{sys_prompt}\n\n{memory_context.strip()}"
         msgs: list[dict[str, str]] = [{"role": "system", "content": sys_prompt}]
         with self._lock:
             self._expire_if_idle_locked()

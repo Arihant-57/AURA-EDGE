@@ -1,6 +1,6 @@
 # AURA EDGE — API Contract & Interface Specification
 
-> **Current Version:** Phase 0 + Phase 1 + Phase 1.5 + Phase 2 (Voice Pipeline Stabilized)  
+> **Current Version:** Phase 0 + Phase 1 + Phase 1.5 + Phase 2 + Phase 3 (Memory, Scheduler, Routines, Notifications)  
 > **Base URL:** `http://127.0.0.1:8000/api/v1`  
 > **Vite UI Proxy:** `/api/v1` (proxied to `http://127.0.0.1:8000` via `vite.config.ts`)  
 > **Security & Connectivity:** Bound strictly to loopback (`127.0.0.1`). `strict_offline` blocks all outbound non-loopback requests.
@@ -217,11 +217,21 @@ All server frames share `{"type": string, "payload": object, "timestamp_utc": st
 | `timer_completed` | `{"timer": TimerView}` |
 | `timer_missed` | `{"timer": TimerView}` |
 | `action_verified` | `{"turn_id": string, "action": string, "status": string, "success": bool, "data": object}` |
-| `device_state_changed` | `{"device": SmartHomeDeviceView, "source": "voice"\|"ui"\|"routine"\|"sim"}` |
-| `device_availability_changed` | `{"device": SmartHomeDeviceView}` |
+| `device_state_changed` | `{"device": SmartHomeDeviceView, "context_id": string, "source": "voice"\|"ui"\|"routine"\|"sim"\|"schedule"\|"event_routine"}` |
+| `device_availability_changed` | `{"device_id": string, "available": bool}` |
 | `activity_completed` | `{"device": SmartHomeDeviceView}` |
-| `simulated_sensor_changed` | `{"device": SmartHomeDeviceView}` |
-| `routine_completed` | `{"routine_id": string, "devices": SmartHomeDeviceView[]}` |
+| `simulated_sensor_changed` | `{"device": SmartHomeDeviceView, "is_simulated": true}` |
+| `routine_completed` | `{"routine_id": string, "context_id": string, "status": "verified"\|"partial"\|"failed", "results": object[]}` |
+| `routine_updated` | `{"action": "created"\|"updated"\|"deleted", "routine"?: RoutineView, "routine_id"?: string}` |
+| `memory_updated` | `{"action": "created"\|"updated"\|"settings_updated", "item"?: MemoryItemView, "settings"?: MemorySettings}` |
+| `memory_deleted` | `{"id"?: string, "profile_id"?: string, "cleared_all": bool, "deleted_count"?: int}` |
+| `reminder_created` | `{"reminder": ScheduledJobView}` |
+| `reminder_due` | `{"reminder": ScheduledJobView, "execution": JobExecutionView}` |
+| `schedule_updated` | `{"action": "created"\|"updated"\|"paused"\|"resumed"\|"cancelled"\|"executed"\|"missed_recovered", "schedule": ScheduledJobView}` |
+| `schedule_executed` | `{"schedule": ScheduledJobView, "execution": JobExecutionView}` |
+| `schedule_failed` | `{"schedule": ScheduledJobView, "execution"?: JobExecutionView, "error": string}` |
+| `notification_created` | `{"notification": NotificationView, "unread_count": int, "visual_enabled": bool}` |
+| `notification_updated` | `{"notification"?: NotificationView, "action"?: "read_all", "updated_count"?: int, "unread_count": int}` |
 | `clarification_required` | `{"turn_id": string, "language": "en"\|"hi"\|"kn", "message": string, "reason"?: string}` |
 | `error` | `{"code"?: string, "turn_id"?: string, "message": string}` |
 
@@ -247,16 +257,59 @@ export type AssistantState =
 
 ---
 
-## 6. Phase 2 Persistent Smart-Home Simulator Endpoints (`/api/v1/smart-home`)
+## 6. Phase 2 & 3 Persistent Smart-Home Simulator Endpoints (`/api/v1/smart-home`)
 
 - `GET /api/v1/smart-home/rooms` -> Room list & device counts (`living_room`, `bedroom`, `kitchen`, `study`, `utility_room`).
 - `GET /api/v1/smart-home/devices?room=...` -> All persistent `SmartHomeDevice` records (`19` seeded devices).
 - `GET /api/v1/smart-home/devices/{device_id}` -> Single device (`404` if missing).
-- `POST /api/v1/smart-home/devices/{device_id}/command` — Body `{"action": str, "value": any, "source": "ui"|"voice"|"routine"|"simulator", "context_id": null}` (`200` verified, `422` capability rejection, `409` unavailable).
-- `GET /api/v1/smart-home/activities` -> Running, scheduled, and completed appliance cycles.
+- `POST /api/v1/smart-home/devices/{device_id}/command` — Body `{"action": str, "value": any, "source": "ui"|"voice"|"routine"|"simulator"|"schedule"|"event_routine", "context_id": null}` (`200` verified, `422` capability rejection, `409` unavailable).
+- `GET /api/v1/smart-home/activities` -> `{"running": DeviceView[], "scheduled": ScheduledJobView[], "completed": DeviceView[]}`.
 - `GET /api/v1/smart-home/history?device_id=...&limit=100` -> State change audit history.
 - `GET /api/v1/smart-home/energy` -> Estimated real-time simulated energy summary.
-- `GET /api/v1/smart-home/routines` & `POST /api/v1/smart-home/routines/{routine_id}/run` -> Persistent routines (`morning`, `night`, `study`, `away`).
-- `PUT /api/v1/smart-home/simulator/devices/{device_id}/availability` — Toggle device online/offline availability.
-- `POST /api/v1/smart-home/simulator/devices/{device_id}/complete` — Fast-forward running appliance cycle to completed.
-- `POST /api/v1/smart-home/simulator/devices/{device_id}/sensor` — Inject temperature/humidity readings (`422` if not writable).
+- `GET /api/v1/smart-home/routines` -> Lists built-in (`morning`, `night`, `study`, `away`) + custom routines with `triggers`, `conditions`, `actions`.
+- `POST /api/v1/smart-home/routines` (`201`) — Create custom routine (`name`, `actions`, optional `id`, `description`, `aliases`, `enabled`, `triggers`, `conditions`). Pre-validates every device capability (`422` if invalid/cyclic).
+- `GET /api/v1/smart-home/routines/{routine_id}` -> Single routine (`404` if missing).
+- `PATCH /api/v1/smart-home/routines/{routine_id}` -> Edit name, aliases, enabled, triggers, conditions, or actions.
+- `DELETE /api/v1/smart-home/routines/{routine_id}` -> Delete custom routine (`409` for built-in routines).
+- `POST /api/v1/smart-home/routines/{routine_id}/run?check_conditions=true` -> Returns `{"routine_id", "context_id", "status": "verified"|"partial"|"failed"|"skipped_condition", "results": [...]}`.
+- `PUT /api/v1/smart-home/simulator/devices/{device_id}/availability` — Toggle device online/offline availability (emits persistent notification).
+- `POST /api/v1/smart-home/simulator/devices/{device_id}/complete` — Fast-forward running appliance cycle to completed (emits persistent notification).
+- `POST /api/v1/smart-home/simulator/devices/{device_id}/sensor` — Inject temperature/humidity readings (`422` if not writable; evaluates `sensor_threshold` routines).
+
+---
+
+## 7. Phase 3 Persistent Personal Memory Endpoints (`/api/v1/memory`)
+
+- `GET /api/v1/memory?category=...&enabled_only=true&limit=100` -> `{"memory_enabled": bool, "count": int, "items": MemoryItemView[]}`.
+- `POST /api/v1/memory` (`201`) — Body `{"original_text", "category"?, "canonical_key"?, "structured_value"?, "language"?: "en"|"hi"|"kn", "provenance"?: "api", "enabled"?: true, "expires_at_utc"?: null}` -> `{"status": "verified", "created": bool, "item": MemoryItemView}` (`409` if disabled in settings, `422` if safety/capability validation fails).
+- `GET /api/v1/memory/search?q=...&category=...&limit=8&use_semantic=true` -> `{"memory_enabled": bool, "retrieval_method": "exact"|"keyword"|"semantic"|"hybrid_keyword_semantic"|"disabled"|"none", "items": MemoryItemView[]}`.
+- `GET /api/v1/memory/settings` -> `MemorySettings`.
+- `PUT /api/v1/memory/settings` — Body `{"memory_enabled"?, "auto_save_preferences"?, "persist_conversation_history"?, "retention_days"?, "clear_retention_days"?, "semantic_search_enabled"?}`.
+- `GET /api/v1/memory/{memory_id}`, `PATCH /api/v1/memory/{memory_id}`, `DELETE /api/v1/memory/{memory_id}`, `DELETE /api/v1/memory` (clear all).
+
+---
+
+## 8. Phase 3 Reminders & Persistent Scheduler Endpoints (`/api/v1`)
+
+### Reminders
+- `GET /api/v1/reminders?include_closed=false&limit=100` -> `ScheduledJobView[]`.
+- `POST /api/v1/reminders` (`201`) — Body `{"message", "title"?, "run_at_utc", "timezone"?: "Asia/Kolkata", "recurrence"?, "language"?: "en", "missed_policy"?: "notify_missed"}` -> `{"status": "verified", "reminder": ScheduledJobView}`.
+- `PATCH /api/v1/reminders/{job_id}` & `DELETE /api/v1/reminders/{job_id}`.
+
+### Schedules
+- `GET /api/v1/schedules?job_type=...&include_closed=false&limit=100` -> `ScheduledJobView[]`.
+- `POST /api/v1/schedules` (`201`) — Body `{"job_type": "device_action"|"routine"|"reminder", "run_at_utc", "timezone"?, "recurrence"?, "missed_policy"?, "device_id"?, "action"?, "value"?, "routine_id"?, "message"?, "title"?}` -> `{"status": "verified", "schedule": ScheduledJobView}`.
+- `GET /api/v1/schedules/{job_id}`, `PATCH /api/v1/schedules/{job_id}`, `DELETE /api/v1/schedules/{job_id}`.
+- `POST /api/v1/schedules/{job_id}/pause` & `POST /api/v1/schedules/{job_id}/resume`.
+- `GET /api/v1/schedules/{job_id}/executions?limit=50` -> `JobExecutionView[]`.
+
+---
+
+## 9. Phase 3 Proactive Notifications Endpoints (`/api/v1/notifications`)
+
+- `GET /api/v1/notifications?unread_only=false&notification_type=...&include_dismissed=false&limit=50` -> `{"unread_count": int, "count": int, "items": NotificationView[]}`.
+- `GET /api/v1/notifications/unread-count` -> `{"unread_count": int}`.
+- `POST /api/v1/notifications/{notification_id}/read` -> `{"status": "verified", "notification": NotificationView, "unread_count": int}`.
+- `POST /api/v1/notifications/read-all` -> `{"status": "verified", "updated_count": int, "unread_count": int}`.
+- `POST /api/v1/notifications/{notification_id}/dismiss` -> `{"status": "verified", "notification": NotificationView, "unread_count": int}`.
+- `GET /api/v1/notifications/preferences` & `PUT /api/v1/notifications/preferences` — `{"visual_enabled", "spoken_enabled", "quiet_hours_enabled", "quiet_hours_start", "quiet_hours_end", "timezone_name", "updated_at_utc"}`.

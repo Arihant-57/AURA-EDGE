@@ -47,6 +47,26 @@ class IntentName(str, Enum):
     CONVERSATION = "Conversation"
     DEVICE_CONTROL = "DeviceControl"
 
+    # Phase 3 Personal Memory, Scheduling, Reminders & Custom Routines
+    SAVE_MEMORY = "SaveMemory"
+    RETRIEVE_MEMORY = "RetrieveMemory"
+    UPDATE_MEMORY = "UpdateMemory"
+    DELETE_MEMORY = "DeleteMemory"
+    LIST_MEMORIES = "ListMemories"
+    CREATE_REMINDER = "CreateReminder"
+    LIST_REMINDERS = "ListReminders"
+    UPDATE_REMINDER = "UpdateReminder"
+    CANCEL_REMINDER = "CancelReminder"
+    SCHEDULE_DEVICE_ACTION = "ScheduleDeviceAction"
+    SCHEDULE_ROUTINE = "ScheduleRoutine"
+    LIST_SCHEDULES = "ListSchedules"
+    UPDATE_SCHEDULE = "UpdateSchedule"
+    CANCEL_SCHEDULE = "CancelSchedule"
+    CREATE_ROUTINE = "CreateRoutine"
+    UPDATE_ROUTINE = "UpdateRoutine"
+    DELETE_ROUTINE = "DeleteRoutine"
+    RUN_ROUTINE = "RunRoutine"
+
 
 class TypedAction(BaseModel):
     """Validated atomic sub-action inside a single or compound user request."""

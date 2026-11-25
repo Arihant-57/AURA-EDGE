@@ -332,7 +332,12 @@ def extract_duration_seconds(text: str) -> int | None:
 def _normalize_kannada_asr_variants(text: str) -> str:
     """Normalize known IndicConformer Kannada CTC character slips on timer/time commands."""
     out = re.sub(r"(?:ತೈಮರಿ+|ಟೈಮರಿ+)ಡು", "ಟೈಮರ್ ಇಡು", text)
-    out = re.sub(r"(?:ತ?ತೈಮರ್?|ಟೈಮ(?!ರ್)|ತೈಮ(?![\w\u0C80-\u0CFF]))", "ಟೈಮರ್", out)
+    # Preserve ಟೈಮ್ ("time", followed by Kannada virama \u0CCD) while normalizing slipped ಟೈಮ / ತೈಮರ್.
+    out = re.sub(
+        r"(?:ತ?ತೈಮರ್|ಟೈಮ(?!\u0CCD|ರ್|[\w\u0C80-\u0CFF])|ತೈಮ(?!\u0CCD|ರ್|[\w\u0C80-\u0CFF]))",
+        "ಟೈಮರ್",
+        out,
+    )
     out = re.sub(r"ಗಂತೆ(?![\w\u0C80-\u0CFF])", "ಗಂಟೆ", out)
     out = re.sub(r"ನಿಮಿಸ(?![\w\u0C80-\u0CFF])", "ನಿಮಿಷ", out)
     out = re.sub(r"ಗದ್ದು(?=\s+(?:ಮಾಡು|ಗೊಳಿಸು))", "ರದ್ದು", out)

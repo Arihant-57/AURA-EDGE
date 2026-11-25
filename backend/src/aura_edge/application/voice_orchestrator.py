@@ -7,6 +7,9 @@ import contextlib
 import inspect
 import logging
 import time
+from collections import deque
+from collections.abc import Callable
+from datetime import datetime
 from typing import Any, Literal
 
 import numpy as np
@@ -133,11 +136,20 @@ class VoiceOrchestrator:
         engine: Any,
         ws_hub: WebSocketEventHub,
         smart_home: Any | None = None,
+        *,
+        memory_service: Any | None = None,
+        scheduler_service: Any | None = None,
+        notification_service: Any | None = None,
+        clock: Callable[[], datetime] | None = None,
     ) -> None:
         self.settings = settings
         self.enforcer = enforcer
         self.engine = engine
         self.ws_hub = ws_hub
+        self.smart_home = smart_home
+        self.memory_service = memory_service
+        self.scheduler_service = scheduler_service
+        self.notification_service = notification_service
 
         self.compute_manager = ComputeManager(settings)
         self.session_language: RequestedLanguage = settings.default_language
@@ -184,8 +196,19 @@ class VoiceOrchestrator:
         self.conversation = ConversationSession(max_turns=12, idle_timeout_sec=1800.0)
         self.datetime_tool = DateTimeTool()
         self.timer_manager = TimerManager(engine, on_timer_event=self._handle_timer_event)
-        self.tool_registry = ToolRegistry(self.datetime_tool, self.timer_manager, smart_home)
+        self.tool_registry = ToolRegistry(
+            self.datetime_tool,
+            self.timer_manager,
+            smart_home,
+            memory_service=memory_service,
+            scheduler_service=scheduler_service,
+            notification_service=notification_service,
+            default_timezone=settings.default_timezone,
+            clock=clock,
+        )
         self.metric_repo = VoiceMetricRepository(engine)
+        if self.notification_service is not None:
+            self.notification_service.set_speak_callback(self.speak_notification)
 
         self.fsm = AssistantStateMachine(on_change=self._handle_state_change)
         self._turn_lock = asyncio.Lock()
@@ -197,6 +220,7 @@ class VoiceOrchestrator:
         self._conversation_task: asyncio.Task[None] | None = None
         self._conversation_silence_limit_sec = 60.0
         self._timer_audio_tasks: set[asyncio.Task[None]] = set()
+        self._completed_turn_ids: deque[str] = deque(maxlen=256)
 
     async def startup(self) -> dict[str, int]:
         """Recover persistent timers on FastAPI startup and warm common TTS phrases."""
@@ -239,11 +263,11 @@ class VoiceOrchestrator:
             },
         )
 
-    async def _speak_timer_notification(self, phrase: str, lang: LanguageCode) -> None:
-        """Speak completed/missed timer alerts exclusively without colliding with turns."""
+    async def speak_notification(self, phrase: str, lang: LanguageCode) -> bool:
+        """Speak proactive notification under _turn_lock without colliding or clearing user mute."""
         async with self._turn_lock:
             if self.fsm.state != AssistantState.IDLE or self.playback.is_playing:
-                return
+                return False
             if not self.audio_capture.is_suspended:
                 self.audio_capture.suspend_for_playback()
             did_play = False
@@ -252,10 +276,19 @@ class VoiceOrchestrator:
                     phrase, language=lang, play_to_speaker=True
                 )
                 did_play = pm.audio_playback_ms > 0.0
+                return did_play
+            except asyncio.CancelledError:
+                self.playback.stop()
+                raise
             except (OSError, RuntimeError, ValueError) as exc:
-                logger.debug("Timer completion audio skipped: %s", exc)
+                logger.debug("Notification audio skipped: %s", exc)
+                return False
             finally:
                 await self._resume_mic_after_speaking(did_speak=did_play)
+
+    async def _speak_timer_notification(self, phrase: str, lang: LanguageCode) -> None:
+        """Speak completed/missed timer alerts exclusively without colliding with turns."""
+        await self.speak_notification(phrase, lang)
 
     async def _handle_timer_event(self, event_type: str, timer_view: TimerView) -> None:
         await self.ws_hub.broadcast(event_type, {"timer": timer_view.model_dump()})
@@ -265,10 +298,28 @@ class VoiceOrchestrator:
             )  # type: ignore[assignment]
             lbl = f' "{timer_view.label}"' if timer_view.label else ""
             phrase = get_phrase("timer_completed", lang, label_part=lbl)
-            task = asyncio.create_task(self._speak_timer_notification(phrase, lang))
-            self._timer_audio_tasks.add(task)
-            task.add_done_callback(self._timer_audio_tasks.discard)
-            task.add_done_callback(_log_bg_task_exception)
+            if self.notification_service is not None:
+                title = (
+                    f"Timer missed{lbl}"
+                    if event_type == "timer_missed"
+                    else f"Timer completed{lbl}"
+                )
+                await self.notification_service.notify(
+                    notification_type=event_type,
+                    title=title,
+                    message=phrase,
+                    language=lang,
+                    source_id=timer_view.id,
+                    priority="high" if event_type == "timer_missed" else "normal",
+                    dedup_key=f"timer:{timer_view.id}:{event_type}",
+                    metadata={"timer": timer_view.model_dump()},
+                    speak=True,
+                )
+            else:
+                task = asyncio.create_task(self._speak_timer_notification(phrase, lang))
+                self._timer_audio_tasks.add(task)
+                task.add_done_callback(self._timer_audio_tasks.discard)
+                task.add_done_callback(_log_bg_task_exception)
 
     async def _resume_mic_after_speaking(self, *, did_speak: bool) -> None:
         """Resume microphone only after audio output drain and configurable acoustic cooldown."""
@@ -758,7 +809,22 @@ class VoiceOrchestrator:
             timestamps["stt_completion"] = time.perf_counter()
 
             if ctx.is_cancelled:
-                return self._cancelled_output(ctx, t_start, timestamps=timestamps, base_mono=base_mono)
+                det_lang: LanguageCode = getattr(stt_res, "detected_language", None) or self._last_resolved_language
+                return await self._finalize_cancelled_turn(
+                    ctx,
+                    t_start,
+                    timestamps=timestamps,
+                    base_mono=base_mono,
+                    detected_language=det_lang,
+                    preferred_reply_language=preferred_reply_lang,
+                    recognition_mode=getattr(stt_res, "recognition_mode", rec_mode),
+                    language_probability=getattr(stt_res, "language_probability", None),
+                    transcript_confidence=getattr(stt_res, "transcript_confidence", None),
+                    stt_model=getattr(stt_res, "model_size", None),
+                    stt_ms=getattr(stt_res, "latency_ms", None),
+                    router_ms=None,
+                    transcript=getattr(stt_res, "text", None),
+                )
 
             lang_prob = getattr(stt_res, "language_probability", None)
             transcript_conf = getattr(stt_res, "transcript_confidence", None)
@@ -963,7 +1029,21 @@ class VoiceOrchestrator:
                 transcript=stt_res.text,
             )
         except StaleTurnError:
-            return self._cancelled_output(ctx, t_start, timestamps=timestamps, base_mono=base_mono)
+            return await self._finalize_cancelled_turn(
+                ctx,
+                t_start,
+                timestamps=timestamps,
+                base_mono=base_mono,
+                detected_language=self._last_resolved_language,
+                preferred_reply_language=preferred_reply_lang,
+                recognition_mode=rec_mode,
+                language_probability=None,
+                transcript_confidence=None,
+                stt_model=None,
+                stt_ms=None,
+                router_ms=None,
+                transcript=None,
+            )
         except ModelNotFoundError as exc:
             await self._safe_error(ctx, str(exc))
             return self._error_output(ctx, str(exc), t_start, timestamps=timestamps, base_mono=base_mono)
@@ -1014,7 +1094,21 @@ class VoiceOrchestrator:
                     transcript=text,
                 )
             except StaleTurnError:
-                return self._cancelled_output(ctx, t_start, timestamps=timestamps, base_mono=t_start)
+                return await self._finalize_cancelled_turn(
+                    ctx,
+                    t_start,
+                    timestamps=timestamps,
+                    base_mono=t_start,
+                    detected_language=fallback_lang,
+                    preferred_reply_language=pref_lang,
+                    recognition_mode=self.stt_recognition_mode,
+                    language_probability=None,
+                    transcript_confidence=None,
+                    stt_model=None,
+                    stt_ms=None,
+                    router_ms=None,
+                    transcript=text,
+                )
             except Exception as exc:
                 logger.exception("Unexpected error processing text turn %s", ctx.turn_id)
                 await self._safe_error(ctx, str(exc))
@@ -1321,6 +1415,17 @@ class VoiceOrchestrator:
                 route_category=typed_intent.route_category,
                 turn_id=ctx.turn_id,
             )
+            if self.memory_service is not None:
+                try:
+                    self.memory_service.maybe_persist_conversation_turn(
+                        turn_id=ctx.turn_id,
+                        user_text=text,
+                        assistant_text=result.message,
+                        language=reply_language,
+                        intent=typed_intent.intent_name.value,
+                    )
+                except (SQLAlchemyError, OSError, RuntimeError) as exc:
+                    logger.debug("Skipping persistent conversation log: %s", exc)
             await self.ws_hub.broadcast(
                 "conversation_history_updated",
                 {"count": len(self.conversation.get_history()), "turn_id": ctx.turn_id},
@@ -1418,10 +1523,17 @@ class VoiceOrchestrator:
             "did_speak_attempt": False,
         }
         caps = self.tool_registry.describe_capabilities(reply_language)
+        mem_context = ""
+        if self.memory_service is not None:
+            try:
+                mem_context = await self.memory_service.build_untrusted_prompt_context(user_text)
+            except (SQLAlchemyError, OSError, RuntimeError, ValueError) as exc:
+                logger.debug("Skipping memory context lookup: %s", exc)
         messages = self.conversation.build_llm_messages(
             user_text,
             reply_language=reply_language,
             capability_summary=caps,
+            memory_context=mem_context,
         )
         low_u = user_text.lower()
         want_detail = any(
@@ -1575,7 +1687,7 @@ class VoiceOrchestrator:
             except (OSError, RuntimeError, ValueError) as exc:
                 logger.warning("Streaming TTS playback failed: %s", exc)
             finally:
-                did_play = bool(speak_res["playback_ms"] and speak_res["playback_ms"] > 0.0)
+                did_play = bool(speak_res["playback_ms"] and speak_res["playback_ms"] > 0.0) and not ctx.is_cancelled
                 await self._resume_mic_after_speaking(did_speak=did_play)
         elif speak and not ctx.is_cancelled:
             speak_res = await self._maybe_speak(
@@ -1664,7 +1776,7 @@ class VoiceOrchestrator:
             logger.warning("TTS speaking skipped/failed: %s", exc)
             return empty
         finally:
-            await self._resume_mic_after_speaking(did_speak=did_play)
+            await self._resume_mic_after_speaking(did_speak=did_play and not ctx.is_cancelled)
 
     def _build_timings_dict(
         self,
@@ -1765,6 +1877,9 @@ class VoiceOrchestrator:
             payload["rejection_reason"] = rejection_reason
         if error is not None:
             payload["error"] = error
+        if turn_id in self._completed_turn_ids:
+            return
+        self._completed_turn_ids.append(turn_id)
         await self.ws_hub.broadcast("response_completed", payload)
 
     async def _safe_error(self, ctx: TurnContext, message: str) -> None:
@@ -1931,14 +2046,15 @@ class VoiceOrchestrator:
         if self._ptt_task is not None and not self._ptt_task.done():
             self._ptt_task.cancel()
         res = await self.fsm.cancel_active_turn(turn_id=turn_id)
-        # Wait briefly for any active turn holding _turn_lock to finish unwinding
+        # Wait for any active turn holding _turn_lock to finish unwinding
         if self._turn_lock.locked():
             acquired = False
+            wait_limit = max(2.0, float(self.settings.audio_post_playback_cooldown_sec) + 1.5)
             with contextlib.suppress(TimeoutError):
-                await asyncio.wait_for(self._turn_lock.acquire(), timeout=1.0)
+                await asyncio.wait_for(self._turn_lock.acquire(), timeout=wait_limit)
                 acquired = True
             if acquired:
                 self._turn_lock.release()
-        if was_speaking:
-            await self._resume_mic_after_speaking(did_speak=True)
+        if was_speaking and self.audio_capture.is_suspended:
+            await self._resume_mic_after_speaking(did_speak=False)
         return dict(res)

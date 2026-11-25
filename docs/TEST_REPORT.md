@@ -11,9 +11,9 @@
 
 ---
 
-## 1. Consolidated Backend Lint & Full Phase 0–2 Regression Suite
+## 1. Consolidated Backend Lint & Full Phase 0–3 Regression Suite
 
-Executed from `C:\Users\ariha\Desktop\AURA-EDGE` against live PostgreSQL (`aura-edge-postgres`):
+Executed from `C:\Users\ariha\Desktop\AURA-EDGE` against live PostgreSQL (`aura-edge-postgres`, revision `0004_phase3_memory_events`):
 
 ```powershell
 .\.venv\Scripts\ruff.exe check .\backend
@@ -23,11 +23,11 @@ $env:AURA_EDGE_REQUIRE_LIVE_DB="1"
 
 **Observed Results:**
 - `ruff check .\backend`: **All checks passed!** (`0` errors)
-- `pytest -v .\backend\tests`: **`170 passed, 0 failed, 0 skipped` in `281.65s` (`0:04:41`)**
+- `pytest -v .\backend\tests`: **`183 passed, 0 failed, 0 skipped` in `411.41s` (`0:06:51`)**
 
-### Suite Breakdown (`170` Tests Total)
+### Suite Breakdown (`183` Tests Total)
 - **Phase 0 Foundation (`14` passed):** `test_config_and_db_guard.py` (`5`), `test_db_live_integration.py` (`1`), `test_health_api.py` (`3`), `test_network_policy.py` (`5`).
-- **Phase 1 Core (`117` passed):**
+- **Phase 1 Core (`121` passed):**
   - `test_phase1_multilingual_router.py` (`100`: 96 EN/HI/KN utterances + Unicode preservation, compound guard, LLM schema refusal, R5 colloquial clock & smart-home/routine/planner tests)
   - `test_phase1_audio_and_vad.py` (`6`: host devices, missing mic error, echo suppression/cancel, Silero VAD, multi-frame onset `onset_frames=2`, pre-roll preservation + `CaptureMetrics`)
   - `test_phase1_stt_and_compute.py` (`4`: CPU/GPU fallback, missing model guard, CPU/CUDA Whisper on EN/HI/KN, R2 decoupled EN/HI speech under KN reply preference)
@@ -35,10 +35,9 @@ $env:AURA_EDGE_REQUIRE_LIVE_DB="1"
   - `test_phase1_state_machine.py` (`2`), `test_phase1_timers_live_db.py` (`1`), `test_phase1_api_and_ws.py` (`2`), `test_phase1_voice_conversations.py` (`3`).
 - **Phase 1.5 & Phase 2 (`10` passed):** `test_phase1_5_conversation.py` (`7`), `test_phase2_smart_home.py` (`3`).
 - **Stabilization & Cross-Track Integration (`25` passed):**
-  - `test_speech_recognition_gate.py` (`4`: R4 silence/fan noise rejection, garbled/repetition/hallucination rejection, short command preservation, CTC script validation & quiet-mic AGC)
-  - `test_speech_generation_and_streaming.py` (`7`: R6 Kannada transliteration & `vits-mms-kan` normal == streaming parity, catalog/prewarm/voice consistency, `SentenceStreamBuffer` abbreviations/clauses, lock-free `_BoundedPcmBuffer`, concurrent prefetch & inside-callback monotonic timing, barge-in fade-out)
-  - `test_voice_bugfixes.py` (`6`: capability prompt, language enforcement, PCM conditioning & half-duplex suspension, 10 consecutive hands-free turns + concurrency, CLI validation & `TurnOutputDeduplicator`, CLI WS terminal outcomes)
-  - `test_voice_orchestrator_outcomes.py` (`8`: R2 capture metrics & strict mode, R4 silence vs unclear_speech, R5 `response_completed` ordering & ambiguous `DeviceControl` clarification, R8 per-chunk streaming validation & `spoken_text == response_text` parity, R7/R8 Ollama cancellation & half-duplex turn serialization, real WAV cross-lingual EN->KN and HI->KN replies, Hinglish/Kanglish mixed utterances end-to-end, simulated callback monotonic `stage_timestamps` + mid-stream cancellation concurrency).
+  - `test_speech_recognition_gate.py` (`4`), `test_speech_generation_and_streaming.py` (`7`), `test_voice_bugfixes.py` (`6`), `test_voice_orchestrator_outcomes.py` (`8`).
+- **Phase 3 Persistent Memory, Scheduling, Routines & Notifications (`13` passed):**
+  - `test_phase3_voice_fixes.py` (`3`), `test_phase3_memory.py` (`4`), `test_phase3_scheduler_and_routines.py` (`3`), `test_phase3_notifications.py` (`2`), `test_phase3_e2e_demo.py` (`1`). Detailed breakdown in [`docs/PHASE_3_TEST_REPORT.md`](./PHASE_3_TEST_REPORT.md).
 
 ---
 

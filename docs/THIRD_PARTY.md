@@ -51,6 +51,7 @@ informed by documented Home Assistant/Lyra research; no source was copied.
 | `vits-piper-hi_IN-rohan-medium` | `k2-fsa/sherpa-onnx` release / `rhasspy/piper-voices` | IIT Madras IndicTTS Hindi dataset license + Lessac base | Verify IITM academic/non-commercial terms before commercial release. |
 | `vits-mms-kan` (`facebook/mms-tts-kan` ONNX) | `Symmetris-labs/tts-mms` (`facebook/mms-tts-kan`) | **`CC-BY-NC-4.0`** (Non-Commercial) | Clean CPU Kannada TTS for hackathon/research; **disallowed for commercial distribution**. |
 | `qwen3.5:4b` (Ollama manifest) | Ollama local registry | Apache-2.0 (verify model card) | Local inference via `127.0.0.1:11434`. |
+| `nomic-embed-text:latest` (Ollama manifest) | Ollama local registry | **Apache-2.0** | Phase 3 local CPU (`num_gpu=0`) 768-dim embeddings via `127.0.0.1:11434/api/embed`; keyword fallback if unavailable. Zero new Python pip dependencies added in Phase 3 (`zoneinfo` + host `tzdata` already present). |
 | `Windows.Media.SpeechSynthesis` / SAPI5 | Microsoft Windows 11 OS | Proprietary OS built-in | English emergency fallback only (`0` HI, `0` KN offline OS voices). |
 
 ## 4. Reference Repositories Inspected Outside Repository (`C:\Users\ariha\Desktop\AURA-EDGE-RESEARCH`)

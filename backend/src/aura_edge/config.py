@@ -110,6 +110,14 @@ class Settings(BaseSettings):
     tts_default_speed: float = 1.0
     cuda_dll_dirs: Annotated[list[str], NoDecode] = []
 
+    # Phase 3 Persistent Memory, Scheduler & Proactive Notification Settings
+    default_timezone: str = "Asia/Kolkata"
+    embedding_model: str = "nomic-embed-text:latest"
+    embedding_dim: int = 768
+    scheduler_poll_interval_sec: float = 1.0
+    scheduler_missed_grace_sec: float = 60.0
+    notification_audio_queue_max: int = 16
+
     @field_validator("audio_post_playback_cooldown_sec")
     @classmethod
     def _non_negative_cooldown(cls, value: float) -> float:

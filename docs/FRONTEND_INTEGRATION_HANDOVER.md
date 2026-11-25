@@ -41,8 +41,11 @@
 | Language & Mode Switch | `PUT /api/v1/voice/language` | `{"language": "auto"\|"en"\|"hi"\|"kn", "recognition_mode"?: "multilingual"\|"strict"}`. |
 | Compute Mode Switch | `PUT /api/v1/voice/compute-mode` | `{"compute_mode": "auto"\|"cpu"\|"gpu"}` — returns honest `effective_mode` and `fallback_reason`. |
 | Persistent Timers | `GET/POST /api/v1/timers`, `POST /api/v1/timers/{id}/{pause,resume}`, `DELETE /api/v1/timers/{id}` | Authoritative PostgreSQL state; survives backend restarts. |
-| Smart-Home Simulator | `GET /api/v1/smart-home/{rooms,devices,activities,history,energy,routines}`, `POST /api/v1/smart-home/devices/{id}/command` | Use `/rooms` for navigation, filter `/devices` by room, render controls from `capabilities`, and preserve simulated/estimated labels. |
-| Real-Time Events | `WS /api/v1/ws/live` | Initial snapshot includes `recognition_mode`; emits `assistant_state_change`, `audio_level`, `transcript_ready`, `response_text_delta`, `response_completed`, `conversation_mode_change`, `mic_mute_change`, `conversation_history_updated`, `timer_*`, `action_verified`, `device_*`, `activity_completed`, `simulated_sensor_changed`, `routine_completed`, `clarification_required`, `error`. |
+| Smart-Home Simulator & Custom Routines | `GET/POST/PATCH/DELETE /api/v1/smart-home/routines`, `GET /api/v1/smart-home/{rooms,devices,activities,history,energy}`, `POST /api/v1/smart-home/devices/{id}/command` | Built-in + custom conditional routines; `/activities.scheduled` now populated from persistent scheduler. |
+| Personal Memory & Settings | `GET/POST /api/v1/memory`, `GET /api/v1/memory/search`, `GET/PUT /api/v1/memory/settings`, `PATCH/DELETE /api/v1/memory/{id}`, `DELETE /api/v1/memory` | Structured appliance preferences (`canonical_key`), semantic search, toggleable privacy & clear controls. |
+| Reminders & Schedules | `GET/POST /api/v1/reminders`, `PATCH/DELETE /api/v1/reminders/{id}`, `GET/POST/PATCH/DELETE /api/v1/schedules`, `POST /api/v1/schedules/{id}/{pause,resume}`, `GET /api/v1/schedules/{id}/executions` | Persistent planner for one-time, daily, and weekly IST (`Asia/Kolkata`) jobs + missed-job status & execution audit log. |
+| Proactive Notification Center | `GET /api/v1/notifications`, `GET /api/v1/notifications/unread-count`, `POST /api/v1/notifications/{id}/{read,dismiss}`, `POST /api/v1/notifications/read-all`, `GET/PUT /api/v1/notifications/preferences` | Fetch on mount/reconnect so missed alerts while UI was offline always appear; drive badge from `unread_count`. |
+| Real-Time Events | `WS /api/v1/ws/live` | Emits all Phase 1–2 events plus `memory_updated`, `memory_deleted`, `reminder_created`, `reminder_due`, `schedule_updated`, `schedule_executed`, `schedule_failed`, `routine_updated`, `notification_created`, `notification_updated`. |
 
 ---
 
@@ -186,6 +189,85 @@ export interface LanguageSelectResponse {
   resolved_language: LanguageCode;
   recognition_mode: RecognitionMode;
   stt_language: RequestedLanguage;
+}
+
+export interface MemoryItemView {
+  id: string;
+  profile_id: string;
+  category: "appliance_preference" | "preference" | "fact" | "instruction" | "profile";
+  canonical_key: string | null;
+  original_text: string;
+  structured_value: Record<string, unknown>;
+  language: LanguageCode;
+  provenance: string;
+  enabled: boolean;
+  expires_at_utc: string | null;
+  embedding_model: string | null;
+  embedding_dim: number | null;
+  similarity?: number;
+  created_at_utc: string;
+  updated_at_utc: string;
+}
+
+export interface MemorySettingsView {
+  profile_id: string;
+  memory_enabled: boolean;
+  auto_save_preferences: boolean;
+  persist_conversation_history: boolean;
+  retention_days: number | null;
+  semantic_search_enabled: boolean;
+  embedding_model: string;
+  updated_at_utc: string;
+}
+
+export interface ScheduledJobView {
+  id: string;
+  job_type: "reminder" | "device_action" | "routine";
+  title: string;
+  language: LanguageCode;
+  payload: Record<string, unknown>;
+  scheduled_at_utc: string;
+  timezone: string;
+  recurrence: { kind: "once" | "daily" | "weekly"; hour?: number; minute?: number; weekdays?: number[] };
+  enabled: boolean;
+  status: "scheduled" | "due" | "running" | "completed" | "failed" | "missed" | "cancelled" | "paused";
+  missed_policy: "notify_missed" | "skip" | "execute_if_safe";
+  next_run_at_utc: string | null;
+  last_run_at_utc: string | null;
+  last_error: string | null;
+  device_id: string | null;
+  routine_id: string | null;
+  created_at_utc: string;
+  updated_at_utc: string;
+}
+
+export interface NotificationView {
+  id: string;
+  notification_type: string;
+  title: string;
+  message: string;
+  language: LanguageCode;
+  source_id: string | null;
+  priority: "low" | "normal" | "high" | "urgent";
+  is_read: boolean;
+  is_dismissed: boolean;
+  spoken_delivered: boolean;
+  dedup_key: string | null;
+  metadata: Record<string, unknown>;
+  created_at_utc: string;
+  read_at_utc: string | null;
+  dismissed_at_utc: string | null;
+}
+
+export interface NotificationPreferencesView {
+  profile_id: string;
+  visual_enabled: boolean;
+  spoken_enabled: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string;
+  quiet_hours_end: string;
+  timezone_name: string;
+  updated_at_utc: string;
 }
 ```
 

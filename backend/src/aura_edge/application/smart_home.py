@@ -6,6 +6,8 @@ import asyncio
 import contextlib
 import copy
 import logging
+import re
+import time
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -225,10 +227,49 @@ def _seed_rows() -> list[dict[str, Any]]:
 
 
 class SmartHomeService:
-    def __init__(self, engine: Engine, ws_hub: WebSocketEventHub) -> None:
+    def __init__(
+        self,
+        engine: Engine,
+        ws_hub: WebSocketEventHub,
+        notification_service: Any | None = None,
+    ) -> None:
         self.engine = engine
         self.ws_hub = ws_hub
+        self.notification_service = notification_service
         self._simulation_task: asyncio.Task[None] | None = None
+        self._event_cooldowns: dict[str, float] = {}
+
+    def set_notification_service(self, notification_service: Any) -> None:
+        self.notification_service = notification_service
+
+    async def _emit_notification(
+        self,
+        *,
+        notification_type: str,
+        title: str,
+        message: str,
+        source_id: str | None = None,
+        priority: str = "normal",
+        dedup_key: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        speak: bool = True,
+    ) -> None:
+        if self.notification_service is None:
+            return
+        try:
+            await self.notification_service.notify(
+                notification_type=notification_type,
+                title=title,
+                message=message,
+                language="en",
+                source_id=source_id,
+                priority=priority,
+                dedup_key=dedup_key,
+                metadata=metadata,
+                speak=speak,
+            )
+        except (SQLAlchemyError, OSError, RuntimeError, ValueError) as exc:
+            logger.warning("Failed to emit smart-home notification (%s): %s", notification_type, exc)
 
     async def startup(self) -> dict[str, int]:
         try:
@@ -259,25 +300,61 @@ class SmartHomeService:
 
     def seed_routines_if_empty(self) -> int:
         definitions = [
-            SmartHomeRoutine(id="morning", name="Morning", aliases={"hi": ["सुबह"], "kn": ["ಬೆಳಗ್ಗೆ"]}, actions=[
-                {"device_id": "curtain.bedroom", "action": "position", "value": 100},
-                {"device_id": "light.kitchen_main", "action": "power", "value": True},
-            ]),
-            SmartHomeRoutine(id="night", name="Night", aliases={"hi": ["रात"], "kn": ["ರಾತ್ರಿ"]}, actions=[
-                {"device_id": "light.living_main", "action": "power", "value": False},
-                {"device_id": "light.kitchen_main", "action": "power", "value": False},
-                {"device_id": "curtain.bedroom", "action": "position", "value": 0},
-            ]),
-            SmartHomeRoutine(id="study", name="Study", aliases={"hi": ["पढ़ाई"], "kn": ["ಅಧ್ಯಯನ"]}, actions=[
-                {"device_id": "light.study_desk", "action": "brightness", "value": 85},
-                {"device_id": "fan.study", "action": "speed", "value": 2},
-            ]),
-            SmartHomeRoutine(id="away", name="Away", aliases={"hi": ["बाहर"], "kn": ["ಹೊರಗೆ"]}, actions=[
-                {"device_id": "light.living_main", "action": "power", "value": False},
-                {"device_id": "fan.living_ceiling", "action": "power", "value": False},
-                {"device_id": "ac.living", "action": "power", "value": False},
-                {"device_id": "tv.living", "action": "power", "value": False},
-            ]),
+            SmartHomeRoutine(
+                id="morning",
+                name="Morning",
+                description="Opens bedroom curtains and turns on the kitchen light.",
+                is_builtin=True,
+                aliases={"hi": ["सुबह"], "kn": ["ಬೆಳಗ್ಗೆ"]},
+                triggers=[{"type": "manual"}],
+                conditions=[],
+                actions=[
+                    {"device_id": "curtain.bedroom", "action": "position", "value": 100},
+                    {"device_id": "light.kitchen_main", "action": "power", "value": True},
+                ],
+            ),
+            SmartHomeRoutine(
+                id="night",
+                name="Night",
+                description="Switches off living and kitchen lights and closes bedroom curtains.",
+                is_builtin=True,
+                aliases={"hi": ["रात"], "kn": ["ರಾತ್ರಿ"]},
+                triggers=[{"type": "manual"}],
+                conditions=[],
+                actions=[
+                    {"device_id": "light.living_main", "action": "power", "value": False},
+                    {"device_id": "light.kitchen_main", "action": "power", "value": False},
+                    {"device_id": "curtain.bedroom", "action": "position", "value": 0},
+                ],
+            ),
+            SmartHomeRoutine(
+                id="study",
+                name="Study",
+                description="Sets study desk brightness to 85% and study fan to speed 2.",
+                is_builtin=True,
+                aliases={"hi": ["पढ़ाई"], "kn": ["ಅಧ್ಯಯನ"]},
+                triggers=[{"type": "manual"}],
+                conditions=[],
+                actions=[
+                    {"device_id": "light.study_desk", "action": "brightness", "value": 85},
+                    {"device_id": "fan.study", "action": "speed", "value": 2},
+                ],
+            ),
+            SmartHomeRoutine(
+                id="away",
+                name="Away",
+                description="Turns off non-essential living room appliances.",
+                is_builtin=True,
+                aliases={"hi": ["बाहर"], "kn": ["ಹೊರಗೆ"]},
+                triggers=[{"type": "manual"}],
+                conditions=[],
+                actions=[
+                    {"device_id": "light.living_main", "action": "power", "value": False},
+                    {"device_id": "fan.living_ceiling", "action": "power", "value": False},
+                    {"device_id": "ac.living", "action": "power", "value": False},
+                    {"device_id": "tv.living", "action": "power", "value": False},
+                ],
+            ),
         ]
         with Session(self.engine) as session:
             if session.scalar(select(SmartHomeRoutine.id).limit(1)) is not None:
@@ -393,34 +470,451 @@ class SmartHomeService:
                 "recorded_at_utc": row.recorded_at_utc.isoformat(),
             } for row in rows]
 
+    @staticmethod
+    def _routine_to_dict(r: SmartHomeRoutine) -> dict[str, Any]:
+        return {
+            "id": r.id,
+            "name": r.name,
+            "description": r.description,
+            "aliases": r.aliases or {},
+            "enabled": r.enabled,
+            "is_builtin": bool(r.is_builtin),
+            "triggers": list(r.triggers or [{"type": "manual"}]),
+            "conditions": list(r.conditions or []),
+            "actions": list(r.actions or []),
+            "last_run_at_utc": r.last_run_at_utc.isoformat() if r.last_run_at_utc else None,
+            "created_at_utc": r.created_at_utc.isoformat() if r.created_at_utc else None,
+            "updated_at_utc": r.updated_at_utc.isoformat() if r.updated_at_utc else None,
+        }
+
+    def validate_device_command(self, device_id: str, action: str, value: Any) -> SmartHomeDevice:
+        """Validate device existence and capability range/enum without mutating state."""
+        row = self.get_device(device_id)
+        if row is None:
+            raise LookupError(f"Device '{device_id}' not found.")
+        capabilities = row.capabilities or {}
+        if action not in capabilities:
+            raise ValueError(f"{row.device_type} does not support {action}.")
+        spec = capabilities[action]
+        if "enum" in spec:
+            if value not in spec["enum"]:
+                raise ValueError(f"{action} must be one of {spec['enum']}.")
+        elif spec.get("type") == "bool":
+            if not isinstance(value, bool):
+                raise ValueError(f"{action} must be true or false.")
+        elif "min" in spec:
+            if not isinstance(value, (int, float)) or isinstance(value, bool):
+                raise ValueError(f"{action} must be numeric.")
+            if not spec["min"] <= value <= spec["max"]:
+                raise ValueError(f"{action} must be in {spec['min']}..{spec['max']}.")
+        return row
+
+    def validate_routine_definition(
+        self,
+        *,
+        actions: list[dict[str, Any]],
+        triggers: list[dict[str, Any]] | None = None,
+        conditions: list[dict[str, Any]] | None = None,
+    ) -> None:
+        if not actions:
+            raise ValueError("Routine must contain at least one action.")
+        if len(actions) > 15:
+            raise ValueError("Routine action chain cannot exceed 15 steps.")
+        for idx, step in enumerate(actions):
+            if not isinstance(step, dict) or "device_id" not in step or "action" not in step:
+                raise ValueError(f"Action step {idx} requires 'device_id', 'action', and 'value'.")
+            if step.get("action") == "routine" or str(step.get("device_id", "")).startswith("routine."):
+                raise ValueError("Nested or recursive routine steps are forbidden.")
+            self.validate_device_command(
+                str(step["device_id"]), str(step["action"]), step.get("value")
+            )
+
+        for trig in triggers or []:
+            t_type = trig.get("type")
+            if t_type not in {"manual", "time", "simulator_event"}:
+                raise ValueError(f"Unsupported routine trigger type: {t_type!r}.")
+            if t_type == "simulator_event":
+                ev_name = trig.get("event")
+                if ev_name not in {"sensor_threshold", "activity_completed", "device_state"}:
+                    raise ValueError(f"Unsupported simulator_event trigger: {ev_name!r}.")
+
+        for cond in conditions or []:
+            kind = cond.get("kind")
+            op = cond.get("op", "eq")
+            if kind not in {"device_state", "room_state", "sensor_threshold"}:
+                raise ValueError(f"Unsupported routine condition kind: {kind!r}.")
+            if op not in {"eq", "ne", "gt", "gte", "lt", "lte"}:
+                raise ValueError(f"Unsupported routine condition operator: {op!r}.")
+
     def list_routines(self) -> list[dict[str, Any]]:
         with Session(self.engine) as session:
             rows = list(session.scalars(select(SmartHomeRoutine).order_by(SmartHomeRoutine.id)).all())
-            return [{"id": r.id, "name": r.name, "aliases": r.aliases, "enabled": r.enabled, "actions": r.actions, "last_run_at_utc": r.last_run_at_utc.isoformat() if r.last_run_at_utc else None} for r in rows]
+            return [self._routine_to_dict(r) for r in rows]
 
-    async def run_routine(self, routine_id: str, *, source: str = "routine") -> dict[str, Any]:
+    def get_routine(self, routine_id: str) -> dict[str, Any] | None:
+        with Session(self.engine) as session:
+            row = session.get(SmartHomeRoutine, routine_id)
+            return self._routine_to_dict(row) if row is not None else None
+
+    def resolve_routine_by_name_or_id(self, query: str) -> dict[str, Any] | None:
+        needle = (query or "").strip().lower()
+        if not needle:
+            return None
+        for r in self.list_routines():
+            if r["id"].lower() == needle or r["name"].lower() == needle:
+                return r
+            for alias_list in (r.get("aliases") or {}).values():
+                if any(str(a).strip().lower() == needle for a in alias_list):
+                    return r
+        return None
+
+    async def create_routine(
+        self,
+        *,
+        name: str,
+        actions: list[dict[str, Any]],
+        routine_id: str | None = None,
+        description: str | None = None,
+        aliases: dict[str, Any] | None = None,
+        enabled: bool = True,
+        triggers: list[dict[str, Any]] | None = None,
+        conditions: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        clean_name = " ".join((name or "").split()).strip()
+        if not clean_name:
+            raise ValueError("Routine name cannot be empty.")
+        slug = routine_id.strip().lower() if routine_id and routine_id.strip() else re.sub(
+            r"[^a-z0-9_]+", "_", clean_name.lower()
+        ).strip("_")
+        if not slug:
+            slug = f"custom_{uuid.uuid4().hex[:8]}"
+        slug = slug[:48]
+
+        effective_triggers = list(triggers) if triggers else [{"type": "manual"}]
+        effective_conditions = list(conditions or [])
+        self.validate_routine_definition(
+            actions=actions,
+            triggers=effective_triggers,
+            conditions=effective_conditions,
+        )
+
+        now = datetime.now(UTC)
+        with Session(self.engine) as session:
+            if session.get(SmartHomeRoutine, slug) is not None:
+                raise ValueError(f"Routine '{slug}' already exists.")
+            row = SmartHomeRoutine(
+                id=slug,
+                name=clean_name[:96],
+                description=description,
+                aliases=dict(aliases or {}),
+                enabled=bool(enabled),
+                is_builtin=False,
+                triggers=effective_triggers,
+                conditions=effective_conditions,
+                actions=list(actions),
+                created_at_utc=now,
+                updated_at_utc=now,
+            )
+            session.add(row)
+            session.commit()
+            session.refresh(row)
+            out = self._routine_to_dict(row)
+        await self.ws_hub.broadcast("routine_updated", {"action": "created", "routine": out})
+        return out
+
+    async def update_routine(
+        self,
+        routine_id: str,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        aliases: dict[str, Any] | None = None,
+        enabled: bool | None = None,
+        triggers: list[dict[str, Any]] | None = None,
+        conditions: list[dict[str, Any]] | None = None,
+        actions: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        with Session(self.engine) as session:
+            row = session.get(SmartHomeRoutine, routine_id)
+            if row is None:
+                raise LookupError("Routine not found.")
+            cand_actions = list(actions) if actions is not None else list(row.actions or [])
+            cand_triggers = list(triggers) if triggers is not None else list(row.triggers or [])
+            cand_conditions = list(conditions) if conditions is not None else list(row.conditions or [])
+            self.validate_routine_definition(
+                actions=cand_actions,
+                triggers=cand_triggers,
+                conditions=cand_conditions,
+            )
+            if name is not None:
+                clean_name = " ".join(name.split()).strip()
+                if not clean_name:
+                    raise ValueError("Routine name cannot be empty.")
+                row.name = clean_name[:96]
+            if description is not None:
+                row.description = description
+            if aliases is not None:
+                row.aliases = dict(aliases)
+            if enabled is not None:
+                row.enabled = bool(enabled)
+            if triggers is not None:
+                row.triggers = cand_triggers
+            if conditions is not None:
+                row.conditions = cand_conditions
+            if actions is not None:
+                row.actions = cand_actions
+            row.updated_at_utc = datetime.now(UTC)
+            session.commit()
+            session.refresh(row)
+            out = self._routine_to_dict(row)
+        await self.ws_hub.broadcast("routine_updated", {"action": "updated", "routine": out})
+        return out
+
+    async def delete_routine(self, routine_id: str) -> bool:
+        with Session(self.engine) as session:
+            row = session.get(SmartHomeRoutine, routine_id)
+            if row is None:
+                return False
+            if row.is_builtin:
+                raise ValueError(f"Built-in routine '{routine_id}' cannot be deleted; disable it instead.")
+            session.delete(row)
+            session.commit()
+        await self.ws_hub.broadcast(
+            "routine_updated",
+            {"action": "deleted", "routine_id": routine_id},
+        )
+        return True
+
+    def evaluate_conditions(self, conditions: list[dict[str, Any]]) -> tuple[bool, list[dict[str, Any]]]:
+        """Evaluate routine pre-conditions against live PostgreSQL smart-home state."""
+        if not conditions:
+            return True, []
+        details: list[dict[str, Any]] = []
+        all_ok = True
+        for cond in conditions:
+            kind = cond.get("kind")
+            op = cond.get("op", "eq")
+            expected = cond.get("value")
+            prop = str(cond.get("property", ""))
+            actual: Any = None
+            passed = False
+
+            if kind in {"device_state", "sensor_threshold"}:
+                dev = self.get_device(str(cond.get("device_id", "")))
+                if dev is not None and dev.available:
+                    actual = (dev.state or {}).get(prop)
+            elif kind == "room_state":
+                room_devices = self.list_devices(cond.get("room"))
+                if cond.get("device_type"):
+                    room_devices = [d for d in room_devices if d.device_type == cond["device_type"]]
+                if room_devices:
+                    # Check if any matching available device satisfies condition
+                    for d in room_devices:
+                        if not d.available:
+                            continue
+                        val = (d.state or {}).get(prop)
+                        if self._compare_values(val, op, expected):
+                            actual = val
+                            passed = True
+                            break
+                    if not passed:
+                        actual = (room_devices[0].state or {}).get(prop)
+
+            if kind != "room_state":
+                passed = self._compare_values(actual, op, expected)
+            all_ok = all_ok and passed
+            details.append(
+                {
+                    "kind": kind,
+                    "property": prop,
+                    "op": op,
+                    "expected": expected,
+                    "actual": actual,
+                    "passed": passed,
+                }
+            )
+        return all_ok, details
+
+    @staticmethod
+    def _compare_values(actual: Any, op: str, expected: Any) -> bool:
+        if actual is None:
+            return False
+        if op == "eq":
+            return actual == expected
+        if op == "ne":
+            return actual != expected
+        if isinstance(actual, (int, float)) and isinstance(expected, (int, float)) and not isinstance(actual, bool):
+            if op == "gt":
+                return actual > expected
+            if op == "gte":
+                return actual >= expected
+            if op == "lt":
+                return actual < expected
+            if op == "lte":
+                return actual <= expected
+        return False
+
+    async def run_routine(
+        self,
+        routine_id: str,
+        *,
+        source: str = "routine",
+        check_conditions: bool = True,
+        _depth: int = 0,
+        _active_stack: set[str] | None = None,
+    ) -> dict[str, Any]:
+        stack = set(_active_stack or set())
+        if routine_id in stack or _depth > 1:
+            raise RuntimeError(f"Recursive or cyclic routine execution blocked for '{routine_id}'.")
+        stack.add(routine_id)
+
         with Session(self.engine) as session:
             routine = session.get(SmartHomeRoutine, routine_id)
             if routine is None:
                 raise LookupError("Routine not found.")
             if not routine.enabled:
                 raise RuntimeError("Routine is disabled.")
-            actions = list(routine.actions)
+            routine_name = routine.name
+            actions = list(routine.actions or [])
+            conditions = list(routine.conditions or [])
+
+        if check_conditions and conditions:
+            cond_ok, cond_details = self.evaluate_conditions(conditions)
+            if not cond_ok:
+                return {
+                    "routine_id": routine_id,
+                    "status": "skipped_condition",
+                    "condition_results": cond_details,
+                    "results": [],
+                }
+
         context_id = str(uuid.uuid4())
-        results = []
+        results: list[dict[str, Any]] = []
         for item in actions:
+            dev_id = str(item.get("device_id", ""))
+            act = str(item.get("action", ""))
+            val = item.get("value")
+            if act == "routine" or dev_id.startswith("routine."):
+                results.append(
+                    {
+                        "device_id": dev_id,
+                        "action": act,
+                        "value": val,
+                        "status": "failed",
+                        "error": "Nested routine calls are forbidden.",
+                    }
+                )
+                continue
             try:
-                row = await self.command(item["device_id"], item["action"], item["value"], source=source, context_id=context_id)
-                results.append({"device_id": row.id, "status": "verified"})
+                row = await self.command(
+                    dev_id,
+                    act,
+                    val,
+                    source=source,
+                    context_id=context_id,
+                )
+                results.append(
+                    {
+                        "device_id": row.id,
+                        "action": act,
+                        "value": val,
+                        "status": "verified",
+                        "state": row.state,
+                    }
+                )
             except (LookupError, RuntimeError, ValueError) as exc:
-                results.append({"device_id": item.get("device_id"), "status": "failed", "error": str(exc)})
+                results.append(
+                    {
+                        "device_id": dev_id,
+                        "action": act,
+                        "value": val,
+                        "status": "failed",
+                        "error": str(exc),
+                    }
+                )
+
+        ok_count = sum(1 for r in results if r["status"] == "verified")
+        if results and ok_count == len(results):
+            status = "verified"
+        elif ok_count > 0:
+            status = "partial"
+        else:
+            status = "failed"
+
         with Session(self.engine) as session:
             routine = session.get(SmartHomeRoutine, routine_id)
             if routine:
                 routine.last_run_at_utc = datetime.now(UTC)
                 session.commit()
-        await self.ws_hub.broadcast("routine_completed", {"routine_id": routine_id, "context_id": context_id, "results": results})
-        return {"routine_id": routine_id, "context_id": context_id, "status": "verified" if all(r["status"] == "verified" for r in results) else "partial", "results": results}
+
+        await self.ws_hub.broadcast(
+            "routine_completed",
+            {
+                "routine_id": routine_id,
+                "context_id": context_id,
+                "status": status,
+                "results": results,
+            },
+        )
+        if source in {"schedule", "event_routine"} or status == "partial":
+            notif_type = "routine_completed" if status == "verified" else "routine_partial"
+            msg = (
+                f"Routine '{routine_name}' completed."
+                if status == "verified"
+                else f"Routine '{routine_name}' completed partially ({ok_count}/{len(results)} actions succeeded)."
+            )
+            await self._emit_notification(
+                notification_type=notif_type,
+                title=f"Routine: {routine_name}",
+                message=msg,
+                source_id=routine_id,
+                priority="high" if status != "verified" else "normal",
+                dedup_key=f"routine:{routine_id}:{context_id}",
+                metadata={"routine_id": routine_id, "status": status, "results": results},
+                speak=source in {"schedule", "event_routine"},
+            )
+        return {
+            "routine_id": routine_id,
+            "context_id": context_id,
+            "status": status,
+            "results": results,
+        }
+
+    async def _evaluate_event_routines(self, event_name: str, device: SmartHomeDevice) -> None:
+        """Execute enabled simulator_event routines safely (no recursion, bounded cooldown)."""
+        now_mono = time.monotonic()
+        for routine in self.list_routines():
+            if not routine["enabled"]:
+                continue
+            triggers = routine.get("triggers") or []
+            matched = False
+            for trig in triggers:
+                if trig.get("type") != "simulator_event" or trig.get("event") != event_name:
+                    continue
+                if trig.get("device_id") and trig["device_id"] != device.id:
+                    continue
+                if event_name == "sensor_threshold":
+                    prop = trig.get("property", "temperature")
+                    op = trig.get("op", "gte")
+                    expected = trig.get("value")
+                    actual = (device.state or {}).get(prop)
+                    if not self._compare_values(actual, op, expected):
+                        continue
+                matched = True
+                break
+            if not matched:
+                continue
+
+            rid = routine["id"]
+            cooldown = float(next((t.get("cooldown_sec", 60.0) for t in triggers if t.get("type") == "simulator_event"), 60.0))
+            last_ts = self._event_cooldowns.get(rid)
+            if last_ts is not None and (now_mono - last_ts) < cooldown:
+                continue
+            self._event_cooldowns[rid] = now_mono
+            try:
+                await self.run_routine(rid, source="event_routine", check_conditions=True, _depth=1)
+            except (LookupError, RuntimeError, ValueError) as exc:
+                logger.debug("Event routine %s skipped: %s", rid, exc)
 
     def energy_summary(self) -> dict[str, Any]:
         devices = [self.to_dict(row) for row in self.list_devices()]
@@ -438,6 +932,17 @@ class SmartHomeService:
             row.updated_at_utc = datetime.now(UTC)
             session.commit(); session.refresh(row); session.expunge(row)
         await self.ws_hub.broadcast("device_availability_changed", {"device_id": device_id, "available": available})
+        state_word = "back online" if available else "unavailable"
+        await self._emit_notification(
+            notification_type="device_availability_changed",
+            title=f"{row.name} {state_word}",
+            message=f"{row.name} is now {state_word}.",
+            source_id=device_id,
+            priority="high" if not available else "normal",
+            dedup_key=f"avail:{device_id}:{available}:{int(time.time() // 10)}",
+            metadata={"device_id": device_id, "available": available},
+            speak=not available,
+        )
         return row
 
     async def complete_activity(self, device_id: str) -> SmartHomeDevice:
@@ -454,9 +959,23 @@ class SmartHomeService:
             state["activity"] = "completed" if target.device_type == "washing_machine" else "docked"
             state["remaining_seconds"] = 0
             target.state = state; target.updated_at_utc = datetime.now(UTC)
-            session.add(SmartHomeStateHistory(device_id=device_id, action="complete", old_state=old_state, new_state=state, context_id=str(uuid.uuid4()), context_source="simulator"))
-            session.commit(); session.refresh(target); session.expunge(target)
+            hist = SmartHomeStateHistory(device_id=device_id, action="complete", old_state=old_state, new_state=state, context_id=str(uuid.uuid4()), context_source="simulator")
+            session.add(hist)
+            session.commit(); session.refresh(target); session.refresh(hist); session.expunge(target)
         await self.ws_hub.broadcast("activity_completed", {"device": self.to_dict(target)})
+        n_type = "washing_machine_completed" if target.device_type == "washing_machine" else "robot_vacuum_completed"
+        msg = "Your washing machine has finished." if target.device_type == "washing_machine" else "Your robot vacuum has finished cleaning and docked."
+        await self._emit_notification(
+            notification_type=n_type,
+            title=f"{target.name} completed",
+            message=msg,
+            source_id=target.id,
+            priority="normal",
+            dedup_key=f"activity:{target.id}:{hist.id}",
+            metadata={"device": self.to_dict(target)},
+            speak=True,
+        )
+        await self._evaluate_event_routines("activity_completed", target)
         return target
 
     async def inject_sensor(self, device_id: str, state: dict[str, float]) -> SmartHomeDevice:
@@ -475,6 +994,7 @@ class SmartHomeService:
             session.add(SmartHomeStateHistory(device_id=device_id, action="inject_sensor", old_state=old_state, new_state=new_state, context_id=str(uuid.uuid4()), context_source="simulator"))
             session.commit(); session.refresh(target); session.expunge(target)
         await self.ws_hub.broadcast("simulated_sensor_changed", {"device": self.to_dict(target), "is_simulated": True})
+        await self._evaluate_event_routines("sensor_threshold", target)
         return target
 
     async def _simulation_loop(self) -> None:
@@ -498,6 +1018,19 @@ class SmartHomeService:
                     row = self.get_device(device_id)
                     if row:
                         await self.ws_hub.broadcast("activity_completed", {"device": self.to_dict(row)})
+                        n_type = "washing_machine_completed" if row.device_type == "washing_machine" else "robot_vacuum_completed"
+                        msg = "Your washing machine has finished." if row.device_type == "washing_machine" else "Your robot vacuum has finished cleaning and docked."
+                        await self._emit_notification(
+                            notification_type=n_type,
+                            title=f"{row.name} completed",
+                            message=msg,
+                            source_id=row.id,
+                            priority="normal",
+                            dedup_key=f"activity:{row.id}:{int(time.time())}",
+                            metadata={"device": self.to_dict(row)},
+                            speak=True,
+                        )
+                        await self._evaluate_event_routines("activity_completed", row)
             except asyncio.CancelledError:
                 raise
             except Exception:
@@ -545,6 +1078,8 @@ class SmartHomeService:
             session.refresh(row)
             session.expunge(row)
         await self.ws_hub.broadcast("device_state_changed", {"device": self.to_dict(row), "context_id": context_id, "source": source})
+        if source != "event_routine":
+            await self._evaluate_event_routines("device_state", row)
         return row
 
     @staticmethod

@@ -26,16 +26,17 @@ logger = logging.getLogger(__name__)
 # Trigger tool JSON classification ONLY when utterance resembles an imperative tool/device action;
 # general questions, casual chat, and conversational follow-ups stream directly in 1 LLM call.
 _TOOL_CLASSIFIER_HINT_RE = re.compile(
-    r"(?:\b(?:timm?ers?|alarm|countdown|remind\s+me|unlock|lock|turn\s+(?:on|off)|"
+    r"(?:\b(?:timm?ers?|alarm|countdown|remind\s+me|reminder|reminders|remember|prefer|preferred|preference|forget|memory|memories|"
+    r"schedule|scheduled|every\s+(?:day|morning|evening|night)|daily|unlock|lock|turn\s+(?:on|off)|"
     r"switch\s+(?:on|off)|open\s+(?:my|the)\s+(?:(?:\w+\s+)?door|app|spotify|youtube|browser|curtain|curtains)|"
     r"close\s+(?:the\s+)?curtain|set\s+(?:a|the)\s+|pause\s+the|resume\s+the|cancel\s+the|delete\s+my|"
     r"time|date|clock|day\s+today|light|lights|lamp|fan|fans|ac|air\s+conditioner|tv|television|"
     r"curtain|curtains|washer|washing\s+machine|vacuum|purifier|heater|geyser|pump|fridge|refrigerator|"
     r"bedroom|living\s+room|hall|kitchen|study|utility|brightness|speed|temperature|humidity|volume|"
     r"status|routine|sensor|climate)\b|"
-    r"(?:टाइमर|ताइमर|अलार्म|रद्द|रोको|दरवाजा|खोलो|बंद\s+करो|समय|तारीख|डेट|बजे|"
+    r"(?:टाइमर|ताइमर|अलार्म|रिमाइंडर|शेड्यूल|याद|पसंदीदा|भूल|रद्द|रोको|दरवाजा|खोलो|बंद\s+करो|समय|तारीख|डेट|बजे|"
     r"लाइट|बत्ती|पंखा|फैन|एसी|टीवी|पर्दा|पर्दे|मशीन|वैक्यूम|गीजर|फ्रिज|बेडरूम|बैठक|रसोई|किचन|रूटीन|तापमान|स्थिति)|"
-    r"(?:ಟೈಮರ್|ಅಲಾರಾಂ|ರದ್ದು|ನಿಲ್ಲಿಸು|ಬಾಗಿಲು|ತೆಗೆ|ಸಮಯ|ದಿನಾಂಕ|ತಾರೀಖು|ಡೇಟ್|ಗಂಟೆ|"
+    r"(?:ಟೈಮರ್|ಅಲಾರಾಂ|ರಿಮೈಂಡರ್|ಜ್ಞಾಪನೆ|ವೇಳಾಪಟ್ಟಿ|ನೆನಪಿ|ಇಷ್ಟದ|ಮರೆತು|ರದ್ದು|ನಿಲ್ಲಿಸು|ಬಾಗಿಲು|ತೆಗೆ|ಸಮಯ|ದಿನಾಂಕ|ತಾರೀಖು|ಡೇಟ್|ಗಂಟೆ|"
     r"ಲೈಟ್|ದೀಪ|ಫ್ಯಾನ್|ಏಸಿ|ಟಿವಿ|ಪರದೆ|ಮೆಷಿನ್|ವ್ಯಾಕ್ಯೂಮ್|ಗೀಸರ್|ಫ್ರಿಜ್|ಬೆಡ್‌ರೂಮ್|ಬೆಡ್ರೂಮ್|ಹಾಲ್|ಅಡುಗೆಮನೆ|ಕಿಚನ್|ದಿನಚರಿ|ತಾಪಮಾನ|ಸ್ಥಿತಿ))",
     flags=re.IGNORECASE | re.UNICODE,
 )
@@ -71,24 +72,29 @@ _ALLOWED_ROUTINES = {"morning", "night", "study", "away"}
 _SYSTEM_PROMPT = """You are the strict tool-intent classifier for AURA EDGE, an offline multilingual voice assistant.
 Analyze the user utterance (English, Hindi, Kannada, or Hinglish/Kanglish) and return ONLY a JSON object matching this exact schema:
 {
-  "intent_name": "GetTime" | "GetDate" | "SetTimer" | "ListTimers" | "GetTimerRemaining" | "PauseTimer" | "ResumeTimer" | "CancelTimer" | "CancelAllTimers" | "DeviceControl" | "Help" | "StopAssistant" | "Conversation" | "Clarify" | "Unsupported",
+  "intent_name": "GetTime" | "GetDate" | "SetTimer" | "ListTimers" | "GetTimerRemaining" | "PauseTimer" | "ResumeTimer" | "CancelTimer" | "CancelAllTimers" | "DeviceControl" | "SaveMemory" | "RetrieveMemory" | "UpdateMemory" | "DeleteMemory" | "ListMemories" | "CreateReminder" | "ListReminders" | "CancelReminder" | "ScheduleDeviceAction" | "ScheduleRoutine" | "ListSchedules" | "CancelSchedule" | "RunRoutine" | "Help" | "StopAssistant" | "Conversation" | "Clarify" | "Unsupported",
   "duration_seconds": integer or null,
+  "delay_seconds": integer or null,
   "label": string or null,
+  "memory_text": string or null,
+  "query": string or null,
+  "reminder_message": string or null,
   "room": "living_room" | "bedroom" | "kitchen" | "study" | "utility_room" | null,
   "device_type": "light" | "fan" | "air_conditioner" | "television" | "curtain" | "washing_machine" | "robot_vacuum" | "air_purifier" | "water_heater" | "water_pump" | "refrigerator" | "climate_sensor" | null,
   "action": "power" | "brightness" | "speed" | "temperature" | "volume" | "position" | "activity" | "status" | "routine" | null,
   "value": boolean | integer | string | null,
-  "routine_id": "morning" | "night" | "study" | "away" | null,
+  "use_preferred": boolean,
+  "routine_id": string or null,
   "clarification_needed": boolean
 }
 Rules:
-1. NEVER invent tools, unregistered smart-home devices, weather APIs, web searches, hardcoded dates, or execution results.
+1. NEVER invent tools, unregistered smart-home devices, weather APIs, web searches, hardcoded dates, remembered preferences, or execution results.
 2. External/unregistered actions (unlock doors, send emails, shop/order, transfer money, web search, open external apps) MUST return "Unsupported".
-3. Ambiguous commands ("do the thing", "fix that", unclear device/timer) MUST return "Clarify" with clarification_needed=true.
-4. General conversation, greetings, knowledge questions, explanations, or follow-ups ("explain that again", "make it shorter", "repeat in Kannada") MUST return "Conversation".
-5. For GetTime/GetDate, return "GetTime" or "GetDate" so the local system clock answers.
-6. For SetTimer, duration_seconds must be a positive integer (1..86400). If duration is missing, return "Clarify" (never guess durations).
-7. For DeviceControl, specify room, device_type, action, and value (or action="routine" with routine_id). If device or action is uncertain, return "Clarify".
+3. Ambiguous commands ("do the thing", "fix that", missing reminder content or missing/ambiguous schedule time) MUST return "Clarify" with clarification_needed=true.
+4. General conversation, greetings, knowledge questions, or explanations MUST return "Conversation". Exact personal memory, reminder, schedule, or device-state queries MUST return the matching tool intent, NEVER "Conversation".
+5. For GetTime/GetDate, return "GetTime" or "GetDate".
+6. For SetTimer, duration_seconds must be a positive integer (1..86400). If missing, return "Clarify".
+7. For SaveMemory/RetrieveMemory/UpdateMemory/DeleteMemory/ListMemories, set memory_text or query cleanly.
 8. Respond with valid JSON only."""
 
 
@@ -286,7 +292,7 @@ class HybridPlanner:
                     raw_text=raw_text,
                 )
             slots["duration_seconds"] = dur
-        elif intent_enum == IntentName.DEVICE_CONTROL:
+        elif intent_enum in (IntentName.DEVICE_CONTROL, IntentName.SCHEDULE_DEVICE_ACTION):
             act = data.get("action")
             if act not in _ALLOWED_DEVICE_ACTIONS:
                 return TypedIntent(
@@ -301,7 +307,7 @@ class HybridPlanner:
                 )
             if act == "routine":
                 routine_id = data.get("routine_id")
-                if routine_id not in _ALLOWED_ROUTINES:
+                if not isinstance(routine_id, str) or not routine_id.strip():
                     return TypedIntent(
                         intent_name=IntentName.CLARIFY,
                         confidence=0.5,
@@ -312,7 +318,9 @@ class HybridPlanner:
                         clarification_question=get_phrase("ambiguous_request", language),
                         raw_text=raw_text,
                     )
-                slots = {"action": "routine", "routine_id": routine_id}
+                slots = {"action": "routine", "routine_id": routine_id.strip()}
+                if intent_enum == IntentName.SCHEDULE_DEVICE_ACTION:
+                    intent_enum = IntentName.SCHEDULE_ROUTINE
             else:
                 room = data.get("room")
                 if room is not None and room not in _ALLOWED_ROOMS:
@@ -337,48 +345,131 @@ class HybridPlanner:
                         clarification_question=get_phrase("ambiguous_request", language),
                         raw_text=raw_text,
                     )
+                use_pref = bool(data.get("use_preferred"))
                 val = data.get("value")
-                if act == "power" and not isinstance(val, bool):
-                    return TypedIntent(
-                        intent_name=IntentName.CLARIFY,
-                        confidence=0.5,
-                        source="clarification",
-                        route_category="clarification",
-                        language=language,
-                        input_script=script,
-                        clarification_question=get_phrase("ambiguous_request", language),
-                        raw_text=raw_text,
-                    )
-                if act in {"brightness", "speed", "temperature", "volume", "position"} and (
-                    isinstance(val, bool) or not isinstance(val, int)
-                ):
-                    return TypedIntent(
-                        intent_name=IntentName.CLARIFY,
-                        confidence=0.5,
-                        source="clarification",
-                        route_category="clarification",
-                        language=language,
-                        input_script=script,
-                        clarification_question=get_phrase("ambiguous_request", language),
-                        raw_text=raw_text,
-                    )
-                if act == "activity" and val not in {"start", "pause", "resume", "dock", "cancel"}:
-                    return TypedIntent(
-                        intent_name=IntentName.CLARIFY,
-                        confidence=0.5,
-                        source="clarification",
-                        route_category="clarification",
-                        language=language,
-                        input_script=script,
-                        clarification_question=get_phrase("ambiguous_request", language),
-                        raw_text=raw_text,
-                    )
+                if not use_pref:
+                    if act == "power" and not isinstance(val, bool):
+                        return TypedIntent(
+                            intent_name=IntentName.CLARIFY,
+                            confidence=0.5,
+                            source="clarification",
+                            route_category="clarification",
+                            language=language,
+                            input_script=script,
+                            clarification_question=get_phrase("ambiguous_request", language),
+                            raw_text=raw_text,
+                        )
+                    if act in {"brightness", "speed", "temperature", "volume", "position"} and (
+                        isinstance(val, bool) or not isinstance(val, int)
+                    ):
+                        return TypedIntent(
+                            intent_name=IntentName.CLARIFY,
+                            confidence=0.5,
+                            source="clarification",
+                            route_category="clarification",
+                            language=language,
+                            input_script=script,
+                            clarification_question=get_phrase("ambiguous_request", language),
+                            raw_text=raw_text,
+                        )
+                    if act == "activity" and val not in {"start", "pause", "resume", "dock", "cancel"}:
+                        return TypedIntent(
+                            intent_name=IntentName.CLARIFY,
+                            confidence=0.5,
+                            source="clarification",
+                            route_category="clarification",
+                            language=language,
+                            input_script=script,
+                            clarification_question=get_phrase("ambiguous_request", language),
+                            raw_text=raw_text,
+                        )
                 slots = {
                     "room": room,
                     "device_type": dev_type,
                     "action": act,
-                    "value": None if act == "status" else val,
+                    "value": None if (act == "status" or use_pref) else val,
+                    **({"use_preferred": True} if use_pref else {}),
                 }
+                if intent_enum == IntentName.SCHEDULE_DEVICE_ACTION:
+                    delay = data.get("delay_seconds")
+                    if not isinstance(delay, int) or delay <= 0:
+                        return TypedIntent(
+                            intent_name=IntentName.CLARIFY,
+                            confidence=0.5,
+                            source="clarification",
+                            route_category="clarification",
+                            language=language,
+                            input_script=script,
+                            clarification_question=get_phrase("ambiguous_request", language),
+                            raw_text=raw_text,
+                        )
+                    slots["delay_seconds"] = delay
+        elif intent_enum in (IntentName.SAVE_MEMORY, IntentName.UPDATE_MEMORY):
+            m_txt = str(data.get("memory_text") or raw_text).strip()
+            if len(m_txt) < 2:
+                return TypedIntent(
+                    intent_name=IntentName.CLARIFY,
+                    confidence=0.5,
+                    source="clarification",
+                    route_category="clarification",
+                    language=language,
+                    input_script=script,
+                    clarification_question=get_phrase("ambiguous_request", language),
+                    raw_text=raw_text,
+                )
+            slots = {"text": m_txt}
+        elif intent_enum in (IntentName.RETRIEVE_MEMORY, IntentName.DELETE_MEMORY):
+            q_txt = str(data.get("query") or raw_text).strip()
+            slots = {
+                "query": q_txt,
+                "room": data.get("room") if data.get("room") in _ALLOWED_ROOMS else None,
+                "device_type": data.get("device_type") if data.get("device_type") in _ALLOWED_DEVICE_TYPES else None,
+            }
+        elif intent_enum == IntentName.CREATE_REMINDER:
+            rem_msg = str(data.get("reminder_message") or "").strip()
+            delay = data.get("delay_seconds")
+            if not rem_msg or not isinstance(delay, int) or delay <= 0:
+                return TypedIntent(
+                    intent_name=IntentName.CLARIFY,
+                    confidence=0.5,
+                    source="clarification",
+                    route_category="clarification",
+                    language=language,
+                    input_script=script,
+                    clarification_question=get_phrase("ambiguous_request", language),
+                    raw_text=raw_text,
+                )
+            slots = {"message": rem_msg, "delay_seconds": delay}
+        elif intent_enum in (IntentName.RUN_ROUTINE, IntentName.SCHEDULE_ROUTINE):
+            r_id = str(data.get("routine_id") or "").strip()
+            if not r_id:
+                return TypedIntent(
+                    intent_name=IntentName.CLARIFY,
+                    confidence=0.5,
+                    source="clarification",
+                    route_category="clarification",
+                    language=language,
+                    input_script=script,
+                    clarification_question=get_phrase("ambiguous_request", language),
+                    raw_text=raw_text,
+                )
+            slots = {"routine_id": r_id}
+            if intent_enum == IntentName.SCHEDULE_ROUTINE:
+                delay = data.get("delay_seconds")
+                if not isinstance(delay, int) or delay <= 0:
+                    return TypedIntent(
+                        intent_name=IntentName.CLARIFY,
+                        confidence=0.5,
+                        source="clarification",
+                        route_category="clarification",
+                        language=language,
+                        input_script=script,
+                        clarification_question=get_phrase("ambiguous_request", language),
+                        raw_text=raw_text,
+                    )
+                slots["delay_seconds"] = delay
+        elif intent_enum in (IntentName.CANCEL_REMINDER, IntentName.CANCEL_SCHEDULE):
+            slots = {"query": str(data.get("query") or raw_text).strip()}
 
         action = TypedAction(intent_name=intent_enum, slots=slots, confidence=0.82)
         return TypedIntent(

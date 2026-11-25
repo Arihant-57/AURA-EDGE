@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from aura_edge.application.smart_home import SmartHomeService
@@ -15,8 +15,31 @@ router = APIRouter(prefix="/api/v1/smart-home", tags=["smart-home"])
 class DeviceCommand(BaseModel):
     action: str = Field(min_length=1, max_length=48)
     value: Any
-    source: str = Field(default="ui", pattern="^(ui|voice|routine|simulator)$")
+    source: str = Field(
+        default="ui", pattern="^(ui|voice|routine|simulator|schedule|event_routine)$"
+    )
     context_id: str | None = Field(default=None, max_length=64)
+
+
+class CreateRoutineRequest(BaseModel):
+    id: str | None = Field(default=None, max_length=48)
+    name: str = Field(..., min_length=1, max_length=96)
+    description: str | None = Field(default=None, max_length=500)
+    aliases: dict[str, Any] = Field(default_factory=dict)
+    enabled: bool = True
+    triggers: list[dict[str, Any]] = Field(default_factory=lambda: [{"type": "manual"}])
+    conditions: list[dict[str, Any]] = Field(default_factory=list)
+    actions: list[dict[str, Any]] = Field(..., min_length=1)
+
+
+class UpdateRoutineRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=96)
+    description: str | None = Field(default=None, max_length=500)
+    aliases: dict[str, Any] | None = None
+    enabled: bool | None = None
+    triggers: list[dict[str, Any]] | None = None
+    conditions: list[dict[str, Any]] | None = None
+    actions: list[dict[str, Any]] | None = None
 
 
 class AvailabilityRequest(BaseModel):
@@ -67,11 +90,15 @@ async def command_device(device_id: str, body: DeviceCommand, request: Request) 
 @router.get("/activities")
 def list_activities(request: Request) -> dict[str, list[dict[str, Any]]]:
     service: SmartHomeService = request.app.state.smart_home
+    scheduler = getattr(request.app.state, "scheduler_service", None)
     devices = [service.to_dict(row) for row in service.list_devices()]
     activity_devices = [d for d in devices if "activity" in d["state"]]
+    scheduled_items = (
+        scheduler.list_upcoming_smart_home_schedules() if scheduler is not None else []
+    )
     return {
         "running": [d for d in activity_devices if d["state"]["activity"] in {"running", "cleaning", "paused"}],
-        "scheduled": [],
+        "scheduled": scheduled_items,
         "completed": [d for d in activity_devices if d["state"]["activity"] in {"completed", "docked", "idle"}],
     }
 
@@ -94,11 +121,78 @@ def list_routines(request: Request) -> list[dict[str, Any]]:
     return service.list_routines()
 
 
-@router.post("/routines/{routine_id}/run")
-async def run_routine(routine_id: str, request: Request) -> dict[str, Any]:
+@router.post("/routines", status_code=status.HTTP_201_CREATED)
+async def create_routine(body: CreateRoutineRequest, request: Request) -> dict[str, Any]:
     service: SmartHomeService = request.app.state.smart_home
     try:
-        return await service.run_routine(routine_id)
+        routine = await service.create_routine(
+            routine_id=body.id,
+            name=body.name,
+            description=body.description,
+            aliases=body.aliases,
+            enabled=body.enabled,
+            triggers=body.triggers,
+            conditions=body.conditions,
+            actions=body.actions,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"status": "verified", "routine": routine}
+
+
+@router.get("/routines/{routine_id}")
+def get_routine(routine_id: str, request: Request) -> dict[str, Any]:
+    service: SmartHomeService = request.app.state.smart_home
+    routine = service.get_routine(routine_id)
+    if routine is None:
+        raise HTTPException(status_code=404, detail="Routine not found.")
+    return routine
+
+
+@router.patch("/routines/{routine_id}")
+async def update_routine(
+    routine_id: str, body: UpdateRoutineRequest, request: Request
+) -> dict[str, Any]:
+    service: SmartHomeService = request.app.state.smart_home
+    try:
+        routine = await service.update_routine(
+            routine_id,
+            name=body.name,
+            description=body.description,
+            aliases=body.aliases,
+            enabled=body.enabled,
+            triggers=body.triggers,
+            conditions=body.conditions,
+            actions=body.actions,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"status": "verified", "routine": routine}
+
+
+@router.delete("/routines/{routine_id}")
+async def delete_routine(routine_id: str, request: Request) -> dict[str, Any]:
+    service: SmartHomeService = request.app.state.smart_home
+    try:
+        deleted = await service.delete_routine(routine_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Routine not found.")
+    return {"status": "verified", "deleted": True, "id": routine_id}
+
+
+@router.post("/routines/{routine_id}/run")
+async def run_routine(
+    routine_id: str, request: Request, check_conditions: bool = True
+) -> dict[str, Any]:
+    service: SmartHomeService = request.app.state.smart_home
+    try:
+        return await service.run_routine(routine_id, check_conditions=check_conditions)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except RuntimeError as exc:
