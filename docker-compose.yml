@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: aura-edge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${AURA_EDGE_PG_DB:-aura_edge}
+      POSTGRES_USER: ${AURA_EDGE_PG_USER:-aura_edge}
+      POSTGRES_PASSWORD: ${AURA_EDGE_PG_PASSWORD:-aura_edge_dev}
+    ports:
+      - "127.0.0.1:${AURA_EDGE_PG_PORT:-5432}:5432"
+    volumes:
+      - aura_edge_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AURA_EDGE_PG_USER:-aura_edge} -d ${AURA_EDGE_PG_DB:-aura_edge}"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  aura_edge_pgdata:

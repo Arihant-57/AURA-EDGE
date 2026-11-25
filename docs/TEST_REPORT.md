@@ -1,0 +1,77 @@
+# AURA EDGE — Phase 0 Test & Verification Report
+
+**Date:** 2026-11-25
+**Host Hardware & Toolchain (Observed):**
+- **OS:** Microsoft Windows 11 Home Single Language (`10.0.26300`, 64-bit)
+- **CPU:** 13th Gen Intel(R) Core(TM) i7-13650HX (14 cores / 20 logical processors)
+- **RAM:** 15.78 GB
+- **GPU:** NVIDIA GeForce RTX 3050 6GB Laptop GPU (`6144` MiB VRAM via `nvidia-smi`, Driver `621.24`)
+- **Toolchains:** Python `3.13.2` (plus `3.12`), `uv`, Node.js `v26.13.1`, npm `11.20.0`, Git `2.55.0.windows.5`, Docker Engine `29.8.0`, Ollama `0.40.16` (stopped during checks)
+
+## 1. Backend Lint & Automated Tests (`ruff` + `pytest`)
+
+Commands executed from `C:\Users\ariha\Desktop\AURA-EDGE`:
+
+```powershell
+$env:PYTHONPATH = "C:\Users\ariha\Desktop\AURA-EDGE\backend\src"
+$env:AURA_EDGE_REQUIRE_LIVE_DB = "1"
+.\.venv\Scripts\ruff.exe check .\backend
+.\.venv\Scripts\pytest.exe -v .\backend\tests
+```
+
+Observed results:
+- `ruff check`: **All checks passed!** (0 errors)
+- `pytest`: **14 passed, 0 skipped, 0 failed** in `1.10s` (1 deprecation warning from FastAPI `TestClient` regarding `httpx2`):
+  - `test_config_and_db_guard.py`: 5 passed (strict_offline default, SQLite rejection, non-loopback strict bind host rejection, `lan_only` non-loopback bind host permission, CSV env list parsing)
+  - `test_db_live_integration.py`: 1 passed (real PostgreSQL + pgvector write/read/L2-distance verification)
+  - `test_health_api.py`: 3 passed (`/api/v1/health`, `/api/v1/policy`, `/api/v1/policy/check`, `/api/v1/readiness` 200 ready and 503 unavailable states)
+  - `test_network_policy.py`: 5 passed (strict_offline loopback-only, sync & async `PolicyEnforcingTransport` zero-I/O enforcement, `lan_only` RFC1918 & metadata blocking, `online_opt_in` host allowlist)
+
+## 2. PostgreSQL + pgvector Migration & Restart Persistence Smoke Test
+
+Commands executed against local Docker container `aura-edge-postgres` (`pgvector/pgvector:pg16`, bound to `127.0.0.1:5432`):
+
+```powershell
+docker compose up -d postgres
+.\.venv\Scripts\alembic.exe -c backend\alembic.ini upgrade head
+.\.venv\Scripts\python.exe backend\scripts\db_smoke_test.py --phase write --token phase0-restart-check
+docker compose restart postgres
+.\.venv\Scripts\python.exe backend\scripts\db_smoke_test.py --phase verify --token phase0-restart-check
+.\.venv\Scripts\alembic.exe -c backend\alembic.ini downgrade base
+.\.venv\Scripts\alembic.exe -c backend\alembic.ini upgrade head
+```
+
+Observed results:
+- `upgrade head`: applied `0001_phase0_foundation` (`CREATE EXTENSION IF NOT EXISTS vector`, `system_settings`, `connectivity_audit_events`, `phase0_vector_smoke`).
+- `--phase write`: committed `SystemSetting` (`phase0.smoke.phase0-restart-check`) and 3-D vector (`smoke-phase0-restart-check`) with `pgvector_version: "0.8.7"`.
+- `docker compose restart postgres`: container restarted cleanly and returned `healthy` after 6s.
+- `--phase verify`: verified persisted JSON payload, `l2_distance: 0.0`, and cleaned up smoke records (`status: "verified"`).
+- `downgrade base` + `upgrade head`: cleanly reversed and re-applied `0001_phase0_foundation`.
+
+## 3. Live FastAPI HTTP Smoke Test
+
+Started `uvicorn aura_edge.main:app --host 127.0.0.1 --port 8000` with live `aura-edge-postgres` running:
+- `GET http://127.0.0.1:8000/api/v1/health` -> HTTP `200`, `status: "ok"`, `connectivity_mode: "strict_offline"`, `bind_host: "127.0.0.1"`.
+- `GET http://127.0.0.1:8000/api/v1/readiness` -> HTTP `200`, `ready: true`, `postgres_version: "PostgreSQL 16.16 (Debian 16.16-1.pgdg12+1)..."`, `pgvector_installed: true`, `pgvector_version: "0.8.7"`, `alembic_revision: "0001_phase0_foundation"`, GPU `NVIDIA GeForce RTX 3050 6GB Laptop GPU` (`6144` MiB VRAM), Ollama `reachable: false` (server stopped).
+- `POST http://127.0.0.1:8000/api/v1/policy/check` with `{"url":"https://example.com"}` -> `allowed: false` (`strict_offline permits loopback targets only; non-loopback host denied.`).
+- `POST http://127.0.0.1:8000/api/v1/policy/check` with `{"url":"http://127.0.0.1:11434/api/tags"}` -> `allowed: true`.
+
+## 4. Frontend Typecheck, Tests & Offline Asset Verification
+
+Commands executed inside `C:\Users\ariha\Desktop\AURA-EDGE\frontend`:
+
+```powershell
+npx tsc --noEmit
+npm test -- --run
+npm run build
+```
+
+Observed results:
+- `npx tsc --noEmit`: exit code `0` (0 errors).
+- `npm test -- --run` (Vitest `v3.2.7`): **Test Files 1 passed (1), Tests 3 passed (3)** (`src/App.test.tsx`: ready metrics, HTTP 503 DB failure honesty, network unreachable alert).
+- `npm run build`: built `dist/index.html` (`0.48 kB`), `dist/assets/index-D_m0w1Kw.css` (`15.95 kB`), `dist/assets/index-BRSYkTM-.js` (`154.83 kB`).
+- `dist/index.html` contains only local `/assets/...` bundle references (zero external CSS/JS/font links).
+
+## 5. Original AURA V4 Untouched Check
+
+- `git -C C:\Users\ariha\local-ai-lab\phase4-agent status` confirmed unchanged relative to session start (zero edits inside `C:\Users\ariha\local-ai-lab\phase4-agent`).
