@@ -10,10 +10,20 @@ from pydantic import BaseModel, Field
 LanguageCode = Literal["en", "hi", "kn"]
 RequestedLanguage = Literal["auto", "en", "hi", "kn"]
 InputScript = Literal["latin", "devanagari", "kannada", "mixed"]
+RouteCategory = Literal[
+    "greeting",
+    "conversation",
+    "tool",
+    "clarification",
+    "refusal",
+    "language_switch",
+    "cancellation",
+    "error",
+]
 
 
 class IntentName(str, Enum):
-    """Canonical language-independent Phase 1 intents."""
+    """Canonical language-independent Phase 1 + Phase 1.5 intents."""
 
     GET_TIME = "GetTime"
     GET_DATE = "GetDate"
@@ -28,6 +38,11 @@ class IntentName(str, Enum):
     HELP = "Help"
     CLARIFY = "Clarify"
     UNSUPPORTED = "Unsupported"
+    GREETING = "Greeting"
+    ACKNOWLEDGMENT = "Acknowledgment"
+    FAREWELL = "Farewell"
+    SWITCH_LANGUAGE = "SwitchLanguage"
+    CONVERSATION = "Conversation"
 
 
 class TypedAction(BaseModel):
@@ -43,8 +58,10 @@ class TypedIntent(BaseModel):
 
     intent_name: IntentName
     confidence: float = Field(ge=0.0, le=1.0)
-    source: Literal["hassil_fast", "llm_tool", "clarification", "refusal"]
+    source: Literal["hassil_fast", "llm_tool", "llm_conversation", "clarification", "refusal"]
+    route_category: RouteCategory = "tool"
     language: LanguageCode
+    target_language: LanguageCode | None = None
     input_script: InputScript = "latin"
     slots: dict[str, Any] = Field(default_factory=dict)
     sub_actions: list[TypedAction] = Field(default_factory=list)

@@ -61,6 +61,8 @@ class OllamaClient:
         *,
         model: str | None = None,
         json_mode: bool = False,
+        temperature: float = 0.0,
+        num_predict: int | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
         """Stream NDJSON chunks from loopback ``/api/chat`` obeying CPU/GPU placement."""
         target_model = model or self._settings.ollama_model
@@ -69,8 +71,10 @@ class OllamaClient:
 
         options: dict[str, Any] = {
             "num_ctx": int(self._settings.ollama_num_ctx),
-            "temperature": 0.0,
+            "temperature": float(temperature),
         }
+        if num_predict is not None:
+            options["num_predict"] = int(num_predict)
         if placement.llm_num_gpu is not None:
             options["num_gpu"] = placement.llm_num_gpu
 
@@ -99,6 +103,80 @@ class OllamaClient:
                 raise OllamaUnavailableError(f"Ollama blocked by network policy: {exc}") from exc
             except (httpx.HTTPError, OSError, json.JSONDecodeError) as exc:
                 raise OllamaUnavailableError(f"Local Ollama request failed: {exc}") from exc
+
+    async def stream_conversation(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        model: str | None = None,
+        temperature: float = 0.4,
+        num_predict: int = 240,
+        cancel_event: asyncio.Event | None = None,
+    ) -> AsyncIterator[tuple[str, dict[str, Any] | None]]:
+        """Yield ``(token_delta, final_stats_or_none)`` while respecting cancellation."""
+        t0 = time.perf_counter()
+        ttft_ms: float | None = None
+        last_chunk: dict[str, Any] = {}
+
+        async for chunk in self.stream_chat(
+            messages,
+            model=model,
+            json_mode=False,
+            temperature=temperature,
+            num_predict=num_predict,
+        ):
+            if cancel_event is not None and cancel_event.is_set():
+                break
+            msg = chunk.get("message") or {}
+            token = str(msg.get("content") or "")
+            if token and ttft_ms is None:
+                ttft_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+            last_chunk = chunk
+            done = bool(chunk.get("done"))
+            if token:
+                yield token, None
+            if done:
+                total_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+                eval_count = last_chunk.get("eval_count")
+                eval_dur_ns = last_chunk.get("eval_duration")
+                tps: float | None = None
+                if isinstance(eval_count, int) and isinstance(eval_dur_ns, int) and eval_dur_ns > 0:
+                    tps = round(eval_count / (eval_dur_ns / 1e9), 2)
+                yield (
+                    "",
+                    {
+                        "ttft_ms": ttft_ms,
+                        "latency_ms": total_ms,
+                        "eval_count": eval_count if isinstance(eval_count, int) else None,
+                        "tokens_per_sec": tps,
+                    },
+                )
+                return
+
+        # Cancelled early or stream closed without done flag
+        total_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+        yield (
+            "",
+            {
+                "ttft_ms": ttft_ms,
+                "latency_ms": total_ms,
+                "eval_count": last_chunk.get("eval_count"),
+                "tokens_per_sec": None,
+            },
+        )
+
+    async def prewarm(self, *, model: str | None = None) -> float:
+        """Load target Ollama model weights into memory with a minimal 1-token call."""
+        t0 = time.perf_counter()
+        async for _chunk in self.stream_chat(
+            [{"role": "user", "content": "hi"}],
+            model=model,
+            json_mode=False,
+            temperature=0.0,
+            num_predict=1,
+        ):
+            pass
+        return round((time.perf_counter() - t0) * 1000.0, 2)
 
     async def chat_json(
         self,

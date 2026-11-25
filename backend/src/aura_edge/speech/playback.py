@@ -5,7 +5,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
+import time
 from concurrent.futures import Future, ThreadPoolExecutor
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
@@ -15,6 +17,17 @@ from aura_edge.speech.tts_backends.base import SynthesizedAudio
 from aura_edge.speech.tts_router import TTSRouter, split_sentences
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class PlaybackMetrics:
+    """Strictly separates pure TTS synthesis time from speaker playback time and TTFA."""
+
+    tts_synthesis_ms: float
+    audio_playback_ms: float
+    first_audio_ready_ms: float | None
+    cache_hits: int
+    chunks_spoken: int
 
 
 def apply_fade_out(samples: np.ndarray, fade_samples: int = 64) -> np.ndarray:
@@ -43,6 +56,13 @@ class AudioPlayback:
         self._stream_sr: int | None = None
         self._cancel_event = threading.Event()
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="aura-tts-prefetch")
+        self.last_metrics = PlaybackMetrics(
+            tts_synthesis_ms=0.0,
+            audio_playback_ms=0.0,
+            first_audio_ready_ms=None,
+            cache_hits=0,
+            chunks_spoken=0,
+        )
 
     def has_output_device(self) -> bool:
         try:
@@ -144,45 +164,130 @@ class AudioPlayback:
         speed: float | None = None,
         play_to_speaker: bool = True,
         external_cancel: asyncio.Event | None = None,
+        turn_start_perf: float | None = None,
     ) -> list[SynthesizedAudio]:
-        """Synthesize and stream sentences with prefetching for N+1 sentence."""
-        sentences = split_sentences(text)
-        if not sentences:
-            return []
+        """Synthesize and stream sentences with prefetching, keeping ``list[SynthesizedAudio]`` return."""
+        audios, _ = await self.speak_text_with_metrics(
+            text,
+            language=language,
+            speed=speed,
+            play_to_speaker=play_to_speaker,
+            external_cancel=external_cancel,
+            turn_start_perf=turn_start_perf,
+        )
+        return audios
 
+    async def speak_text_with_metrics(
+        self,
+        text: str,
+        *,
+        language: LanguageCode = "en",
+        speed: float | None = None,
+        play_to_speaker: bool = True,
+        external_cancel: asyncio.Event | None = None,
+        turn_start_perf: float | None = None,
+    ) -> tuple[list[SynthesizedAudio], PlaybackMetrics]:
+        """Synthesize and play static text while cleanly separating synthesis vs playback timings."""
+        sentences = split_sentences(text)
+        queue: asyncio.Queue[str | None] = asyncio.Queue()
+        for sent in sentences:
+            queue.put_nowait(sent)
+        queue.put_nowait(None)
+        return await self.speak_sentence_stream(
+            queue,
+            language=language,
+            speed=speed,
+            play_to_speaker=play_to_speaker,
+            external_cancel=external_cancel,
+            turn_start_perf=turn_start_perf,
+        )
+
+    async def speak_sentence_stream(
+        self,
+        sentence_queue: asyncio.Queue[str | None],
+        *,
+        language: LanguageCode = "en",
+        speed: float | None = None,
+        play_to_speaker: bool = True,
+        external_cancel: asyncio.Event | None = None,
+        turn_start_perf: float | None = None,
+    ) -> tuple[list[SynthesizedAudio], PlaybackMetrics]:
+        """Consume streamed sentences, prefetch N+1 synthesis, and track exact TTFA vs playback."""
         self._cancel_event.clear()
         loop = asyncio.get_running_loop()
+        base_perf = turn_start_perf if turn_start_perf is not None else time.perf_counter()
         results: list[SynthesizedAudio] = []
+        tts_synth_ms = 0.0
+        playback_ms = 0.0
+        first_audio_ready_ms: float | None = None
+        cache_hits = 0
 
         def _synth(sentence: str) -> SynthesizedAudio:
             return self._tts.synthesize(sentence, language=language, speed=speed)
 
-        next_future: Future[SynthesizedAudio] | None = self._executor.submit(_synth, sentences[0])
-
-        for idx in range(len(sentences)):
-            if self._cancel_event.is_set() or (
+        def _is_cancelled() -> bool:
+            return self._cancel_event.is_set() or (
                 external_cancel is not None and external_cancel.is_set()
-            ):
+            )
+
+        eof_reached = False
+
+        async def _pull_next() -> Future[SynthesizedAudio] | None:
+            nonlocal eof_reached
+            if eof_reached:
+                return None
+            nxt = await sentence_queue.get()
+            if nxt is None:
+                eof_reached = True
+                return None
+            return self._executor.submit(_synth, nxt)
+
+        next_future = await _pull_next()
+        while next_future is not None:
+            if _is_cancelled():
                 self.stop()
                 break
 
-            assert next_future is not None
             audio = await asyncio.wrap_future(next_future)
-            if idx + 1 < len(sentences):
-                next_future = self._executor.submit(_synth, sentences[idx + 1])
+            if _is_cancelled():
+                self.stop()
+                break
+
+            tts_synth_ms += float(audio.latency_ms)
+            if audio.cached:
+                cache_hits += 1
+
+            # Prefetch N+1 sentence immediately if already queued so synthesis overlaps playback
+            if not eof_reached and not sentence_queue.empty():
+                nxt = sentence_queue.get_nowait()
+                if nxt is None:
+                    eof_reached = True
+                    next_future = None
+                else:
+                    next_future = self._executor.submit(_synth, nxt)
             else:
                 next_future = None
 
-            if self._cancel_event.is_set() or (
-                external_cancel is not None and external_cancel.is_set()
-            ):
-                self.stop()
-                break
-
             results.append(audio)
+            if first_audio_ready_ms is None:
+                first_audio_ready_ms = round((time.perf_counter() - base_perf) * 1000.0, 2)
+
             if play_to_speaker:
+                t_play0 = time.perf_counter()
                 completed = await loop.run_in_executor(None, self._write_chunks_blocking, audio)
+                playback_ms += round((time.perf_counter() - t_play0) * 1000.0, 2)
                 if not completed:
                     break
 
-        return results
+            if next_future is None and not eof_reached:
+                next_future = await _pull_next()
+
+        metrics = PlaybackMetrics(
+            tts_synthesis_ms=round(tts_synth_ms, 2),
+            audio_playback_ms=round(playback_ms, 2),
+            first_audio_ready_ms=first_audio_ready_ms,
+            cache_hits=cache_hits,
+            chunks_spoken=len(results),
+        )
+        self.last_metrics = metrics
+        return results, metrics

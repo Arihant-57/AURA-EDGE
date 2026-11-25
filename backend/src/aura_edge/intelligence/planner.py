@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
-from aura_edge.intelligence.fast_router import MultilingualFastRouter
+from aura_edge.intelligence.fast_router import (
+    MultilingualFastRouter,
+    extract_requested_target_language,
+)
 from aura_edge.intelligence.normalizer import normalize_utterance
 from aura_edge.intelligence.ollama_client import OllamaClient, OllamaUnavailableError
 from aura_edge.intelligence.response_catalog import get_phrase
@@ -19,20 +23,32 @@ from aura_edge.intelligence.schemas import (
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = """You are the strict Phase 1 intent classifier for AURA EDGE, an offline multilingual voice assistant.
+# Trigger tool JSON classification ONLY when utterance resembles an imperative tool/device action;
+# general questions, casual chat, and conversational follow-ups stream directly in 1 LLM call.
+_TOOL_CLASSIFIER_HINT_RE = re.compile(
+    r"(?:\b(?:timm?ers?|alarm|countdown|remind\s+me|unlock|lock|turn\s+(?:on|off)|"
+    r"switch\s+(?:on|off)|open\s+(?:my|the)\s+(?:(?:\w+\s+)?door|app|spotify|youtube|browser)|"
+    r"set\s+a\s+|pause\s+the|resume\s+the|cancel\s+the|delete\s+my)\b|"
+    r"(?:टाइमर|ताइमर|अलार्म|रद्द|रोको|दरवाजा|खोलो|बंद\s+करो)|"
+    r"(?:ಟೈಮರ್|ಅಲಾರಾಂ|ರದ್ದು|ನಿಲ್ಲಿಸು|ಬಾಗಿಲು|ತೆಗೆ))",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+
+_SYSTEM_PROMPT = """You are the strict tool-intent classifier for AURA EDGE, an offline multilingual voice assistant.
 Analyze the user utterance (English, Hindi, Kannada, or Hinglish/Kanglish) and return ONLY a JSON object matching this exact schema:
 {
-  "intent_name": "GetTime" | "GetDate" | "SetTimer" | "ListTimers" | "GetTimerRemaining" | "PauseTimer" | "ResumeTimer" | "CancelTimer" | "CancelAllTimers" | "Help" | "StopAssistant" | "Clarify" | "Unsupported",
+  "intent_name": "GetTime" | "GetDate" | "SetTimer" | "ListTimers" | "GetTimerRemaining" | "PauseTimer" | "ResumeTimer" | "CancelTimer" | "CancelAllTimers" | "Help" | "StopAssistant" | "Conversation" | "Clarify" | "Unsupported",
   "duration_seconds": integer or null,
   "label": string or null,
   "clarification_needed": boolean
 }
 Rules:
-1. NEVER invent tools, smart-home devices, weather data, web searches, or execution results.
-2. Smart-home appliances, emails, web search, shopping, music playback, and general trivia MUST return "Unsupported".
-3. Ambiguous or underspecified commands ("do the thing", "fix that") MUST return "Clarify" with clarification_needed=true.
-4. For SetTimer, duration_seconds must be a positive integer (1..86400). If duration is missing, return "Clarify".
-5. Respond with valid JSON only."""
+1. NEVER invent tools, smart-home devices, weather APIs, web searches, or execution results.
+2. Requests to control smart-home appliances, unlock doors, send emails, shop/order, transfer money, or open external apps MUST return "Unsupported".
+3. Ambiguous commands ("do the thing", "fix that") MUST return "Clarify" with clarification_needed=true.
+4. General conversation, greetings, knowledge questions, explanations, or follow-ups ("explain that again", "make it shorter", "repeat in Kannada") MUST return "Conversation".
+5. For SetTimer, duration_seconds must be a positive integer (1..86400). If duration is missing, return "Clarify".
+6. Respond with valid JSON only."""
 
 
 class HybridPlanner:
@@ -75,7 +91,28 @@ class HybridPlanner:
                     intent_name=IntentName.UNSUPPORTED,
                     confidence=0.9,
                     source="refusal",
+                    route_category="refusal",
                     language=norm.language,
+                    input_script=norm.script,
+                    raw_text=text,
+                ),
+                router_ms,
+                None,
+                None,
+            )
+
+        target_lang = extract_requested_target_language(text)
+
+        # Direct streaming conversational fast-path (avoids wasted double-LLM latency)
+        if not _TOOL_CLASSIFIER_HINT_RE.search(norm.normalized):
+            return (
+                TypedIntent(
+                    intent_name=IntentName.CONVERSATION,
+                    confidence=0.9,
+                    source="llm_conversation",
+                    route_category="conversation",
+                    language=norm.language,
+                    target_language=target_lang,
                     input_script=norm.script,
                     raw_text=text,
                 ),
@@ -101,6 +138,7 @@ class HybridPlanner:
                     intent_name=IntentName.UNSUPPORTED,
                     confidence=1.0,
                     source="refusal",
+                    route_category="refusal",
                     language=norm.language,
                     input_script=norm.script,
                     raw_text=text,
@@ -113,6 +151,7 @@ class HybridPlanner:
         validated = self._validate_llm_json(
             llm_res.parsed_json,
             language=norm.language,
+            target_language=target_lang,
             script=norm.script,
             raw_text=text,
         )
@@ -123,6 +162,7 @@ class HybridPlanner:
         data: dict[str, Any] | None,
         *,
         language: LanguageCode,
+        target_language: LanguageCode | None = None,
         script: Any,
         raw_text: str,
     ) -> TypedIntent:
@@ -131,6 +171,7 @@ class HybridPlanner:
                 intent_name=IntentName.UNSUPPORTED,
                 confidence=0.0,
                 source="refusal",
+                route_category="refusal",
                 language=language,
                 input_script=script,
                 raw_text=raw_text,
@@ -144,6 +185,7 @@ class HybridPlanner:
                 intent_name=IntentName.UNSUPPORTED,
                 confidence=0.0,
                 source="refusal",
+                route_category="refusal",
                 language=language,
                 input_script=script,
                 raw_text=raw_text,
@@ -154,9 +196,22 @@ class HybridPlanner:
                 intent_name=IntentName.CLARIFY,
                 confidence=0.8,
                 source="clarification",
+                route_category="clarification",
                 language=language,
                 input_script=script,
                 clarification_question=get_phrase("ambiguous_request", language),
+                raw_text=raw_text,
+            )
+
+        if intent_enum == IntentName.CONVERSATION:
+            return TypedIntent(
+                intent_name=IntentName.CONVERSATION,
+                confidence=0.85,
+                source="llm_conversation",
+                route_category="conversation",
+                language=language,
+                target_language=target_language,
+                input_script=script,
                 raw_text=raw_text,
             )
 
@@ -165,6 +220,7 @@ class HybridPlanner:
                 intent_name=IntentName.UNSUPPORTED,
                 confidence=0.9,
                 source="refusal",
+                route_category="refusal",
                 language=language,
                 input_script=script,
                 raw_text=raw_text,

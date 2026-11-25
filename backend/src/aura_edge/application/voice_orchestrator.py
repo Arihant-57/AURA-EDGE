@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import time
 from typing import Any
@@ -25,8 +26,9 @@ from aura_edge.execution.tools.datetime_tool import DateTimeTool
 from aura_edge.execution.tools.timer_tool import TimerManager, TimerView
 from aura_edge.infrastructure.compute import ComputeManager, ComputePlacement
 from aura_edge.infrastructure.network_policy import NetworkPolicyEnforcer
+from aura_edge.intelligence.conversation import ConversationSession, strip_markdown_for_speech
 from aura_edge.intelligence.fast_router import MultilingualFastRouter
-from aura_edge.intelligence.ollama_client import OllamaClient
+from aura_edge.intelligence.ollama_client import OllamaClient, OllamaUnavailableError
 from aura_edge.intelligence.planner import HybridPlanner
 from aura_edge.intelligence.response_catalog import get_phrase
 from aura_edge.intelligence.schemas import (
@@ -42,19 +44,20 @@ from aura_edge.speech.audio_capture import (
     has_input_microphone,
     list_audio_devices,
 )
-from aura_edge.speech.playback import AudioPlayback
+from aura_edge.speech.playback import AudioPlayback, PlaybackMetrics
 from aura_edge.speech.stt import ModelNotFoundError, TranscriptionResult, WhisperTranscriber
-from aura_edge.speech.tts_router import TTSRouter
+from aura_edge.speech.tts_router import SentenceStreamBuffer, TTSRouter
 from aura_edge.speech.vad import SileroVadDetector
 
 logger = logging.getLogger(__name__)
 
 
 class ProcessTurnOutput(BaseModel):
-    """Unified output for text, audio-upload, and PTT voice turns."""
+    """Unified output for text, audio-upload, PTT, and continuous voice turns."""
 
     turn_id: str
     intent: str
+    route_category: str = "tool"
     confidence: float
     intent_source: str
     detected_language: LanguageCode
@@ -68,10 +71,13 @@ class ProcessTurnOutput(BaseModel):
     latency_ms: float
     stt_ms: float | None = None
     router_ms: float | None = None
+    llm_ttft_ms: float | None = None
     llm_ms: float | None = None
     tool_ms: float | None = None
     tts_ms: float | None = None
+    playback_ms: float | None = None
     ttfa_ms: float | None = None
+    tts_cache_hit: bool = False
     error: str | None = None
     transcript: str | None = None
 
@@ -131,6 +137,7 @@ class VoiceOrchestrator:
         self.fast_router = MultilingualFastRouter()
         self.ollama_client = OllamaClient(settings, enforcer, self.compute_manager)
         self.planner = HybridPlanner(self.fast_router, self.ollama_client)
+        self.conversation = ConversationSession(max_turns=12, idle_timeout_sec=1800.0)
         self.datetime_tool = DateTimeTool()
         self.timer_manager = TimerManager(engine, on_timer_event=self._handle_timer_event)
         self.tool_registry = ToolRegistry(self.datetime_tool, self.timer_manager)
@@ -139,9 +146,18 @@ class VoiceOrchestrator:
         self.fsm = AssistantStateMachine(on_change=self._handle_state_change)
         self._ptt_task: asyncio.Task[None] | None = None
         self._ptt_turn: TurnContext | None = None
+        self._conversation_active = False
+        self._conversation_mode = "idle"
+        self._conversation_speak = True
+        self._conversation_task: asyncio.Task[None] | None = None
+        self._conversation_silence_limit_sec = 60.0
 
     async def startup(self) -> dict[str, int]:
-        """Recover persistent timers on FastAPI startup."""
+        """Recover persistent timers on FastAPI startup and warm common TTS phrases."""
+        try:
+            self.tts_router.prewarm_common_phrases()
+        except (OSError, RuntimeError, ValueError) as exc:
+            logger.debug("TTS phrase prewarm skipped: %s", exc)
         try:
             return await self.timer_manager.recover_on_startup()
         except (SQLAlchemyError, OSError, RuntimeError) as exc:
@@ -149,6 +165,7 @@ class VoiceOrchestrator:
             return {"recovered": 0, "missed": 0}
 
     async def shutdown(self) -> None:
+        await self.stop_conversation(reason="shutdown")
         self.playback.close()
         self.audio_capture.stop_capture(cancel=True)
         await self.timer_manager.shutdown()
@@ -226,7 +243,220 @@ class VoiceOrchestrator:
             "speaker_detected": self.playback.has_output_device(),
             "audio_devices": [d.model_dump() for d in list_audio_devices()],
             "audio_route_mode": self.audio_capture.route_mode.value,
+            "mic_muted": self.audio_capture.is_muted,
+            "conversation_active": self._conversation_active,
+            "conversation_mode": self._conversation_mode,
+            "history_length": len(self.conversation.get_history()),
         }
+
+    async def set_mic_mute(self, muted: bool) -> dict[str, Any]:
+        """Mute or unmute microphone capture without altering active conversation registration."""
+        self.audio_capture.set_user_muted(muted)
+        if muted and self.audio_capture.is_recording:
+            self.audio_capture.stop_capture(cancel=True)
+        await self.ws_hub.broadcast(
+            "mic_mute_change",
+            {"muted": self.audio_capture.is_muted, "route_mode": self.audio_capture.route_mode.value},
+        )
+        return {"muted": self.audio_capture.is_muted, "route_mode": self.audio_capture.route_mode.value}
+
+    def get_conversation_history(self) -> list[dict[str, Any]]:
+        return [m.model_dump() for m in self.conversation.get_history()]
+
+    async def clear_conversation_history(self) -> dict[str, int]:
+        removed = self.conversation.clear()
+        await self.ws_hub.broadcast("conversation_history_updated", {"count": 0})
+        return {"cleared": removed}
+
+    async def prewarm(self, *, prewarm_ollama: bool = True) -> dict[str, Any]:
+        tts_stats = self.tts_router.prewarm_common_phrases()
+        ollama_ms: float | None = None
+        ollama_ok = False
+        if prewarm_ollama:
+            try:
+                ollama_ms = await self.ollama_client.prewarm()
+                ollama_ok = True
+            except OllamaUnavailableError as exc:
+                logger.info("Ollama prewarm skipped (unavailable): %s", exc)
+        return {
+            "tts_prewarm": tts_stats,
+            "ollama_prewarmed": ollama_ok,
+            "ollama_prewarm_ms": ollama_ms,
+        }
+
+    async def start_conversation(
+        self,
+        *,
+        language: RequestedLanguage | None = None,
+        speak: bool = True,
+        mode: str = "continuous",
+        open_hardware_stream: bool = True,
+        silence_timeout_sec: float | None = None,
+    ) -> dict[str, Any]:
+        """Start continuous hands-free VAD conversation loop or report active session."""
+        if language is not None:
+            self.set_language(language)
+        if silence_timeout_sec is not None:
+            self._conversation_silence_limit_sec = max(5.0, float(silence_timeout_sec))
+
+        if mode != "continuous":
+            self._conversation_mode = mode
+            self._conversation_active = False
+            await self.ws_hub.broadcast(
+                "conversation_mode_change",
+                {"active": False, "mode": mode, "language": self.session_language},
+            )
+            return {
+                "active": False,
+                "mode": mode,
+                "language": self.session_language,
+                "state": self.fsm.state.value,
+            }
+
+        if open_hardware_stream and not has_input_microphone(self.settings.audio_input_device):
+            await self.ws_hub.broadcast(
+                "error",
+                {"code": "mic_unavailable", "message": "No usable input microphone detected."},
+            )
+            raise AudioDeviceUnavailableError("No usable input microphone detected on host.")
+
+        if self._conversation_active and self._conversation_task and not self._conversation_task.done():
+            return {
+                "active": True,
+                "mode": "continuous",
+                "already_active": True,
+                "language": self.session_language,
+                "state": self.fsm.state.value,
+            }
+
+        self._conversation_active = True
+        self._conversation_mode = "continuous"
+        self._conversation_speak = speak
+        await self.ws_hub.broadcast(
+            "conversation_mode_change",
+            {"active": True, "mode": "continuous", "language": self.session_language},
+        )
+        self._conversation_task = asyncio.create_task(
+            self._continuous_conversation_loop(open_hardware_stream=open_hardware_stream)
+        )
+        return {
+            "active": True,
+            "mode": "continuous",
+            "language": self.session_language,
+            "state": self.fsm.state.value,
+        }
+
+    async def stop_conversation(self, *, reason: str = "user_stopped") -> dict[str, Any]:
+        """Stop continuous hands-free conversation loop cleanly."""
+        was_active = self._conversation_active
+        self._conversation_active = False
+        self._conversation_mode = "idle"
+        self.playback.stop()
+        if self.audio_capture.is_recording:
+            self.audio_capture.stop_capture(cancel=True)
+        task = self._conversation_task
+        self._conversation_task = None
+        if task is not None and not task.done() and task is not asyncio.current_task():
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+        await self.cancel_turn()
+        if was_active:
+            await self.ws_hub.broadcast(
+                "conversation_mode_change",
+                {"active": False, "mode": "idle", "reason": reason},
+            )
+        return {"stopped": True, "was_active": was_active, "reason": reason}
+
+    async def _continuous_conversation_loop(self, *, open_hardware_stream: bool) -> None:
+        idle_silence_sec = 0.0
+        listen_window_sec = 8.0
+        try:
+            while self._conversation_active:
+                if self.audio_capture.is_muted:
+                    await asyncio.sleep(0.1)
+                    continue
+
+                if self.fsm.state != AssistantState.IDLE:
+                    await self.fsm.finish_turn(self.fsm.active_turn.turn_id) if self.fsm.active_turn else None
+
+                listen_ctx = await self.fsm.start_turn(
+                    source="voice_continuous",
+                    language=self._last_resolved_language,
+                    initial_state=AssistantState.LISTENING,
+                )
+
+                async def _emit_level(
+                    rms_db: float,
+                    peak: float,
+                    *,
+                    bound_ctx: TurnContext = listen_ctx,
+                ) -> None:
+                    if not bound_ctx.is_cancelled and not self.audio_capture.is_muted:
+                        await self.ws_hub.broadcast("audio_level", {"rms_db": rms_db, "peak": peak})
+
+                try:
+                    await self.audio_capture.start_ptt_capture(
+                        use_vad_endpointing=True,
+                        initial_timeout_sec=listen_window_sec,
+                        on_level=_emit_level,
+                        open_hardware_stream=open_hardware_stream,
+                    )
+                except AudioDeviceUnavailableError as exc:
+                    await self._safe_error(listen_ctx, str(exc))
+                    break
+
+                if not self._conversation_active or listen_ctx.is_cancelled:
+                    self.audio_capture.stop_capture(cancel=True)
+                    await self.fsm.finish_turn(listen_ctx.turn_id)
+                    continue
+
+                audio_f32, stop_reason = self.audio_capture.get_recorded_audio()
+                if stop_reason == "no_speech_timeout" or audio_f32.size == 0:
+                    await self.fsm.finish_turn(listen_ctx.turn_id)
+                    idle_silence_sec += listen_window_sec
+                    if idle_silence_sec >= self._conversation_silence_limit_sec:
+                        self._conversation_active = False
+                        self._conversation_mode = "idle"
+                        await self.ws_hub.broadcast(
+                            "conversation_mode_change",
+                            {
+                                "active": False,
+                                "mode": "idle",
+                                "reason": "silence_timeout",
+                            },
+                        )
+                        break
+                    continue
+
+                idle_silence_sec = 0.0
+                out = await self._process_audio_with_turn(
+                    listen_ctx,
+                    audio_f32,
+                    stop_reason=stop_reason,
+                    speak=self._conversation_speak,
+                    allow_llm_fallback=True,
+                )
+
+                if out.intent in (IntentName.FAREWELL.value, IntentName.STOP_ASSISTANT.value):
+                    self._conversation_active = False
+                    self._conversation_mode = "idle"
+                    await self.ws_hub.broadcast(
+                        "conversation_mode_change",
+                        {
+                            "active": False,
+                            "mode": "idle",
+                            "reason": "user_farewell",
+                        },
+                    )
+                    break
+
+                # Echo settle window prevents assistant self-triggering from room reverb
+                await asyncio.sleep(0.25)
+                self.audio_capture.set_route_mode(AudioRouteMode.NORMAL)
+        except asyncio.CancelledError:
+            self.audio_capture.stop_capture(cancel=True)
+            raise
 
     async def start_ptt(self, *, language: RequestedLanguage | None = None) -> dict[str, Any]:
         if language is not None:
@@ -357,11 +587,18 @@ class VoiceOrchestrator:
                     "clarification_required",
                     {"turn_id": ctx.turn_id, "language": lang, "message": msg},
                 )
-                tts_ms, ttfa_ms = await self._maybe_speak(ctx, msg, lang, speak=speak)
+                tts_ms, playback_ms, ttfa_ms, tts_cache_hit = await self._maybe_speak(
+                    ctx,
+                    msg,
+                    lang,
+                    speak=speak,
+                    turn_start_perf=t_start,
+                )
                 await self.fsm.finish_turn(ctx.turn_id)
                 return ProcessTurnOutput(
                     turn_id=ctx.turn_id,
                     intent="Clarify",
+                    route_category="clarification",
                     confidence=1.0,
                     intent_source="clarification",
                     detected_language=lang,
@@ -375,10 +612,22 @@ class VoiceOrchestrator:
                     latency_ms=round((time.perf_counter() - t_start) * 1000.0, 2),
                     stt_ms=stt_res.latency_ms,
                     tts_ms=tts_ms,
+                    playback_ms=playback_ms,
                     ttfa_ms=ttfa_ms,
+                    tts_cache_hit=tts_cache_hit,
                     transcript="",
                 )
 
+            await self.ws_hub.broadcast(
+                "transcript_ready",
+                {
+                    "turn_id": ctx.turn_id,
+                    "transcript": stt_res.text,
+                    "language": stt_res.detected_language,
+                    "model_size": stt_res.model_size,
+                    "stt_ms": stt_res.latency_ms,
+                },
+            )
             return await self._run_nlu_and_execute(
                 ctx=ctx,
                 text=stt_res.text,
@@ -464,19 +713,85 @@ class VoiceOrchestrator:
             fallback_language=self._last_resolved_language,
             allow_llm_fallback=allow_llm_fallback,
         )
-        self._last_resolved_language = typed_intent.language
-        ctx.language = typed_intent.language
+        reply_language: LanguageCode = typed_intent.target_language or typed_intent.language
+        self._last_resolved_language = reply_language
+        ctx.language = reply_language
 
         if ctx.is_cancelled:
             return self._cancelled_output(ctx, t_start)
 
         tool_t0 = time.perf_counter()
+        llm_ttft_ms: float | None = None
+        tts_ms: float | None = None
+        playback_ms: float | None = None
+        ttfa_ms: float | None = None
+        tts_cache_hit = False
+        already_spoke = False
+
         if typed_intent.intent_name == IntentName.CLARIFY:
             await self.fsm.transition(ctx.turn_id, AssistantState.CLARIFYING)
             result = await self.tool_registry.execute_intent(typed_intent)
             await self.ws_hub.broadcast(
                 "clarification_required",
-                {"turn_id": ctx.turn_id, "language": typed_intent.language, "message": result.message},
+                {"turn_id": ctx.turn_id, "language": reply_language, "message": result.message},
+            )
+        elif typed_intent.intent_name in (
+            IntentName.GREETING,
+            IntentName.ACKNOWLEDGMENT,
+            IntentName.FAREWELL,
+        ):
+            phrase_key = typed_intent.intent_name.value.lower()
+            result = VerifiedActionResult(
+                success=True,
+                action=typed_intent.intent_name.value,
+                status="verified",
+                message=get_phrase(phrase_key, reply_language),
+            )
+            await self.ws_hub.broadcast(
+                "response_completed",
+                {
+                    "turn_id": ctx.turn_id,
+                    "intent": typed_intent.intent_name.value,
+                    "route_category": "greeting",
+                    "language": reply_language,
+                    "response_text": result.message,
+                },
+            )
+        elif typed_intent.intent_name == IntentName.SWITCH_LANGUAGE:
+            self.set_language(reply_language)
+            result = VerifiedActionResult(
+                success=True,
+                action="SwitchLanguage",
+                status="verified",
+                data={"language": reply_language},
+                message=get_phrase("language_switched", reply_language),
+            )
+            await self.ws_hub.broadcast(
+                "response_completed",
+                {
+                    "turn_id": ctx.turn_id,
+                    "intent": "SwitchLanguage",
+                    "route_category": "language_switch",
+                    "language": reply_language,
+                    "response_text": result.message,
+                },
+            )
+        elif typed_intent.intent_name == IntentName.CONVERSATION:
+            (
+                result,
+                llm_ttft_ms,
+                llm_ms,
+                tts_ms,
+                playback_ms,
+                ttfa_ms,
+                tts_cache_hit,
+                already_spoke,
+            ) = await self._execute_streaming_conversation(
+                ctx=ctx,
+                user_text=text,
+                reply_language=reply_language,
+                speak=speak,
+                t_start=t_start,
             )
         elif typed_intent.intent_name == IntentName.UNSUPPORTED:
             result = VerifiedActionResult(
@@ -484,9 +799,9 @@ class VoiceOrchestrator:
                 action="Unsupported",
                 status="refused",
                 message=(
-                    get_phrase("ollama_unavailable", typed_intent.language)
+                    get_phrase("ollama_unavailable", reply_language)
                     if llm_err
-                    else get_phrase("unsupported", typed_intent.language)
+                    else get_phrase("unsupported", reply_language)
                 ),
                 error=llm_err,
             )
@@ -507,7 +822,7 @@ class VoiceOrchestrator:
                 },
             )
 
-        tool_ms = round((time.perf_counter() - tool_t0) * 1000.0, 2)
+        tool_ms = round((time.perf_counter() - tool_t0) * 1000.0, 2) if typed_intent.route_category == "tool" else 0.0
 
         if ctx.is_cancelled:
             return self._cancelled_output(ctx, t_start)
@@ -515,13 +830,31 @@ class VoiceOrchestrator:
         if typed_intent.intent_name == IntentName.STOP_ASSISTANT:
             self.playback.stop()
 
-        tts_ms, ttfa_ms = await self._maybe_speak(
-            ctx,
-            result.message,
-            typed_intent.language,
-            speak=speak,
-        )
+        if not already_spoke:
+            tts_ms, playback_ms, ttfa_ms, tts_cache_hit = await self._maybe_speak(
+                ctx,
+                result.message,
+                reply_language,
+                speak=speak,
+                turn_start_perf=t_start,
+            )
+
         await self.fsm.finish_turn(ctx.turn_id)
+
+        # Commit turn atomically to session memory only when not cancelled or failed due to offline LLM
+        if result.error is None and result.message.strip():
+            self.conversation.record_turn(
+                user_text=text,
+                assistant_text=result.message,
+                language=reply_language,
+                intent=typed_intent.intent_name.value,
+                route_category=typed_intent.route_category,
+                turn_id=ctx.turn_id,
+            )
+            await self.ws_hub.broadcast(
+                "conversation_history_updated",
+                {"count": len(self.conversation.get_history()), "turn_id": ctx.turn_id},
+            )
 
         e2e_ms = round((time.perf_counter() - t_start) * 1000.0, 2)
         placement = self.compute_manager.resolve_placement()
@@ -529,7 +862,7 @@ class VoiceOrchestrator:
             self.metric_repo.record_turn(
                 turn_id=ctx.turn_id,
                 source=ctx.source,
-                language=typed_intent.language,
+                language=reply_language,
                 requested_compute_mode=placement.requested_mode.value,
                 effective_compute_mode=placement.effective_mode,
                 intent_name=typed_intent.intent_name.value,
@@ -549,12 +882,13 @@ class VoiceOrchestrator:
         return ProcessTurnOutput(
             turn_id=ctx.turn_id,
             intent=typed_intent.intent_name.value,
+            route_category=typed_intent.route_category,
             confidence=typed_intent.confidence,
             intent_source=typed_intent.source,
             detected_language=typed_intent.language,
             slots=typed_intent.slots,
             response_text=result.message,
-            response_language=typed_intent.language,
+            response_language=reply_language,
             action_executed=result.success,
             status=result.status,
             state=self.fsm.state,
@@ -562,12 +896,144 @@ class VoiceOrchestrator:
             latency_ms=e2e_ms,
             stt_ms=stt_ms,
             router_ms=router_ms,
+            llm_ttft_ms=llm_ttft_ms,
             llm_ms=llm_ms,
             tool_ms=tool_ms,
             tts_ms=tts_ms,
+            playback_ms=playback_ms,
             ttfa_ms=ttfa_ms,
+            tts_cache_hit=tts_cache_hit,
             error=result.error,
             transcript=transcript,
+        )
+
+    async def _execute_streaming_conversation(
+        self,
+        *,
+        ctx: TurnContext,
+        user_text: str,
+        reply_language: LanguageCode,
+        speak: bool,
+        t_start: float,
+    ) -> tuple[VerifiedActionResult, float | None, float | None, float | None, float | None, float | None, bool, bool]:
+        """Stream Ollama tokens live to WebSocket and sentence-by-sentence into AudioPlayback."""
+        messages = self.conversation.build_llm_messages(user_text, reply_language=reply_language)
+        sentence_buf = SentenceStreamBuffer(min_chars=18)
+        sentence_queue: asyncio.Queue[str | None] = asyncio.Queue()
+        speak_task: asyncio.Task[tuple[list[Any], PlaybackMetrics]] | None = None
+
+        if speak:
+            await self.fsm.transition(ctx.turn_id, AssistantState.SPEAKING, language=reply_language)
+            speak_task = asyncio.create_task(
+                self.playback.speak_sentence_stream(
+                    sentence_queue,
+                    language=reply_language,
+                    play_to_speaker=True,
+                    external_cancel=ctx.cancel_event,
+                    turn_start_perf=t_start,
+                )
+            )
+
+        raw_parts: list[str] = []
+        llm_stats: dict[str, Any] = {}
+        try:
+            async for token, stats in self.ollama_client.stream_conversation(
+                messages,
+                cancel_event=ctx.cancel_event,
+            ):
+                if stats is not None:
+                    llm_stats = stats
+                    break
+                if token:
+                    raw_parts.append(token)
+                    await self.ws_hub.broadcast(
+                        "response_text_delta",
+                        {
+                            "turn_id": ctx.turn_id,
+                            "token": token,
+                            "language": reply_language,
+                        },
+                    )
+                    if speak_task is not None:
+                        for sentence in sentence_buf.push(token):
+                            clean_sent = strip_markdown_for_speech(sentence)
+                            if clean_sent:
+                                await sentence_queue.put(clean_sent)
+
+            tail = sentence_buf.flush()
+            if speak_task is not None and tail and not ctx.is_cancelled:
+                clean_tail = strip_markdown_for_speech(tail)
+                if clean_tail:
+                    await sentence_queue.put(clean_tail)
+        except OllamaUnavailableError as exc:
+            if speak_task is not None:
+                await sentence_queue.put(None)
+                with contextlib.suppress(OSError, RuntimeError, ValueError):
+                    await speak_task
+            msg = get_phrase("ollama_unavailable", reply_language)
+            return (
+                VerifiedActionResult(
+                    success=False,
+                    action="Conversation",
+                    status="failed",
+                    message=msg,
+                    error=str(exc),
+                ),
+                None,
+                None,
+                None,
+                None,
+                None,
+                False,
+                False,
+            )
+
+        clean_full = strip_markdown_for_speech("".join(raw_parts)) or "..."
+        tts_ms: float | None = None
+        playback_ms: float | None = None
+        ttfa_ms: float | None = None
+        cache_hit = False
+
+        if speak_task is not None:
+            await sentence_queue.put(None)
+            try:
+                _audios, pm = await speak_task
+                tts_ms = pm.tts_synthesis_ms
+                playback_ms = pm.audio_playback_ms
+                ttfa_ms = pm.first_audio_ready_ms
+                cache_hit = pm.cache_hits > 0
+            except (OSError, RuntimeError, ValueError) as exc:
+                logger.warning("Streaming TTS playback failed: %s", exc)
+
+        await self.ws_hub.broadcast(
+            "response_completed",
+            {
+                "turn_id": ctx.turn_id,
+                "intent": IntentName.CONVERSATION.value,
+                "route_category": "conversation",
+                "language": reply_language,
+                "response_text": clean_full,
+                "llm_ttft_ms": llm_stats.get("ttft_ms"),
+                "llm_ms": llm_stats.get("latency_ms"),
+                "tts_ms": tts_ms,
+                "playback_ms": playback_ms,
+                "ttfa_ms": ttfa_ms,
+            },
+        )
+        return (
+            VerifiedActionResult(
+                success=True,
+                action="Conversation",
+                status="verified",
+                message=clean_full,
+            ),
+            llm_stats.get("ttft_ms"),
+            llm_stats.get("latency_ms"),
+            tts_ms,
+            playback_ms,
+            ttfa_ms,
+            cache_hit,
+            speak,
         )
 
     async def _maybe_speak(
@@ -577,24 +1043,29 @@ class VoiceOrchestrator:
         language: LanguageCode,
         *,
         speak: bool,
-    ) -> tuple[float | None, float | None]:
+        turn_start_perf: float | None = None,
+    ) -> tuple[float | None, float | None, float | None, bool]:
         if not speak or not text.strip():
-            return None, None
-        await self.fsm.transition(ctx.turn_id, AssistantState.SPEAKING, language=language)
-        t0 = time.perf_counter()
+            return None, None, None, False
+        if self.fsm.state != AssistantState.SPEAKING:
+            await self.fsm.transition(ctx.turn_id, AssistantState.SPEAKING, language=language)
         try:
-            chunks = await self.playback.speak_text(
+            _chunks, pm = await self.playback.speak_text_with_metrics(
                 text,
                 language=language,
                 play_to_speaker=True,
                 external_cancel=ctx.cancel_event,
+                turn_start_perf=turn_start_perf,
             )
-            total_tts = round((time.perf_counter() - t0) * 1000.0, 2)
-            first_tts = chunks[0].latency_ms if chunks else None
-            return total_tts, first_tts
+            return (
+                pm.tts_synthesis_ms,
+                pm.audio_playback_ms,
+                pm.first_audio_ready_ms,
+                pm.cache_hits > 0,
+            )
         except (OSError, RuntimeError, ValueError) as exc:
             logger.warning("TTS speaking skipped/failed: %s", exc)
-            return None, None
+            return None, None, None, False
 
     async def _safe_error(self, ctx: TurnContext, message: str) -> None:
         try:

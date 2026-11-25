@@ -1,5 +1,17 @@
 # Frontend Integration Handover (`feat/backend-intelligence` -> `feat/frontend-experience`)
 
+## Phase 1.5 integration note
+
+The Assistant UI can now use continuous conversation start/stop, mic mute,
+session history inspection/clear, and prewarm endpoints documented in
+`API_CONTRACT.md`. Render `transcript_ready`, append `response_text_delta`, and
+replace the provisional text with `response_completed`. Treat `refused` as an
+intentional safety/capability boundary and `failed` as a retryable runtime error;
+do not display a model outage as a successful assistant refusal.
+
+The backend emits actual state and latency fields. Do not synthesize success,
+streaming, or timing values in production integration.
+
 **Date:** 2026-11-25  
 **Backend Branch:** `feat/backend-intelligence`  
 **Contract Reference:** [`docs/API_CONTRACT.md`](./API_CONTRACT.md)

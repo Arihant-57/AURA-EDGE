@@ -125,6 +125,31 @@ _TEMPLATES: dict[str, dict[LanguageCode, str]] = {
         "hi": "कृपया 1 सेकंड से 24 घंटे के बीच एक सही टाइमर समय बताएं।",
         "kn": "ದಯವಿಟ್ಟು 1 ಸೆಕೆಂಡ್‌ನಿಂದ 24 ಗಂಟೆಗಳ ಒಳಗಿನ ಸರಿಯಾದ ಟೈಮರ್ ಸಮಯವನ್ನು ಹೇಳಿ.",
     },
+    "greeting": {
+        "en": "Hello! I am AURA EDGE, ready to help you offline. You can chat with me, ask questions, or manage time and timers.",
+        "hi": "नमस्ते! मैं ऑरा एज हूँ, ऑफ़लाइन आपकी मदद के लिए तैयार हूँ। आप मुझसे बात कर सकते हैं, सवाल पूछ सकते हैं या समय और टाइमर पूछ सकते हैं।",
+        "kn": "ನಮಸ್ಕಾರ! ನಾನು ಆರಾ ಎಡ್ಜ್, ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿ ನಿಮಗೆ ಸಹಾಯ ಮಾಡಲು ಸಿದ್ಧನಿದ್ದೇನೆ. ನೀವು ನನ್ನೊಂದಿಗೆ ಮಾತನಾಡಬಹುದು, ಪ್ರಶ್ನೆಗಳನ್ನು ಕೇಳಬಹುದು ಅಥವಾ ಸಮಯ ಮತ್ತು ಟೈಮರ್‌ಗಳನ್ನು ನಿರ್ವಹಿಸಬಹುದು.",
+    },
+    "acknowledgment": {
+        "en": "You're welcome! Let me know if you need anything else.",
+        "hi": "आपका स्वागत है! बताइए, और क्या मदद करूँ?",
+        "kn": "ನಿಮಗೆ ಸ್ವಾಗತ! ಬೇರೆ ಏನಾದರೂ ಸಹಾಯ ಬೇಕಿದ್ದರೆ ಕೇಳಿ.",
+    },
+    "farewell": {
+        "en": "Goodbye! Feel free to talk whenever you need me.",
+        "hi": "अलविदा! जब भी ज़रूरत हो, मुझसे बात करिएगा।",
+        "kn": "ವಿದಾಯ! ನಿಮಗೆ ಅಗತ್ಯವಿದ್ದಾಗ ಮತ್ತೆ ಮಾತನಾಡಿ.",
+    },
+    "language_switched": {
+        "en": "Okay, I will now speak in English.",
+        "hi": "ठीक है, अब मैं हिंदी में बात करूँगा।",
+        "kn": "ಸರಿ, ಇನ್ನು ಮುಂದೆ ನಾನು ಕನ್ನಡದಲ್ಲಿ ಮಾತನಾಡುತ್ತೇನೆ.",
+    },
+    "conversation_started": {
+        "en": "Continuous conversation mode is active. Go ahead, I'm listening.",
+        "hi": "लगातार बातचीत मोड चालू है। बताइए, मैं सुन रहा हूँ।",
+        "kn": "ನಿರಂತರ ಸಂಭಾಷಣೆ ಮೋಡ್ ಸಕ್ರಿಯವಾಗಿದೆ. ಹೇಳಿ, ನಾನು ಕೇಳಿಸಿಕೊಳ್ಳುತ್ತಿದ್ದೇನೆ.",
+    },
 }
 
 

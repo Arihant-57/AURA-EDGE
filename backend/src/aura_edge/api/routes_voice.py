@@ -5,7 +5,7 @@ from __future__ import annotations
 import io
 import math
 import wave
-from typing import Annotated
+from typing import Annotated, Literal
 
 import numpy as np
 from fastapi import APIRouter, File, Form, HTTPException, Request, Response, UploadFile
@@ -54,6 +54,21 @@ class PttStopRequest(BaseModel):
 
 class CancelTurnRequest(BaseModel):
     turn_id: str | None = None
+
+
+class ConversationStartRequest(BaseModel):
+    language: RequestedLanguage | None = None
+    speak: bool = True
+    mode: Literal["continuous", "ptt"] = "continuous"
+    silence_timeout_sec: float = Field(default=60.0, ge=5.0, le=600.0)
+
+
+class MicMuteRequest(BaseModel):
+    muted: bool
+
+
+class PrewarmRequest(BaseModel):
+    prewarm_ollama: bool = True
 
 
 def _decode_wav_bytes_to_16k_float32(raw_bytes: bytes) -> np.ndarray:
@@ -194,3 +209,54 @@ def select_compute_mode(body: ComputeModeRequest, request: Request) -> dict[str,
     orch: VoiceOrchestrator = request.app.state.orchestrator
     placement = orch.set_compute_mode(body.compute_mode)
     return placement.model_dump()
+
+
+@router.post("/voice/conversation/start")
+async def start_conversation_mode(
+    request: Request,
+    body: ConversationStartRequest | None = None,
+) -> dict[str, object]:
+    orch: VoiceOrchestrator = request.app.state.orchestrator
+    try:
+        return await orch.start_conversation(
+            language=body.language if body else None,
+            speak=body.speak if body else True,
+            mode=body.mode if body else "continuous",
+            silence_timeout_sec=body.silence_timeout_sec if body else None,
+        )
+    except AudioDeviceUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@router.post("/voice/conversation/stop")
+async def stop_conversation_mode(request: Request) -> dict[str, object]:
+    orch: VoiceOrchestrator = request.app.state.orchestrator
+    return await orch.stop_conversation(reason="api_stop")
+
+
+@router.put("/voice/mic/mute")
+async def set_microphone_mute(body: MicMuteRequest, request: Request) -> dict[str, object]:
+    orch: VoiceOrchestrator = request.app.state.orchestrator
+    return await orch.set_mic_mute(body.muted)
+
+
+@router.get("/conversation/history")
+def get_conversation_history(request: Request) -> dict[str, object]:
+    orch: VoiceOrchestrator = request.app.state.orchestrator
+    history = orch.get_conversation_history()
+    return {"count": len(history), "messages": history}
+
+
+@router.delete("/conversation/history")
+async def clear_conversation_history(request: Request) -> dict[str, object]:
+    orch: VoiceOrchestrator = request.app.state.orchestrator
+    return await orch.clear_conversation_history()
+
+
+@router.post("/voice/prewarm")
+async def prewarm_voice_engines(
+    request: Request,
+    body: PrewarmRequest | None = None,
+) -> dict[str, object]:
+    orch: VoiceOrchestrator = request.app.state.orchestrator
+    return await orch.prewarm(prewarm_ollama=body.prewarm_ollama if body else True)

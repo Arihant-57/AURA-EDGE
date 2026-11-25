@@ -11,12 +11,49 @@ from collections import OrderedDict
 import numpy as np
 
 from aura_edge.config import Settings
+from aura_edge.intelligence.response_catalog import get_phrase
 from aura_edge.intelligence.schemas import LanguageCode
 from aura_edge.speech.tts_backends.base import SynthesizedAudio, TTSBackend
 from aura_edge.speech.tts_backends.onecore_backend import OneCoreFallbackBackend
 from aura_edge.speech.tts_backends.sherpa_onnx_backend import SherpaOnnxBackend
 
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?।॥])\s+(?=[^\d])")
+
+
+class SentenceStreamBuffer:
+    """Incremental multilingual sentence chunker for low-TTFA streaming TTS."""
+
+    def __init__(self, *, min_chars: int = 18) -> None:
+        self.min_chars = max(1, int(min_chars))
+        self._buf = ""
+
+    def push(self, token: str) -> list[str]:
+        """Append streamed token text and emit any complete speakable sentences."""
+        if not token:
+            return []
+        self._buf += token
+        emitted: list[str] = []
+
+        while True:
+            # Split at newline OR sentence terminator (.!?।॥) not followed by digit (e.g. 3.14)
+            m = re.search(r"([.!?।॥])(?=\s+(?!\d)|\s*$)|\n+", self._buf)
+            if m is None:
+                break
+            cut_idx = m.end()
+            candidate = self._buf[:cut_idx].strip()
+            if len(candidate) < self.min_chars and "\n" not in m.group(0):
+                break
+            if candidate:
+                emitted.append(candidate)
+            self._buf = self._buf[cut_idx:].lstrip()
+
+        return emitted
+
+    def flush(self) -> str | None:
+        """Flush any trailing sentence fragment when LLM stream finishes."""
+        rem = self._buf.strip()
+        self._buf = ""
+        return rem or None
 
 
 def normalize_for_pronunciation(text: str, language: LanguageCode) -> str:
@@ -180,3 +217,14 @@ class TTSRouter:
     ) -> tuple[bytes, SynthesizedAudio]:
         audio = self.synthesize(text, language=language, speed=speed)
         return pcm_float32_to_wav_bytes(audio.samples, audio.sample_rate), audio
+
+    def prewarm_common_phrases(self) -> dict[str, int]:
+        """Pre-synthesize frequently used EN/HI/KN greetings and acknowledgments into LRU cache."""
+        warmed = 0
+        for lang in self.available_languages():
+            for key in ("greeting", "acknowledgment", "farewell"):
+                phrase = get_phrase(key, lang)
+                if phrase:
+                    self.synthesize(phrase, language=lang)
+                    warmed += 1
+        return {"phrases_warmed": warmed, "cache_entries": len(self._cache)}

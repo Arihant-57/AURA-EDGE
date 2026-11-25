@@ -13,6 +13,9 @@ param(
     [ValidateSet("auto", "cpu", "gpu")]
     [string]$ComputeMode = "auto",
 
+    [ValidateSet("continuous", "ptt")]
+    [string]$ConversationMode = "continuous",
+
     [switch]$NoCli,
     [switch]$NoSpeak,
     [switch]$SkipOllama,
@@ -166,7 +169,7 @@ if ($NoCli) {
 }
 
 try {
-    $cliArgs = @($CliScript, "--url", "http://127.0.0.1:8000")
+    $cliArgs = @($CliScript, "--url", "http://127.0.0.1:8000", "--mode", $ConversationMode, "--language", $Language)
     if ($NoSpeak) { $cliArgs += "--no-speak" }
     & $PythonExe @cliArgs
 } finally {

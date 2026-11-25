@@ -121,6 +121,7 @@ class AudioCapture:
         self._vad = vad
 
         self._route_mode = AudioRouteMode.NORMAL
+        self._user_muted = False
         self._stream: Any = None
         self._recording = False
         self._recorded_frames: list[np.ndarray] = []
@@ -133,9 +134,28 @@ class AudioCapture:
     def route_mode(self) -> AudioRouteMode:
         return self._route_mode
 
-    def set_route_mode(self, mode: AudioRouteMode) -> None:
-        """Gate audio capture during assistant TTS playback to avoid self-triggering."""
+    @property
+    def is_muted(self) -> bool:
+        return self._user_muted or self._route_mode == AudioRouteMode.MUTED
+
+    def set_user_muted(self, muted: bool) -> None:
+        """Explicit user mute toggle (never overridden by SPEAKING -> IDLE echo gate)."""
         with self._capture_lock:
+            self._user_muted = bool(muted)
+            if self._user_muted:
+                self._route_mode = AudioRouteMode.MUTED
+                self._preroll.clear()
+                self._recorded_frames.clear()
+            elif self._route_mode == AudioRouteMode.MUTED:
+                self._route_mode = AudioRouteMode.NORMAL
+
+    def set_route_mode(self, mode: AudioRouteMode) -> None:
+        """Gate audio capture during assistant TTS playback while preserving explicit user mute."""
+        with self._capture_lock:
+            if self._user_muted and mode == AudioRouteMode.NORMAL:
+                self._route_mode = AudioRouteMode.MUTED
+                self._preroll.clear()
+                return
             self._route_mode = mode
             if mode != AudioRouteMode.NORMAL:
                 # Clear stale echo frames from pre-roll when muted/monitoring
@@ -192,6 +212,7 @@ class AudioCapture:
         self,
         *,
         use_vad_endpointing: bool = True,
+        initial_timeout_sec: float | None = None,
         on_level: AudioLevelCallback | None = None,
         open_hardware_stream: bool = True,
     ) -> None:
@@ -209,7 +230,7 @@ class AudioCapture:
             self._last_capture_reason = "recording"
 
         if self._vad is not None:
-            self._vad.reset()
+            self._vad.reset(initial_timeout_sec=initial_timeout_sec)
 
         if open_hardware_stream:
             import sounddevice as sd

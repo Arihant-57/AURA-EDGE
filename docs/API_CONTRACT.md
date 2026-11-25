@@ -1,5 +1,24 @@
 # AURA EDGE — API Contract & Interface Specification
 
+## Phase 1.5 conversation additions
+
+- `POST /api/v1/voice/conversation/start` starts continuous hands-free capture.
+- `POST /api/v1/voice/conversation/stop` stops the continuous session.
+- `PUT /api/v1/voice/mic/mute` accepts `{"muted": true|false}`.
+- `GET /api/v1/conversation/history` returns bounded session messages.
+- `DELETE /api/v1/conversation/history` clears the current session history.
+- `POST /api/v1/voice/prewarm` warms common TTS phrases and optionally local Ollama.
+
+`ProcessTurnOutput.route_category` is one of `tool`, `conversation`, `greeting`,
+`language_switch`, `clarification`, or `refusal`. Status `refused` means a policy
+or capability refusal; `failed` means a supported operation could not complete
+(for example, local Ollama is unavailable).
+
+Additional WebSocket events include `transcript_ready`, `response_text_delta`,
+`response_completed`, `conversation_history_updated`, `audio_level`, and
+conversation lifecycle events. Clients must render deltas as provisional and
+use `response_completed` as the authoritative final response.
+
 > **Current Version:** Phase 0 (Baseline) + Phase 1 (Multilingual Voice, Persistent Timers, 10-State WebSocket FSM)  
 > **Base URL:** `http://127.0.0.1:8000/api/v1`  
 > **Vite UI Proxy:** `/api/v1` (proxied to `http://127.0.0.1:8000` via `vite.config.ts`)  

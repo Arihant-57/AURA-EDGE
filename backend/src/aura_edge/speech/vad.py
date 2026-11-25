@@ -64,9 +64,10 @@ class SileroVadDetector:
         input_names = {inp.name for inp in self._session.get_inputs()}
         self._is_v5 = "state" in input_names
         self._context_size = 64 if sample_rate == 16000 else 32
+        self._active_initial_timeout_sec = self.initial_timeout_sec
         self.reset()
 
-    def reset(self) -> None:
+    def reset(self, *, initial_timeout_sec: float | None = None) -> None:
         """Reset LSTM/GRU states and endpointing timers for a fresh turn."""
         if self._is_v5:
             self._state = np.zeros((2, 1, 128), dtype=np.float32)
@@ -79,6 +80,11 @@ class SileroVadDetector:
         self._elapsed_sec = 0.0
         self._silence_sec = 0.0
         self._noise_floor_rms = self.min_rms_floor
+        self._active_initial_timeout_sec = (
+            float(initial_timeout_sec)
+            if initial_timeout_sec is not None
+            else self.initial_timeout_sec
+        )
 
     def infer_probability(self, frame_float32: np.ndarray) -> float:
         """Run CPU ONNX inference on one 1-D float32 frame of length ``frame_samples``."""
@@ -138,7 +144,7 @@ class SileroVadDetector:
                 self._silence_sec += frame_dur
                 if self._silence_sec >= self.trailing_silence_sec:
                     event = "speech_end"
-            elif self._elapsed_sec >= self.initial_timeout_sec:
+            elif self._elapsed_sec >= self._active_initial_timeout_sec:
                 event = "no_speech_timeout"
 
         if event == "none" and self._elapsed_sec >= self.max_utterance_sec:

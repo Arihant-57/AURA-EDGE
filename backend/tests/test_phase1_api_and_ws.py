@@ -160,14 +160,14 @@ def test_phase1_intent_synthesize_transcribe_and_ws_live(monkeypatch: pytest.Mon
             assert ok_local.status_code == 200
             assert ok_local.json()["action_executed"] is True
 
-            # Unmatched query when Ollama is down returns explicit refusal
+            # A supported conversation fails honestly when its local model is down.
             no_ollama = bad_client.post(
                 "/api/v1/intent/process",
                 json={"text": "Summarize quantum gravity", "language": "en"},
             )
             assert no_ollama.status_code == 200
             assert no_ollama.json()["action_executed"] is False
-            assert no_ollama.json()["status"] == "refused"
+            assert no_ollama.json()["status"] == "failed"
 
     # Cleanup test rows if DB was connected
     if check_database_readiness(app.state.engine).connected:

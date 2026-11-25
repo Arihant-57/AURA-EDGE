@@ -43,6 +43,77 @@ _TIME_UNIT_START_RE = re.compile(
     flags=re.IGNORECASE | re.UNICODE,
 )
 
+# Standalone greetings, acknowledgments, farewells, and language switches (Phase 1.5)
+_GREETING_RE = re.compile(
+    r"^(?:hi|hello|hey(?:\s+there)?|good\s+(?:morning|afternoon|evening)|"
+    r"namaste|namaskara|namaskar|नमस्ते|नमस्ती|नमस्टे|नमस्कार|हैलो|हेलो|"
+    r"ನಮಸ್ಕಾರ|ನಮಸ್ಕಾ|ನಮಸ್ಕ|ನಮಸ್ತೆ|ನಮಸ್ತಾ|ನಮಸ್ತ|ಹಲೋ)(?:\s+(?:aura|aura\s+edge))?$",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+_ACKNOWLEDGMENT_RE = re.compile(
+    r"^(?:thanks?(?:\s+you)?(?:\s+(?:very\s+much|so\s+much|a\s+lot))?|thank\s+you(?:\s+(?:very\s+much|so\s+much))?|"
+    r"ok|okay|got\s+it|alright|cool|great|awesome|nice|"
+    r"धन्यवाद|शुक्रिया|ठीक\s+है|बढ़िया|बहुत\s+बढ़िया|shukriya|dhanyavad|"
+    r"ಧನ್ಯವಾದ|ಧನ್ಯವಾದಗಳು|ಸರಿ|ತುಂಬಾ\s+ಚೆನ್ನಾಗಿದೆ|dhanyavada)$",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+_FAREWELL_RE = re.compile(
+    r"^(?:bye|goodbye|see\s+you(?:\s+later)?|talk\s+to\s+you\s+later|"
+    r"stop\s+(?:the\s+)?(?:conversation|chat|session|listening)|end\s+(?:the\s+)?(?:conversation|session)|"
+    r"अलविदा|बाय|बातचीत\s+(?:बंद|खत्म)\s+करो|alvida|"
+    r"ವಿದಾಯ|ಬಾಯ್|ಸಂಭಾಷಣೆ\s+ನಿಲ್ಲಿಸು|ಸಾಕು\s+ಮಾತನಾಡೋದು)$",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+_PURE_LANG_SWITCH_RE = re.compile(
+    r"^(?:(?:please\s+)?(?:switch|change(?:\s+language)?|speak|talk|respond|reply)\s+(?:to|in)\s+|"
+    r"(?:अपनी\s+)?भाषा\s+(?:बदलकर\s+)?)?"
+    r"(english|hindi|kannada|अंग्रेज़ी|अंग्रेजी|हिंदी|हिन्दी|कन्नड़|ಇಂಗ್ಲಿಷ್|ಹಿಂದಿ|ಕನ್ನಡ)"
+    r"(?:\s+(?:please|mein\s+(?:baat\s+karo|bolo)|में\s+(?:बात\s+करो|बोलो)|ಲ್ಲಿ\s+(?:ಮಾತಾಡು|ಮಾತನಾಡಿ|ಹೇಳು)|ದಲ್ಲ?ಿ\s+(?:ಮಾತಾಡು|ಹೇಳು)))?$",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+_EXPLICIT_LANG_REQUEST_RE = re.compile(
+    r"(?:\b(?:in|into|to)\s+(english|hindi|kannada)\b|"
+    r"(अंग्रेज़ी|अंग्रेजी|हिंदी|हिन्दी|कन्नड़)\s*(?:में|मे)|"
+    r"(?:in|into)\s+(english|hindi|kannada)|"
+    r"(ಇಂಗ್ಲಿಷ್|ಹಿಂದಿ|ಕನ್ನಡ)(?:ನಲ್ಲಿ|ದಲ್ಲಿ))",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+_LANG_NAME_MAP: dict[str, LanguageCode] = {
+    "english": "en",
+    "अंग्रेज़ी": "en",
+    "अंग्रेजी": "en",
+    "ಇಂಗ್ಲಿಷ್": "en",
+    "hindi": "hi",
+    "हिंदी": "hi",
+    "हिन्दी": "hi",
+    "ಹಿಂದಿ": "hi",
+    "kannada": "kn",
+    "कन्नड़": "kn",
+    "ಕನ್ನಡ": "kn",
+}
+_RESTRICTED_ACTION_RE = re.compile(
+    r"(?:\b(?:zomato|swiggy|amazon|flipkart|uber|ola)\b|"
+    r"\b(?:order|buy|purchase)\b.*\b(?:food|pizza|biryani|groceries|online)\b|"
+    r"\btransfer\b.*\b(?:rupees|dollars|money|funds|bank|friend)\b|"
+    r"\b(?:send|compose)\b.*\b(?:email|gmail|sms|whatsapp|message)\b|"
+    r"(?:ऑर्डर|खरीदो|पैसे\s+भेजो|बैंक\s+से|ईमेल\s+.*भेजो)|"
+    r"(?:ಆರ್ಡರ್|ಹಣ\s+ಕಳುಹಿಸು|ಬ್ಯಾಂಕ್\s+ಖಾತೆ|ಇಮೇಲ್\s+ಕಳುಹಿಸು))",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+
+
+def extract_requested_target_language(text: str) -> LanguageCode | None:
+    """Detect explicit request to reply in English, Hindi, or Kannada."""
+    m = _EXPLICIT_LANG_REQUEST_RE.search(text or "")
+    if not m:
+        return None
+    for grp in m.groups():
+        if grp:
+            mapped = _LANG_NAME_MAP.get(grp.strip().lower())
+            if mapped is not None:
+                return mapped
+    return None
+
 _LABEL_STOPWORDS = {
     "a",
     "an",
@@ -218,7 +289,7 @@ class MultilingualFastRouter:
             return TypedAction(intent_name=IntentName.GET_TIME, confidence=0.92)
 
         if re.search(
-            r"(?:\btoday(?:'s)?\s+date\b|\bwhat\s+date\b|\bwhat\s+day\b|तारीख\s+(?:क्या|बता)|आज\s+क्या\s+दिन|aaj\s+kya\s+tareekh|ದಿನಾಂಕ\s+(?:ಏನು|ಎಷ್ಟು|ಹೇಳು)|ಯಾವ\s+ದಿನ|dinanka\s+enu)",
+            r"(?:\btoday(?:'s)?\s+date\b|\bwhat(?:'s|\s+is)?\s+(?:the\s+)?(?:date|day)\b|तारीख\s+(?:क्या|बता)|आज\s+क्या\s+दिन|aaj\s+kya\s+tareekh|(?:ಇವತ್ತ\w*|ಇಂದು).*?(?:ಡೇಟ್|ದಿನಾಂಕ).*?ಏನು|ದಿನಾಂಕ\s+(?:ಏನು|ಎಷ್ಟು|ಹೇಳು)|ಯಾವ\s+ದಿನ|dinanka\s+enu)",
             low,
             flags=re.UNICODE,
         ):
@@ -300,6 +371,7 @@ class MultilingualFastRouter:
                     intent_name=IntentName.CLARIFY,
                     confidence=1.0,
                     source="clarification",
+                    route_category="clarification",
                     language=norm.language,
                     input_script=norm.script,
                     clarification_question=get_phrase("empty_speech", norm.language),
@@ -315,6 +387,7 @@ class MultilingualFastRouter:
                         intent_name=IntentName.CLARIFY,
                         confidence=0.95,
                         source="clarification",
+                        route_category="clarification",
                         language=norm.language,
                         input_script=norm.script,
                         clarification_question=get_phrase("ambiguous_request", norm.language),
@@ -359,20 +432,110 @@ class MultilingualFastRouter:
             )
 
         action = self._try_hassil_single(norm) or self._try_keyword_timer_or_clock(norm)
-        router_ms = round((time.perf_counter() - t0) * 1000.0, 2)
-        if action is None:
-            return None, router_ms
+        if action is not None:
+            router_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+            return (
+                TypedIntent(
+                    intent_name=action.intent_name,
+                    confidence=action.confidence,
+                    source="hassil_fast",
+                    route_category="tool",
+                    language=norm.language,
+                    input_script=norm.script,
+                    slots=action.slots,
+                    sub_actions=[action],
+                    raw_text=raw_text,
+                ),
+                router_ms,
+            )
 
-        return (
-            TypedIntent(
-                intent_name=action.intent_name,
-                confidence=action.confidence,
-                source="hassil_fast",
-                language=norm.language,
-                input_script=norm.script,
-                slots=action.slots,
-                sub_actions=[action],
-                raw_text=raw_text,
-            ),
-            router_ms,
-        )
+        # Standalone conversational micro-intents (greetings, thanks, farewells, pure language switches)
+        clean_low = norm.normalized.strip().lower()
+        if _GREETING_RE.match(clean_low):
+            return (
+                TypedIntent(
+                    intent_name=IntentName.GREETING,
+                    confidence=0.98,
+                    source="hassil_fast",
+                    route_category="greeting",
+                    language=norm.language,
+                    input_script=norm.script,
+                    raw_text=raw_text,
+                ),
+                round((time.perf_counter() - t0) * 1000.0, 2),
+            )
+        if _ACKNOWLEDGMENT_RE.match(clean_low):
+            return (
+                TypedIntent(
+                    intent_name=IntentName.ACKNOWLEDGMENT,
+                    confidence=0.96,
+                    source="hassil_fast",
+                    route_category="greeting",
+                    language=norm.language,
+                    input_script=norm.script,
+                    raw_text=raw_text,
+                ),
+                round((time.perf_counter() - t0) * 1000.0, 2),
+            )
+        if _FAREWELL_RE.match(clean_low):
+            return (
+                TypedIntent(
+                    intent_name=IntentName.FAREWELL,
+                    confidence=0.97,
+                    source="hassil_fast",
+                    route_category="greeting",
+                    language=norm.language,
+                    input_script=norm.script,
+                    raw_text=raw_text,
+                ),
+                round((time.perf_counter() - t0) * 1000.0, 2),
+            )
+        lang_switch_match = _PURE_LANG_SWITCH_RE.match(norm.normalized.strip())
+        if lang_switch_match and any(
+            kw in clean_low
+            for kw in (
+                "switch",
+                "change",
+                "speak",
+                "talk",
+                "respond",
+                "reply",
+                "भाषा",
+                "बोलो",
+                "बात",
+                "ಮಾತಾಡು",
+                "ಮಾತನಾಡಿ",
+                "ಹೇಳು",
+            )
+        ):
+            raw_target = lang_switch_match.group(1).strip().lower()
+            target_lang = _LANG_NAME_MAP.get(raw_target, norm.language)
+            return (
+                TypedIntent(
+                    intent_name=IntentName.SWITCH_LANGUAGE,
+                    confidence=0.97,
+                    source="hassil_fast",
+                    route_category="language_switch",
+                    language=target_lang,
+                    target_language=target_lang,
+                    input_script=norm.script,
+                    slots={"target_language": target_lang},
+                    raw_text=raw_text,
+                ),
+                round((time.perf_counter() - t0) * 1000.0, 2),
+            )
+        if _RESTRICTED_ACTION_RE.search(norm.normalized):
+            return (
+                TypedIntent(
+                    intent_name=IntentName.UNSUPPORTED,
+                    confidence=0.96,
+                    source="refusal",
+                    route_category="refusal",
+                    language=norm.language,
+                    input_script=norm.script,
+                    raw_text=raw_text,
+                ),
+                round((time.perf_counter() - t0) * 1000.0, 2),
+            )
+
+        return None, round((time.perf_counter() - t0) * 1000.0, 2)
