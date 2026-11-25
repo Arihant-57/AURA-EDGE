@@ -1,12 +1,18 @@
 import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AssistantView, useVoice } from "./Assistant";
+import { Settings } from "./Settings";
 import type { LiveEvent } from "./api/desktop";
 
 const stream = vi.hoisted(() => ({ listener: null as ((event: LiveEvent) => void) | null }));
 vi.mock("./live", () => ({
   useLive: (listener: (event: LiveEvent) => void) => { stream.listener = listener; },
-  useResource: () => ({ loading: false, refresh: vi.fn() }),
+  useResource: (path: string) => ({
+    loading: false, refresh: vi.fn(),
+    data: path === "/voice/status" ? {
+      compute: { requested_mode: "auto", effective_mode: "gpu", stt_device: "cuda", llm_device: "gpu", fallback_reason: null },
+    } : undefined,
+  }),
   refreshResources: vi.fn(),
 }));
 
@@ -34,4 +40,12 @@ describe("voice capture feedback", () => {
     expect(screen.getByText(/No usable speech was heard/)).toBeInTheDocument();
     expect(screen.queryByText(/Verified action/)).not.toBeInTheDocument();
   });
+});
+
+it("describes Ollama automatic placement separately from CUDA speech recognition", () => {
+  function Performance() {
+    return <Settings tab="Performance" timezone="Asia/Kolkata" voice={useVoice(true)}/>;
+  }
+  render(<Performance/>);
+  expect(screen.getByText("STT cuda · Ollama automatic placement")).toBeInTheDocument();
 });

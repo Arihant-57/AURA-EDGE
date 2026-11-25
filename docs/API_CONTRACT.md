@@ -177,6 +177,7 @@ Returns active FSM state, STT/VAD/TTS status, compute placement, hardware device
 - `POST /api/v1/voice/synthesize` — Body `{"text": "ಸಮಯ ಮುಗಿದಿದೆ", "language": "kn", "speed": 1.0}` (`speed` in `0.5..2.0`) -> `audio/wav` + headers `X-Aura-TTS-Backend`, `X-Aura-TTS-Model`, `X-Aura-TTS-Cached`, `X-Aura-TTS-Latency-Ms`.
 - `POST /api/v1/voice/cancel` — Body `{"turn_id": null}` -> `{"cancelled": bool, "turn_id": str|null, "completed_actions": [], "completed_actions_preserved": true}`.
 - `PUT /api/v1/voice/compute-mode` — Body `{"compute_mode": "auto"|"cpu"|"gpu"}` -> `ComputePlacement`.
+  `llm_device` describes dispatch policy. `cpu` forces CPU and `gpu` allows Ollama to place the model automatically. Resident VRAM is reported by Ollama's local `/api/ps` endpoint.
 
 ### 3.6 Continuous Conversation & History Endpoints (Phase 1.5+)
 - `POST /api/v1/voice/conversation/start` — Body `{"language": "auto"|"en"|"hi"|"kn"|null, "speak": true, "mode": "continuous"|"ptt", "silence_timeout_sec": 60.0}`.
