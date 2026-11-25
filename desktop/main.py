@@ -8,10 +8,10 @@ from pathlib import Path
 from typing import ClassVar
 from uuid import uuid4
 
+from companion import CAPSULE_HEIGHT, CAPSULE_WIDTH, Companion, clamp
 from local_server import start_server
 from PySide6.QtCore import (
     QDir,
-    QEasingCurve,
     QEvent,
     QFile,
     QIODevice,
@@ -20,7 +20,6 @@ from PySide6.QtCore import (
     QPoint,
     QProcess,
     QProcessEnvironment,
-    QPropertyAnimation,
     QRect,
     QSettings,
     Qt,
@@ -30,7 +29,6 @@ from PySide6.QtCore import (
     Slot,
 )
 from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap
-from PySide6.QtQuickWidgets import QQuickWidget
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import (
     QWebEnginePage,
@@ -42,11 +40,8 @@ from PySide6.QtWebEngineCore import (
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QApplication,
-    QHBoxLayout,
-    QLabel,
     QMenu,
     QMessageBox,
-    QPushButton,
     QSystemTrayIcon,
     QVBoxLayout,
     QWidget,
@@ -57,183 +52,12 @@ ROOT = Path(__file__).resolve().parent.parent
 POSITIONS = {"free": "Free placement", "top-center": "Top center", "top-right": "Top right",
              "bottom-right": "Bottom right", "bottom-left": "Bottom left"}
 SIZES = {"small": 68, "medium": 88, "large": 108}
-VOICE_LABELS = {
-    "OFFLINE": "Backend disconnected", "IDLE": "Tap to talk", "MUTED": "Microphone muted",
-    "LISTENING": "Listening", "THINKING": "Thinking", "EXECUTING": "Executing",
-    "VERIFYING": "Verifying", "SPEAKING": "Speaking", "SUCCESS": "Action verified",
-    "REMINDER": "Notification received", "CLARIFYING": "Needs clarification",
-    "ERROR": "Assistant error", "CANCELLED": "Cancelled",
-}
-
 STYLE = """
-QWidget#Pill { background: rgba(38, 35, 30, 245); border: 1px solid #635d50; border-radius: 30px; }
-QLabel { color: #f1efe8; font: 10pt "Segoe UI"; }
-QPushButton { color: #f1efe8; background: #3e3931; border: 1px solid #59544a;
-              border-radius: 16px; padding: 5px 9px; font: 9pt "Segoe UI"; }
-QPushButton:hover, QMenu::item:selected { background: #545043; }
-QPushButton:disabled { color: #aaa599; background: #302e28; }
 QMenu { color: #f1efe8; background: #302c25; border: 1px solid #61594c; padding: 5px; font: 10pt "Segoe UI"; }
 QMenu::item { padding: 7px 27px 7px 20px; }
+QMenu::item:selected { background: #545043; }
 QMenu::separator { height: 1px; background: #524c42; margin: 4px; }
-QMessageBox { background: #292723; color: #f1efe8; }
 """
-
-
-def clamp(rect, screen):
-    available = screen.availableGeometry()
-    return QRect(
-        max(available.left(), min(rect.x(), available.right() - rect.width() + 1)),
-        max(available.top(), min(rect.y(), available.bottom() - rect.height() + 1)),
-        rect.width(), rect.height(),
-    )
-
-
-class Waveform(QWidget):
-    def __init__(self, voice, parent):
-        super().__init__(parent)
-        self.voice = voice
-        self.setFixedSize(45, 27)
-        self.setAccessibleName("Microphone input level")
-
-    def paintEvent(self, _event):
-        painter = QPainter(self)
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QColor("#d7e58f" if self.voice.state == "LISTENING" else "#726e5b"))
-        for index, level in enumerate(self.voice.levels):
-            height = 2 + int(level * 23)
-            painter.drawRoundedRect(index * 4, (self.height() - height) // 2, 2, height, 1, 1)
-
-
-class Companion(QWidget):
-    def __init__(self, controller):
-        super().__init__()
-        self.controller = controller
-        self.setObjectName("Pill")
-        self.setWindowTitle("AURA EDGE Companion")
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
-        self.setStyleSheet(STYLE)
-        self.press_point = None
-        self.dragging = False
-        self.suppress_click = False
-        self.single_click = QTimer(self, singleShot=True)
-        self.single_click.timeout.connect(lambda: controller.show_mode("MINI_ISLAND"))
-        self.resize_animation = QPropertyAnimation(self, b"geometry", self)
-        self.resize_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-
-        self.pet = QQuickWidget(self)
-        self.pet.setClearColor(Qt.GlobalColor.transparent)
-        self.pet.setResizeMode(QQuickWidget.ResizeMode.SizeRootObjectToView)
-        self.pet.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.pet.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.pet.setSource(QUrl.fromLocalFile(str(ROOT / "desktop" / "Pet.qml")))
-        if self.pet.rootObject() is None:
-            raise RuntimeError("Could not load AURA's QML pet")
-        self.controls = QWidget(self)
-        layout = QHBoxLayout(self.controls)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(5)
-        self.label = QLabel("Connecting…")
-        self.label.setMinimumWidth(90)
-        self.label.setWordWrap(True)
-        layout.addWidget(self.label, 1)
-        self.wave = Waveform(controller.voice_model, self.controls)
-        layout.addWidget(self.wave)
-        self.talk = QPushButton("Talk")
-        self.talk.clicked.connect(lambda: controller.voice_model.control("talk"))
-        layout.addWidget(self.talk)
-        self.mute = QPushButton("Mute")
-        self.mute.clicked.connect(lambda: controller.voice_model.control("mute"))
-        layout.addWidget(self.mute)
-        self.stop = QPushButton("Stop")
-        self.stop.clicked.connect(lambda: controller.voice_model.control("stop"))
-        layout.addWidget(self.stop)
-        expand = QPushButton("↗")
-        expand.setAccessibleName("Open dashboard")
-        expand.setToolTip("Open dashboard")
-        expand.clicked.connect(lambda: controller.show_mode("EXPANDED_DASHBOARD"))
-        layout.addWidget(expand)
-        controller.voice_model.changed.connect(self.update_voice)
-
-    def arrange(self, mini, size):
-        self.setObjectName("Pill" if mini else "Pet")
-        self.setStyleSheet(STYLE)
-        self.controls.setVisible(mini)
-        self.pet.setGeometry(5 if mini else 0, 2 if mini else 0, 60 if mini else size, 60 if mini else size)
-        self.controls.setGeometry(66, 5, 340, 54)
-        self.pet.rootObject().setProperty("reducedMotion", self.controller.prefs()["reducedMotion"])
-        self.update_voice()
-
-    def update_voice(self):
-        voice = self.controller.voice_model
-        root = self.pet.rootObject()
-        mood = voice.mood
-        root.setProperty("mood", mood)
-        root.setProperty("level", voice.levels[-1])
-        text = VOICE_LABELS.get(mood, mood.title())
-        if mood == "IDLE" and not voice.available:
-            text = "No microphone"
-        self.label.setText(text)
-        self.talk.setText("Send" if voice.state == "LISTENING" and not voice.continuous else "Talk")
-        self.talk.setEnabled(voice.online and voice.available and not voice.muted and not voice.continuous
-                             and not voice.pending and voice.state in ("IDLE", "LISTENING"))
-        self.mute.setText("Unmute" if voice.muted else "Mute")
-        self.mute.setEnabled(voice.online and not voice.pending)
-        self.stop.setEnabled(voice.online and (voice.continuous or voice.state != "IDLE" or voice.pending > 0))
-        if self.controls.isVisible():
-            self.wave.update()
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.press_point = event.globalPosition().toPoint()
-            self.origin = self.pos()
-            self.dragging = False
-            self.suppress_click = False
-
-    def mouseMoveEvent(self, event):
-        if self.press_point is None or self.controller.mode != "PET_ONLY":
-            return
-        point = event.globalPosition().toPoint()
-        if self.dragging or (point - self.press_point).manhattanLength() >= QApplication.startDragDistance():
-            self.single_click.stop()
-            self.dragging = True
-            pos = self.origin + point - self.press_point
-            screen = QApplication.screenAt(point) or self.screen()
-            self.move(clamp(QRect(pos, self.size()), screen).topLeft())
-
-    def mouseReleaseEvent(self, event):
-        if event.button() != Qt.MouseButton.LeftButton:
-            return
-        if self.dragging:
-            self.controller.place_free(self.geometry())
-        elif not self.suppress_click and self.press_point is not None and self.controller.mode == "PET_ONLY":
-            self.single_click.start(QApplication.doubleClickInterval())
-        self.press_point = None
-        self.dragging = False
-
-    def mouseDoubleClickEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.single_click.stop()
-            self.suppress_click = True
-            self.controller.show_mode("EXPANDED_DASHBOARD")
-
-    def contextMenuEvent(self, event):
-        self.single_click.stop()
-        self.controller.open_menu(event.globalPos())
-
-    def showEvent(self, event):
-        self.pet.rootObject().setProperty("onDesktop", True)
-        super().showEvent(event)
-
-    def hideEvent(self, event):
-        self.pet.rootObject().setProperty("onDesktop", False)
-        super().hideEvent(event)
-
-    def event(self, event):
-        if event.type() == QEvent.Type.WindowDeactivate and self.controller.mode == "MINI_ISLAND":
-            QTimer.singleShot(160, lambda: self.controller.collapse_if_outside(self, "MINI_ISLAND"))
-        return super().event(event)
-
 
 class LocalOnly(QWebEngineUrlRequestInterceptor):
     def __init__(self, root_url, parent):
@@ -270,9 +94,8 @@ class Dashboard(QWidget):
         self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.view = QWebEngineView(self)
-        self.fade = QPropertyAnimation(self, b"windowOpacity", self)
-        self.fade.setDuration(260)
-        self.fade.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.view.setAutoFillBackground(False)
+        self.view.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
         profile = QWebEngineProfile(self)
         profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.MemoryHttpCache)
         self.interceptor = LocalOnly(controller.server.url, profile)
@@ -294,6 +117,7 @@ class Dashboard(QWidget):
         script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
         script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
         script.setSourceCode(bytes(api.readAll()).decode() + """
+            window.auraNative = true;
             new QWebChannel(qt.webChannelTransport, channel => {
               window.auraDesktop = channel.objects.aura;
               window.dispatchEvent(new Event('aura-desktop-ready'));
@@ -346,7 +170,7 @@ class Desktop(QObject):
         self.voice_control.connection.connect(self.connection)
         self.voice_control.notice.connect(self.on_notice)
         self.voice_control.failure.connect(self.voice_error)
-        self.companion = Companion(self)
+        self.companion = Companion(self, ROOT / "desktop" / "Pet.qml")
         self.icon = QIcon(self.logo())
         self.tray = QSystemTrayIcon(self.icon, self)
         self.tray.setToolTip("AURA EDGE")
@@ -486,7 +310,7 @@ class Desktop(QObject):
         self.mode = mode
         companion, screen = self.position()
         if mode == "EXPANDED_DASHBOARD":
-            self.companion.resize_animation.stop()
+            self.companion.transition.stop()
             self.companion.hide()
             if page:
                 self.next_page = page
@@ -496,21 +320,16 @@ class Desktop(QObject):
                 self.navigate.emit(page)
             if was_mode != mode:
                 bounds = screen.availableGeometry()
-                width, height = min(1460, bounds.width() - 24), min(820, bounds.height() - 24)
+                width, height = round(bounds.width() * 0.93), round(bounds.height() * 0.88)
                 self.dashboard.setGeometry(QRect(bounds.center().x() - width // 2, bounds.center().y() - height // 2, width, height))
-                if not self.prefs()["reducedMotion"]:
-                    self.dashboard.fade.setStartValue(0.4)
-                    self.dashboard.fade.setEndValue(1.0)
-                    self.dashboard.fade.start()
             self.dashboard.show()
             self.dashboard.raise_()
             self.dashboard.activateWindow()
             return
         if self.dashboard is not None:
-            self.dashboard.fade.stop()
-            self.dashboard.setWindowOpacity(1.0)
             self.dashboard.hide()
         if mode == "HIDDEN":
+            self.companion.transition.stop()
             self.companion.hide()
             return
         flags = Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool
@@ -521,20 +340,12 @@ class Desktop(QObject):
             self.companion.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         mini = mode == "MINI_ISLAND"
         self.companion.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, not (mini and activate))
-        self.companion.arrange(mini, companion.width())
-        target = QRect(companion.x(), companion.y(), 413, 64) if mini else companion
+        target = QRect(companion.x() - 5, companion.center().y() - CAPSULE_HEIGHT // 2, CAPSULE_WIDTH, CAPSULE_HEIGHT) if mini else companion
         if mini and target.right() > screen.availableGeometry().right():
             target.moveRight(companion.right())
-        target = clamp(target, screen)
-        self.companion.resize_animation.stop()
-        if activate and was_mode in ("PET_ONLY", "MINI_ISLAND") and mode != was_mode and not self.prefs()["reducedMotion"]:
-            transition = self.companion.resize_animation
-            transition.setDuration(205 if mini else 165)
-            transition.setStartValue(self.companion.geometry())
-            transition.setEndValue(target)
-            transition.start()
-        else:
-            self.companion.setGeometry(target)
+        reduced_motion = self.prefs()["reducedMotion"]
+        transition = activate and was_mode in ("PET_ONLY", "MINI_ISLAND") and mode != was_mode and not reduced_motion
+        self.companion.present(clamp(target, screen), mini, transition, reduced_motion)
         self.companion.show()
         self.companion.raise_()
         if mini and activate:

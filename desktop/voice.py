@@ -1,6 +1,7 @@
 """One event connection and voice control path for all native surfaces."""
 
 import json
+import math
 from collections import deque
 
 from PySide6.QtCore import Property, QByteArray, QObject, QTimer, QUrl, Signal, Slot
@@ -38,7 +39,7 @@ class VoiceConnection(QObject):
         self.continuous = False
         self.transient = ""
         self.pending = 0
-        self.levels = [0.0] * 12
+        self.levels = [0.0] * 16
         self.latest = {}
         self.notice_ids = deque(maxlen=128)
 
@@ -125,9 +126,9 @@ class VoiceConnection(QObject):
             if self.muted or self.state != "LISTENING":
                 return
             db = payload.get("rms_db")
-            if not isinstance(db, (float, int)):
+            if not isinstance(db, (float, int)) or not math.isfinite(db):
                 return
-            self.levels = self.levels[1:] + [max(0.0, min(1.0, (db + 60.0) / 60.0))]
+            self.levels = self.levels[1:] + [max(0.0, min(1.0, (db + 54.0) / 42.0))]
         elif kind == "response_completed" and payload.get("action_executed") and payload.get("status") == "verified":
             self.transient = "SUCCESS"
             self.badge.start(1400)

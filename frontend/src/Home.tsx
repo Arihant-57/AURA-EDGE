@@ -7,7 +7,16 @@ const homeEvents = /^(device_|simulated_sensor|activity_|connected)/;
 const jobEvents = /^(schedule_|reminder_)/;
 const roomOrder = ["living_room", "bedroom", "kitchen", "study", "utility_room"];
 const roomLabels: Record<string, string> = { living_room: "Living Room", bedroom: "Bedroom", kitchen: "Kitchen", study: "Study", utility_room: "Utility Room" };
-const deviceLabels: Record<string, string> = { "tv.living": "Smart TV", "light.living_main": "Ceiling Light", "fan.living_ceiling": "Ceiling Fan", "ac.living": "Air Conditioner", "light.bedroom_main": "Bedroom Light" };
+const deviceLabels: Record<string, string> = {
+  "tv.living": "Smart TV",
+  "light.living_main": "Ceiling Light",
+  "fan.living_ceiling": "Ceiling Fan",
+  "ac.living": "Air Conditioner",
+  "light.bedroom_main": "Bedroom Light",
+  "fan.bedroom_ceiling": "Ceiling Fan",
+  "ac.bedroom": "Bedroom AC",
+  "curtain.bedroom": "Bedroom Curtains",
+};
 const controlLabels: Record<string, string> = { door_open: "Door open", power: "Power", activity: "Cycle action" };
 const units: Record<string, string> = { temperature: "°C", humidity: "%", brightness: "%", volume: "%", position: "%" };
 export const deviceName = (device: Device) => deviceLabels[device.id] ?? device.name;
@@ -18,13 +27,25 @@ const supportedActivity = (state: Value) => state === "running" || state === "cl
 export function CapabilityInput({ name, spec, value, onChange, label, disabled }: { name: string; spec: Capability; value?: Value; onChange: (value: Value) => void; label: string; disabled?: boolean }) {
   const [draft, setDraft] = useState<number | null>(null);
   if (spec.type === "bool") return <button className="switch" role="switch" type="button" aria-label={label} aria-checked={value === true} disabled={disabled} onClick={() => onChange(value !== true)}><span/></button>;
-  if (spec.enum) return <select aria-label={label} disabled={disabled} value={name === "activity" ? "" : String(value ?? "")} onChange={(e) => onChange(e.currentTarget.value)}>
-    {(name === "activity" || value == null) && <option value="" disabled>Choose action</option>}
+  if (name === "activity" && spec.enum) return <div className="device-operations">
+    {spec.enum.map((action) => <button type="button" key={action} disabled={disabled} onClick={() => onChange(action)}>{human(action)}</button>)}
+  </div>;
+  if (spec.enum) return <select aria-label={label} disabled={disabled} value={String(value ?? "")} onChange={(e) => onChange(e.currentTarget.value)}>
+    {value == null && <option value="" disabled>Choose action</option>}
     {spec.enum.map((item) => <option key={item} value={item}>{human(item)}</option>)}
   </select>;
-  if (spec.min === undefined || spec.max === undefined) return null;
-  const current = draft ?? Number(value ?? spec.min);
-  return <div className="slider"><output>{current}{units[name]}</output><input aria-label={label} type="range" min={spec.min} max={spec.max} value={current} disabled={disabled}
+  const { min, max } = spec;
+  if (min === undefined || max === undefined) return null;
+  const current = draft ?? Number(value ?? min);
+  if ((name === "temperature" || name === "speed") && Number.isInteger(min) && Number.isInteger(max) && max - min <= 50) {
+    const choices = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+    return <select aria-label={label} disabled={disabled} value={current} onChange={(event) => onChange(Number(event.currentTarget.value))}>
+      {choices.map((choice) => <option key={choice} value={choice}>{choice}{units[name]}</option>)}
+    </select>;
+  }
+  const percent = (current - min) / Math.max(1, max - min) * 100;
+  return <div className="slider"><output>{current}{units[name]}</output><input aria-label={label} type="range" min={min} max={max} value={current} disabled={disabled}
+    style={{ background: `linear-gradient(to right, var(--accent) ${percent}%, var(--range-track) ${percent}%)` }}
     onChange={(e) => setDraft(e.currentTarget.valueAsNumber)}
     onPointerUp={(e) => { if (draft !== null) onChange(e.currentTarget.valueAsNumber); setDraft(null); }}
     onPointerCancel={() => setDraft(null)}
@@ -35,7 +56,7 @@ export function CapabilityInput({ name, spec, value, onChange, label, disabled }
 
 function DeviceCard({ device, compact, schedule }: { device: Device; compact?: boolean; schedule?: () => void }) {
   const result = useAction();
-  const [details, setDetails] = useState(!compact);
+  const [details, setDetails] = useState(false);
   const [history, setHistory] = useState(false);
   const [simulator, setSimulator] = useState(false);
   const audit = useResource<{ action: string; context_id: string; created_at_utc?: string; source?: string }[]>(history ? `/smart-home/history?device_id=${encodeURIComponent(device.id)}&limit=8` : "", homeEvents);
@@ -45,7 +66,8 @@ function DeviceCard({ device, compact, schedule }: { device: Device; compact?: b
   const summary = device.available ? Object.entries(device.state).filter(([key]) => key !== "remaining_seconds").slice(0, 3).map(([key, value]) =>
     typeof value === "boolean" ? (key === "door_open" ? (value ? "Door open" : "Door closed") : (value ? "On" : "Off")) :
       typeof value === "number" ? `${human(key)} ${value}${units[key] ?? ""}` : human(value)).join(" · ") : "Unavailable";
-  const prominent = entries.find(([key]) => key === (device.device_type === "light" ? "brightness" : "power"));
+  const prominent = entries.find(([key]) => key === "power");
+  const additional = entries.filter(([key]) => key !== prominent?.[0]);
   function control([key, spec]: [string, Capability]) {
     const options = key === "activity" ? { ...spec, enum: spec.enum?.filter((option) => supportedActivity(device.state.activity).includes(option)) } : spec;
     return <CapabilityInput key={key} name={key} spec={options} value={device.state[key]} label={`${name} ${controlLabels[key] ?? key}`}
@@ -55,11 +77,11 @@ function DeviceCard({ device, compact, schedule }: { device: Device; compact?: b
       })}/>;
   }
   return <article className="device-card">
-    <Row icon={device.device_type} name={entries.length ? <button className="text-button device-name" onClick={() => setDetails(!details)} aria-expanded={details}>{name}</button> : name} detail={summary}>
-      {compact && prominent && control(prominent)}
-      {!compact && entries.length > 0 && <IconButton icon="right" label={details ? "Hide controls" : "Show controls"} onClick={() => setDetails(!details)}/>}
+    <Row icon={device.device_type} name={additional.length ? <button className="text-button device-name" onClick={() => setDetails(!details)} aria-expanded={details}>{name}</button> : name} detail={summary}>
+      {prominent && control(prominent)}
+      {additional.length > 0 && <button type="button" className="icon-button device-disclosure" onClick={() => setDetails(!details)} aria-label={`${details ? "Hide" : "Show"} ${name} controls`} aria-expanded={details}><Icon name="right" size={16}/></button>}
     </Row>
-    {details && entries.length > 0 && <div className="device-controls">{entries.filter(([key]) => !compact || key !== prominent?.[0]).map((entry) => <div className="control-line" key={entry[0]}><span>{controlLabels[entry[0]] ?? human(entry[0])}</span>{control(entry)}</div>)}</div>}
+    {details && additional.length > 0 && <div className="device-controls">{additional.map((entry) => <div className="control-line" key={entry[0]}><span>{controlLabels[entry[0]] ?? human(entry[0])}</span>{control(entry)}</div>)}</div>}
     {!compact && <div className="device-footer">
       <button onClick={() => setHistory(!history)}>History</button>
       {entries.length > 0 && <button onClick={schedule}>Schedule</button>}

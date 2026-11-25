@@ -29,3 +29,17 @@ The checks used the existing model directory and backend environment. The origin
 ## Manual acceptance remaining
 
 A human speaking the bedroom-light command through the physical microphone, desktop movement across multiple physical monitors, and end-to-end microphone acceptance in each of the three languages remain manual checks. Wake word, spoken Stop and measured speaker output are described in [backend gaps](PHASE_5_BACKEND_GAPS.md).
+
+## UI refinement on Windows
+
+- The mini island now paints its own charcoal capsule, border and shadow. One 235 ms transition updates the native window bounds, capsule shape, pet placement and control opacity. The custom microphone, send, mute, stop and expand controls retain native keyboard focus and accessible names.
+- The floating dashboard measures 93% of the available screen width and 88% of its height. The sampled surface alpha was 211/255 (83%) with transparent corners. The Windows Acrylic probe drew a pale rectangular backdrop outside the capsule and obscured the WebEngine view, so the app uses per-pixel translucency. [Windows System Backdrop](https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwm_systembackdrop_type) · [Qt WebEngine page backgrounds](https://doc.qt.io/qt-6/qwebenginepage.html#backgroundColor-prop)
+- The idle process on port 8000 exited on a targeted console Ctrl+C. The replacement uses the approved Phase 4 source and the same model and PostgreSQL directories. Briefing, tasks, calendar events and reminders returned HTTP 200. Readiness reported `0005_phase4_personal_assistant`, connected PostgreSQL and reachable Ollama.
+- The native smoke run checked dragging, single and double clicks, microphone capture, real audio-level frames, Stop, mute and unmute, Home and bedroom rendering, all eight dashboard pages and their tabs, pinning and outside collapse. It used the existing database with persistent writes disabled. The production build, type check, four frontend tests and desktop Ruff passed.
+- Seven actual screenshots are available in `.runtime/refinement-screenshots/`. The desktop composition capture uses a separate sample worksheet application. The Home and bedroom captures show the native Qt window. Listening uses measured input, and speaking shows backend status because the backend supplies no output meter.
+
+To repeat the native captures against the local service:
+
+```powershell
+& ./.runtime/desktop-venv/Scripts/python.exe desktop/smoke.py --port 8000 --read-only --exercise-mic --capture-dir .runtime/refinement-screenshots
+```

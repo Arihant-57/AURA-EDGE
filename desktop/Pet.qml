@@ -8,14 +8,16 @@ Item {
     property real level: 0
     property bool blink: false
     property bool sleeping: false
-    property real breath: 0
+    property int motionStep: 0
+    readonly property bool busy: mood === "THINKING" || mood === "EXECUTING" || mood === "VERIFYING"
 
     Timer {
-        interval: 160
-        running: pet.onDesktop && !pet.reducedMotion && !pet.sleeping && pet.mood === "IDLE"
+        interval: pet.mood === "SPEAKING" ? 140 : 170
+        running: pet.onDesktop && !pet.reducedMotion &&
+            ((!pet.sleeping && pet.mood === "IDLE") || pet.busy || pet.mood === "SPEAKING")
         repeat: true
-        onTriggered: pet.breath = (pet.breath + 1) % 24
-        onRunningChanged: if (!running) pet.breath = 0
+        onTriggered: pet.motionStep = (pet.motionStep + 1) % 24
+        onRunningChanged: if (!running) pet.motionStep = 0
     }
 
     Timer {
@@ -23,11 +25,11 @@ Item {
         running: pet.onDesktop && !pet.reducedMotion && pet.mood === "IDLE"
         onTriggered: pet.sleeping = true
     }
-    onMoodChanged: sleeping = false
+    onMoodChanged: { sleeping = false; motionStep = 0 }
     onOnDesktopChanged: sleeping = false
 
     Timer {
-        interval: 4400
+        interval: 4900
         running: pet.onDesktop && !pet.reducedMotion && !pet.sleeping && pet.mood === "IDLE"
         repeat: true
         onTriggered: {
@@ -39,14 +41,14 @@ Item {
 
     Timer {
         id: reopen
-        interval: 155
+        interval: 125
         onTriggered: pet.blink = false
     }
 
     Canvas {
         id: robot
         anchors.fill: parent
-        scale: 1 + 0.008 * Math.sin(pet.breath * Math.PI / 12)
+        scale: pet.mood === "IDLE" ? 1 + 0.012 * Math.sin(pet.motionStep * Math.PI / 12) : 1
         renderTarget: Canvas.Image
         onWidthChanged: requestPaint()
         onHeightChanged: requestPaint()
@@ -55,7 +57,8 @@ Item {
             function onMoodChanged() { robot.requestPaint() }
             function onBlinkChanged() { robot.requestPaint() }
             function onSleepingChanged() { robot.requestPaint() }
-            function onLevelChanged() { if (pet.mood === "LISTENING") robot.requestPaint() }
+            function onLevelChanged() { if (pet.mood === "LISTENING" && !pet.reducedMotion) robot.requestPaint() }
+            function onMotionStepChanged() { if (pet.busy || pet.mood === "SPEAKING") robot.requestPaint() }
         }
 
         onPaint: {
@@ -98,23 +101,27 @@ Item {
             var flat = pet.blink || pet.sleeping || pet.mood === "MUTED" || pet.mood === "OFFLINE"
             var open = pet.mood === "LISTENING" || pet.mood === "THINKING" ||
                 pet.mood === "EXECUTING" || pet.mood === "VERIFYING" || pet.mood === "CLARIFYING"
+            var attention = pet.mood === "LISTENING" && !pet.reducedMotion ? pet.level : 0
+            var glance = pet.busy ? 2.5 * Math.sin(pet.motionStep * Math.PI / 12) : 0
             c.strokeStyle = pet.mood === "ERROR" ? "#e9a98a" : flat ? "#a7a889" : "#e4eea2"
             c.fillStyle = c.strokeStyle
             c.lineWidth = 2.8
             c.lineCap = "round"
             for (var x of [36, 60]) {
                 if (open) {
-                    oval(x - 2.8, 32 - pet.level * 2, 5.6, 8 + pet.level * 4, c.strokeStyle)
+                    oval(x - 2.8 + glance, 32 - attention * 2, 5.6, 8 + attention * 4, c.strokeStyle)
                 } else {
                     c.beginPath()
                     c.moveTo(x - 5, 38)
                     if (flat) c.lineTo(x + 5, 38)
-                    else c.quadraticCurveTo(x, pet.mood === "ERROR" ? 44 : 27, x + 5, 38)
+                    else c.quadraticCurveTo(x, pet.mood === "ERROR" ? 44 : pet.mood === "SUCCESS" ? 23 : 27, x + 5, 38)
                     c.stroke()
                 }
             }
-            if (pet.mood === "SPEAKING" || pet.mood === "SUCCESS" || pet.mood === "REMINDER")
-                oval(44, 43, 8, pet.mood === "SPEAKING" ? 5 : 3, "#d7e58f")
+            if (pet.mood === "SPEAKING")
+                oval(44, 43, 8, 3.5 + 2 * Math.abs(Math.sin(pet.motionStep * Math.PI / 4)), "#d7e58f")
+            else if (pet.mood === "SUCCESS" || pet.mood === "REMINDER")
+                oval(43, 43, 10, 4, "#d7e58f")
             if (pet.mood === "MUTED") {
                 oval(69, 46, 15, 15, "#302e25")
                 c.beginPath(); c.moveTo(72, 49); c.lineTo(80, 57); c.stroke()

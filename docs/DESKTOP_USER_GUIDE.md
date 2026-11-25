@@ -19,10 +19,10 @@ The dependency setup can use the package registries. The desktop application run
 ./scripts/start-aura-desktop.ps1 -BackendRoot "$env:USERPROFILE/Desktop/AURA-EDGE"
 ```
 
-The launcher checks local Ollama and PostgreSQL readiness. It reuses a running AURA EDGE backend when available. A warning about Phase 4 endpoints means the process listening on the configured port needs to be restarted by its owner using the approved backend checkout.
+The launcher checks local Ollama and PostgreSQL readiness and checks the four Phase 4 planner routes in OpenAPI. It reuses a running AURA EDGE backend when available. If it lists missing routes, stop the running AURA process gracefully and launch again with the approved backend checkout.
 
 - Drag the robot to move it. A single click opens the mini island, a double click opens the dashboard, and a right click opens the companion menu.
-- Select **Talk**, speak your command, then select **Send**. **Stop** cancels capture, processing or playback. **Mute** controls backend microphone capture.
+- Select the **microphone** to start listening. Speak your command, then select the **check mark** to send the recording. The square **Stop** icon cancels the active turn. A lime **muted microphone** icon shows that capture is muted.
 - Click outside to return to the pet. Pin the dashboard to keep it open. If the pet is hidden, open it from the Windows notification area.
-- Room controls reflect simulated devices. The bell opens persisted notifications. Tasks, calendar, reminders and household records are stored through the local backend.
+- Room rows expose power where supported. Expand a row for settings such as brightness, fan speed, or AC temperature and mode. The bell opens persisted notifications. Tasks, calendar, reminders and household records are stored through the local backend.
 - Select **Shutdown AURA** in the dashboard or **Exit AURA** in the tray and confirm. The desktop closes voice activity and stops its own backend process if it launched one. If the backend is stopped, scheduled actions resume under their existing missed-job policies when it comes back online.

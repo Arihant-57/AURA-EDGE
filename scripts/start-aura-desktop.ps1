@@ -30,8 +30,10 @@ if ($Schema) {
     if ($Health.service -ne "aura-edge" -or $Health.connectivity_mode -ne "strict_offline") {
         throw "Port $BackendPort must serve AURA EDGE in strict offline mode."
     }
-    if (-not $Schema.paths.'/api/v1/briefing') {
-        Write-Warning "The running backend lacks Phase 4 personal endpoints. Planner and Household require the approved Phase 4 backend process."
+    $PlannerRoutes = @("/api/v1/briefing", "/api/v1/tasks", "/api/v1/calendar/events", "/api/v1/reminders")
+    $Missing = $PlannerRoutes | Where-Object { -not $Schema.paths.PSObject.Properties[$_] }
+    if ($Missing) {
+        Write-Warning "The running backend is missing $($Missing -join ', '). Restart it from the approved Phase 4 checkout for the full desktop experience."
     }
     # Readiness also returns JSON with HTTP 503 when PostgreSQL is unavailable.
     $ReadinessJson = & curl.exe --noproxy "*" --silent --max-time 5 "$Base/api/v1/readiness"

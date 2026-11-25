@@ -19,6 +19,7 @@ export interface DesktopBridge {
 declare global {
   interface Window {
     auraDesktop?: DesktopBridge;
+    auraNative?: boolean;
   }
 }
 

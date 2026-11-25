@@ -103,7 +103,7 @@ export function App() {
   const householdTab = householdTabs.find((item) => item === tab) ?? "Groceries";
   const settingsTab = settingsTabs.find((item) => item === tab) ?? "General";
   const choose = (next: string) => open(page, next);
-  return <div className={`desktop-stage ${bridgeReady ? "native" : "standalone"} ${prefs?.reducedMotion ? "reduced-motion" : ""}`}>
+  return <div className={`desktop-stage ${window.auraNative || bridgeReady ? "native" : "standalone"} ${prefs?.reducedMotion ? "reduced-motion" : ""}`}>
     <div className={`shell ${prefs?.translucent === false ? "opaque" : ""}`}>
       <header className="topbar">
         <div className="brand" onPointerDown={bridge ? () => bridge.windowAction("move") : undefined}>
