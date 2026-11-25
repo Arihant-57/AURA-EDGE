@@ -267,9 +267,9 @@ _UNIT_MULT = {
 }
 
 _DURATION_CHUNK_RE = re.compile(
-    r"(\d+)\s*(hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s|"
+    r"(\d+)\s*(?:[-‑–]\s*)?(hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s|"
     r"घंट[ाेों]|मिनट(?:ों|्स)?|सेक[ंडण्ड]+(?:्स)?|ghant[ae]|minat|"
-    r"ಗಂಟೆ(?:ಗಳು)?|ನಿಮಿಷ(?:ಗಳು|ದ)?|ಮಿನಿಟ್(?:ಸ್)?|ಸೆಕೆಂಡ್(?:‌ಗಳು|ಗಳು|ಸ್)?|ಸೆಕೆಂಡು(?:ಗಳು)?|"
+    r"ಗಂಟೆ(?:ಗಳು)?|ನಿಮಿಷ(?:ಗಳು|ದ)?|ಮಿನಿಟ್(?:ಸ್)?|ಸೆಕೆಂಡ್(?:‌ಗಳು|ಗಳು|ಸ್)?|ಸೆಕೆಂಡ(?:ಿನ|ು(?:ಗಳು)?)|"
     r"gante|nimisha)",
     flags=re.IGNORECASE | re.UNICODE,
 )

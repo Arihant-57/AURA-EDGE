@@ -266,6 +266,7 @@ class ConversationSession:
             return cleaned
         low = cleaned.lower()
         with self._lock:
+            self._expire_if_idle_locked()
             room = self.last_room
             dev_type = self.last_device_type
             rem_title = self.last_reminder_title
@@ -275,10 +276,12 @@ class ConversationSession:
             dev_txt = _DEVICE_TYPE_WORDS.get(dev_type, dev_type.replace("_", " "))
             target = f"{room_txt}{dev_txt}".strip()
 
-            if re.match(r"^(?:please\s+)?(?:turn|switch)\s+it\s+off[.!?]*$", low):
-                return f"turn off the {target}"
-            if re.match(r"^(?:please\s+)?(?:turn|switch)\s+it\s+on[.!?]*$", low):
-                return f"turn on the {target}"
+            power = re.fullmatch(
+                r"(?:please\s+)?(?:turn|switch)\s+it\s+(on|off)(\s+(?:in|after|for)\s+[^.!?]+)?[.!?]*",
+                low,
+            )
+            if power:
+                return f"turn {power[1]} the {target}{power[2] or ''}"
             if re.match(
                 r"^(?:please\s+)?set\s+it\s+to\s+(?:my\s+)?(?:preferred|favorite|usual)\s+(\w+)[.!?]*$",
                 low,

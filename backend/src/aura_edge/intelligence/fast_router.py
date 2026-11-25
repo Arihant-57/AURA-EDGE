@@ -30,6 +30,7 @@ _AMBIGUOUS_PATTERNS = [
     re.compile(r"\b(?:do\s+the\s+thing|that\s+thing|something|over\s+there|fix\s+it|do\s+it)\b", re.IGNORECASE),
     re.compile(r"(?:वो\s+वाला|वह\s+काम|कुछ\s+भी|वहाँ\s+वाला|ये\s+कर\s+दो)", re.UNICODE),
     re.compile(r"(?:ಅದನ್ನು\s+ಅಲ್ಲಿ|ಆ\s+ಕೆಲಸ|ಏನಾದರೂ|ಇದನ್ನು\s+ಮಾಡು)", re.UNICODE),
+    re.compile(r"^(?:please\s+)?(?:turn|switch)\s+it\s+(?:on|off)\b", re.IGNORECASE),
 ]
 
 # Compound clause separator that avoids splitting "1 minute and 30 seconds"
@@ -302,7 +303,10 @@ def _try_smart_home_action(text: str) -> TypedAction | None:
         slots.update(action="activity", value="dock")
     elif kind in {"washing_machine", "robot_vacuum"} and re.search(r"\bcancel\b|रद्द|ರದ್ದು", low):
         slots.update(action="activity", value="cancel")
-    elif number and re.search(r"brightness|bright|रोशनी|ब्राइटनेस|ಪ್ರಕಾಶ", low):
+    elif number and (
+        re.search(r"brightness|bright|रोशनी|ब्राइटनेस|ಪ್ರಕಾಶ", low)
+        or (kind == "light" and re.search(r"^\s*(?:please\s+)?dim\b.*(?:%|\bpercent\b)", low))
+    ):
         slots.update(action="brightness", value=int(number.group(1)))
     elif number and re.search(r"speed|गति|स्पीड|ವೇಗ", low):
         slots.update(action="speed", value=int(number.group(1)))
@@ -358,7 +362,7 @@ _U_B_START = r"(?<![\w\u0900-\u097F\u0C80-\u0CFF])"
 _U_B_END = r"(?![\w\u0900-\u097F\u0C80-\u0CFF])"
 
 _TIMER_ACTION_KEYWORDS = {
-    "set": re.compile(rf"{_U_B_START}(?:set|start|create|add|remind|लगाओ|लगा|सेट|शुरू|रखो|lagao|ಇಡು|ಹಾಕು|ಸೆಟ್|idu|haaku){_U_B_END}", re.IGNORECASE | re.UNICODE),
+    "set": re.compile(rf"{_U_B_START}(?:set|start|create|add|remind|give\s+me|लगाओ|लगा|सेट|शुरू|रखो|lagao|ಇಡು|ಹಾಕು|ಸೆಟ್|idu|haaku){_U_B_END}", re.IGNORECASE | re.UNICODE),
     "cancel_all": re.compile(rf"{_U_B_START}(?:all|सभी|सारे|sabhi|saare|ಎಲ್ಲಾ|ಎಲ್ಲ|ಸರ್ವ|ella){_U_B_END}", re.IGNORECASE | re.UNICODE),
     "cancel": re.compile(rf"{_U_B_START}(?:cancell?ed|cancel|stop|delete|remove|clear|रद्द|हटाओ|हटा|कैंसिल|बंद|band|hatao|radd|ರದ್ದು|ರದ್ದುಗೊಳಿಸು|ತೆಗೆದುಹಾಕು|raddu){_U_B_END}", re.IGNORECASE | re.UNICODE),
     "pause": re.compile(rf"{_U_B_START}(?:pause|hold|रोको|रोक|पॉज़|roko|ನಿಲ್ಲಿಸು|ಪಾಸ್|nillisu){_U_B_END}", re.IGNORECASE | re.UNICODE),
@@ -485,6 +489,9 @@ _DELAY_UNIT_GROUP = (
     r"घंट[ाेों]|मिनट(?:ों|्स)?|सेक[ंडण्ड]+(?:्स)?|ghant[ae]|minat|"
     r"ಗಂಟೆ(?:ಗಳು)?|ನಿಮಿಷ(?:ಗಳು|ದ)?|ಮಿನಿಟ್(?:ಸ್)?|ಸೆಕೆಂಡ್(?:‌ಗಳು|ಗಳು|ಸ್)?|ಸೆಕೆಂಡು(?:ಗಳು)?|gante|nimisha)"
 )
+_POWER_REQUEST_RE = re.compile(r"\b(?:turn|switch)\b[^.!?;]*?\b(?:on|off)\b", re.IGNORECASE)
+_TEMPORARY_POWER_RE = re.compile(rf"\bfor\s+(?:\d+|an?)\s*(?:[-‑–]\s*)?{_DELAY_UNIT_GROUP}\b", re.IGNORECASE)
+_AFTER_RE = re.compile(r"\bafter\b", re.IGNORECASE)
 
 
 def _extract_delay_from_phrase(text: str) -> tuple[int | None, str]:
@@ -1207,7 +1214,7 @@ class MultilingualFastRouter:
 
         if re.search(
             r"(?:\btoday(?:'s)?\s+date\b|\bdate\s+today\b|\bwhat(?:'s|\s+is)?\s+(?:the\s+|today(?:'s)?\s+)?(?:date|day)\b|"
-            r"(?:तारीख|डेट)\s*(?:क्या|कितनी|बता)|आज\s*(?:की\s+)?(?:तारीख|डेट)\s*(?:क्या|बता)?|आज\s+क्या\s+दिन|"
+            r"(?:तारी[खक]|डेट)\s*(?:क्या|कितनी|बता)|आज\s*(?:की\s+)?(?:तारी[खक]|डेट)\s*(?:क्या|बता)?|आज\s+(?:क्या|कौन\s*सा|कोंसा)\s+दिन|"
             r"aaj\s+(?:ki\s+)?(?:kya\s+)?(?:tareekh|tarikh|date)|"
             r"(?:ಇವತ್ತ\w*|ಇಂದು).*?(?:ಡೇಟ್|ದಿನಾಂಕ|ತಾರೀಖು).*?(?:ಏನು|ಎಷ್ಟು)|"
             r"(?:ಡೇಟ್|ದಿನಾಂಕ|ತಾರೀಖು)\s*(?:ಏನು|ಎಷ್ಟು|ಹೇಳು)|ಯಾವ\s*(?:ದಿನ|ತಾರೀಖು)|"
@@ -1302,21 +1309,24 @@ class MultilingualFastRouter:
                 round((time.perf_counter() - t0) * 1000.0, 2),
             )
 
-        for amb_re in _AMBIGUOUS_PATTERNS:
-            if amb_re.search(norm.normalized):
-                return (
-                    TypedIntent(
-                        intent_name=IntentName.CLARIFY,
-                        confidence=0.95,
-                        source="clarification",
-                        route_category="clarification",
-                        language=norm.language,
-                        input_script=norm.script,
-                        clarification_question=get_phrase("ambiguous_request", norm.language),
-                        raw_text=raw_text,
-                    ),
-                    round((time.perf_counter() - t0) * 1000.0, 2),
-                )
+        unsafe_power_timing = _POWER_REQUEST_RE.search(norm.normalized) and (
+            _TEMPORARY_POWER_RE.search(norm.normalized)
+            or (_AFTER_RE.search(norm.normalized) and _extract_delay_from_phrase(norm.normalized)[0] is None)
+        )
+        if unsafe_power_timing or any(pattern.search(norm.normalized) for pattern in _AMBIGUOUS_PATTERNS):
+            return (
+                TypedIntent(
+                    intent_name=IntentName.CLARIFY,
+                    confidence=0.95,
+                    source="clarification",
+                    route_category="clarification",
+                    language=norm.language,
+                    input_script=norm.script,
+                    clarification_question=get_phrase("ambiguous_request", norm.language),
+                    raw_text=raw_text,
+                ),
+                round((time.perf_counter() - t0) * 1000.0, 2),
+            )
 
         mem_intent = _try_memory_action(norm)
         if mem_intent is not None:
