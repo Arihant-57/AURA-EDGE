@@ -30,3 +30,15 @@ The resource columns are host snapshots after each batch. VAD and speech synthes
 In a separate device-command probe, `nvidia-smi` sampled the host roughly every 220 ms during three successful replays per mode. Peak sampled GPU utilization was 4% across 62 samples in CPU, 69% across 12 in GPU, and 92% across 5 in Auto. These are short host-wide observations. The shorter GPU and Auto runs yield fewer samples and the maxima do not rank the modes.
 
 Raw results include the per-turn timings, placement, resource snapshots and GPU probe. No model or compute configuration was changed. Process-level GPU utilization and true cold-boot timing remain unmeasured.
+
+## Voice engine follow-up
+
+The revised engine passed all 36 matched turns and all of their callback checks. Warm medians below use the same three commands and the same audio. Values are in milliseconds.
+
+| Mode | Clock first output, before → after | Device STT, before → after | Device first output, before → after | Conversation first token, before → after | Conversation first output, before → after |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| CPU | 69 → 72 | 2,312 → 2,337 | 2,402 → 2,425 | 3,232 → 3,639 | 4,894 → 7,213 |
+| GPU | 85 → 77 | 252 → 245 | 344 → 337 | 3,205 → 3,528 | 4,941 → 7,079 |
+| Auto | 73 → 76 | 238 → 246 | 330 → 328 | 3,156 → 3,346 | 4,796 → 6,666 |
+
+Those conversation results reflect the trade-off of waiting for a complete validated answer before speech. The dashboard still receives early text. In Auto the recorded deterministic device command continued to reach the first output callback in about 0.33 seconds. Revised host snapshots were 33.6%, 26.1%, and 18.3% CPU, 14.94, 13.06, and 13.59 GB RAM, and 1,795, 1,813 and 1,831 MB total system VRAM. The regular desktop backend was also active during this pass, so host snapshots cannot be attributed to this isolated process alone. Audio callback completion measures local output delivery. Human listening still determines if a reply sounds smooth.

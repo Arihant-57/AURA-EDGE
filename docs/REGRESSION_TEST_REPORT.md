@@ -6,6 +6,7 @@
 | Previous desktop integration | 190 passing and one initial Hindi fixture failure, with an isolated pass reported afterward |
 | Full initial stabilization snapshot | 202 passing on disposable PostgreSQL/pgvector |
 | Full final backend suite | 204 passing in 477.19 seconds on disposable PostgreSQL/pgvector |
+| Voice engine follow-up | 209 passing in 452.28 seconds, seven frontend tests and native Windows smoke |
 | Focused capture recovery | Three regressions covering timeout, input-open failure and mute while listening |
 | Focused routing regression | Ten passing cases covering duration, phrasing, follow-up and language variants |
 | Hindi saved fixture | 5/5 on CPU with Kannada selected as reply language |

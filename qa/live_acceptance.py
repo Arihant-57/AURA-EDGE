@@ -10,10 +10,12 @@ SAMPLES = [
     ("English", "What time is it now?", "GetTime"),
     ("Hindi", "अभी कितने बजे हैं?", "GetTime"),
     ("Kannada", "ಇಂದಿನ ದಿನಾಂಕ ಏನು?", "GetDate"),
+    ("Hinglish", "अभी current time क्या है?", "GetTime"),
+    ("Kannada-English", "ಇವತ್ತಿನ date ಏನು?", "GetDate"),
 ]
 
 
-def run(port, output):
+def run(port, output, sample_count):
     rows = []
     with httpx.Client(base_url=f"http://127.0.0.1:{port}/api/v1", trust_env=False, timeout=120) as client:
         def call(method, path, body=None):
@@ -23,7 +25,7 @@ def run(port, output):
         if not status["mic_detected"] or not status["speaker_detected"] or status["mic_muted"]:
             raise SystemExit("Connect the microphone and speaker and unmute AURA.")
         print("This check uses the active local audio devices. It saves pass/fail and timings without saving audio or transcripts.")
-        for language, phrase, expected in SAMPLES:
+        for language, phrase, expected in SAMPLES[:sample_count]:
             input(f"\n{language}: {phrase}\nPress Enter when ready to speak.")
             status = call("GET", "/voice/status")
             if status["active_state"] != "IDLE" or status["conversation_active"] or status["mic_muted"]:
@@ -48,6 +50,8 @@ def run(port, output):
                 callback = bool((result.get("stage_timestamps") or {}).get("first_non_silent_output_callback"))
                 rows.append({
                     "language": language, "expected_intent": expected, "actual_intent": result["intent"],
+                    "detected_language": result["detected_language"], "stt_model": result["stt_model"],
+                    "reply_language": result["response_language"], "status": result["status"],
                     "verified": result["action_executed"] and result["status"] == "verified",
                     "output_callback": callback, "human_audible_understandable": audible,
                     "timing_ms": result["total_turn_duration_ms"],
@@ -64,6 +68,7 @@ def run(port, output):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--samples", type=int, choices=range(1, len(SAMPLES) + 1), default=len(SAMPLES))
     parser.add_argument("--output", type=Path, default=Path(".runtime/human-microphone-check.json"))
     options = parser.parse_args()
-    run(options.port, options.output)
+    run(options.port, options.output, options.samples)
