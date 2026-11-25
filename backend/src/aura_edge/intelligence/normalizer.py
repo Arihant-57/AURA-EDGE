@@ -342,7 +342,7 @@ def _normalize_kannada_asr_variants(text: str) -> str:
 def _normalize_hindi_asr_variants(text: str) -> str:
     """Normalize known Whisper Hindi Devanagari phonetic variations on timer/clock commands."""
     out = re.sub(r"(?:टाईमर|ताईमर|ताम्यर|टामर|तामर)", "टाइमर", text)
-    out = re.sub(r"(?:मिन्त|मिनत|मिंट)", "मिनट", out)
+    out = re.sub(r"(?:मिन्त|मिनद|मिनत|मिंट)", "मिनट", out)
     out = re.sub(r"(?:समें|समे|समै)(?![\w\u0900-\u097F])", "समय", out)
     out = re.sub(r"लगा[ोूॉँ]+", "लगाओ", out)
     out = re.sub(r"बता[ोूॉँ]+", "बताओ", out)
@@ -352,6 +352,11 @@ def _normalize_hindi_asr_variants(text: str) -> str:
     out = re.sub(
         r"(?<![\w\u0900-\u097F])तो(?=\s+(?:मिनट|सेकंड|घंटे|घंटा))",
         "दो",
+        out,
+    )
+    out = re.sub(
+        r"(?<![\w\u0900-\u097F])पाज(?=\s+(?:मिनट|सेकंड|घंटे|घंटा))",
+        "पांच",
         out,
     )
     return re.sub(r"\s+", " ", out).strip()

@@ -43,57 +43,57 @@ _TEMPLATES: dict[str, dict[LanguageCode, str]] = {
     "unsupported": {
         "en": "Sorry, I cannot do that. I can handle time, date, timers, local smart-home devices, and offline conversation.",
         "hi": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
-        "kn": "ಕ್ಷಮಿಸಿ, ನಾನು ಅದನ್ನು ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ. ನಾನು ಸಮಯ, ದಿನಾಂಕ, ಟೈಮರ್‌ಗಳು, ಸ್ಮಾರ್ಟ್ ಹೋಮ್ ಸಾಧನಗಳು ಮತ್ತು ಆಫ್‌ಲೈನ್ ಸಂಭಾಷಣೆಗೆ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ.",
+        "kn": "ಕ್ಷಮಿಸಿ, ನನಗೆ ಅದನ್ನು ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ. ನಾನು ಸಮಯ, ದಿನಾಂಕ, ಟೈಮರ್, ಸ್ಮಾರ್ಟ್ ಹೋಮ್ ಸಾಧನಗಳು ಮತ್ತು ಮಾತುಕತೆಗೆ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ.",
     },
     "ambiguous_request": {
         "en": "Could you clarify what you would like me to do?",
         "hi": "कृपया स्पष्ट बताएं कि आप क्या करवाना चाहते हैं?",
-        "kn": "ದಯವಿಟ್ಟು ನೀವು ಏನು ಮಾಡಬೇಕೆಂದು ಸ್ಪಷ್ಟವಾಗಿ ಹೇಳಿ?",
+        "kn": "ದಯವಿಟ್ಟು ಏನು ಮಾಡಬೇಕೆಂದು ಸ್ಪಷ್ಟವಾಗಿ ಹೇಳಿ.",
     },
     "ambiguous_timer": {
         "en": "You have multiple timers ({labels}). Which timer do you mean?",
         "hi": "आपके पास कई टाइमर हैं ({labels})। आप किस टाइमर की बात कर रहे हैं?",
-        "kn": "ನಿಮ್ಮಲ್ಲಿ ಹಲವು ಟೈಮರ್‌ಗಳಿವೆ ({labels}). ನೀವು ಯಾವ ಟೈಮರ್ ಬಗ್ಗೆ ಹೇಳುತ್ತಿದ್ದೀರಿ?",
+        "kn": "ನಿಮ್ಮಲ್ಲಿ ಹಲವು ಟೈಮರ್‌ಗಳಿವೆ ({labels}). ಯಾವ ಟೈಮರ್ ಬೇಕು?",
     },
     "no_active_timers": {
         "en": "You have no active timers right now.",
         "hi": "अभी कोई सक्रिय टाइमर नहीं है।",
-        "kn": "ಸದ್ಯಕ್ಕೆ ಯಾವುದೇ ಸಕ್ರಿಯ ಟೈಮರ್ ಇಲ್ಲ.",
+        "kn": "ಸದ್ಯಕ್ಕೆ ಯಾವುದೇ ಟೈಮರ್ ಚಾಲ್ತಿಯಲ್ಲಿಲ್ಲ.",
     },
     "timer_not_found": {
         "en": "I could not find a matching timer.",
         "hi": "मुझे ऐसा कोई टाइमर नहीं मिला।",
-        "kn": "ಅಂತಹ ಯಾವುದೇ ಟೈಮರ್ ಕಂಡುಬಂದಿಲ್ಲ.",
+        "kn": "ಅಂತಹ ಯಾವುದೇ ಟೈಮರ್ ಸಿಗಲಿಲ್ಲ.",
     },
     "timer_set": {
         "en": "Timer{label_part} set for {duration}.",
         "hi": "{label_part} {duration} का टाइमर सेट कर दिया गया है।",
-        "kn": "{label_part} {duration} ಟೈಮರ್ ಸೆಟ್ ಮಾಡಲಾಗಿದೆ.",
+        "kn": "{label_part} {duration} ಟೈಮರ್ ಇಡಲಾಗಿದೆ.",
     },
     "timer_paused": {
         "en": "Paused timer{label_part} with {duration} remaining.",
         "hi": "{label_part} टाइमर रोक दिया गया है, {duration} बाकी हैं।",
-        "kn": "{label_part} ಟೈಮರ್ ನಿಲ್ಲಿಸಲಾಗಿದೆ, {duration} ಬಾಕಿ ಇದೆ.",
+        "kn": "{label_part} ಟೈಮರ್ ನಿಲ್ಲಿಸಲಾಗಿದೆ, ಇನ್ನೂ {duration} ಬಾಕಿ ಇದೆ.",
     },
     "timer_resumed": {
         "en": "Resumed timer{label_part} with {duration} remaining.",
         "hi": "{label_part} टाइमर फिर से शुरू किया गया है, {duration} बाकी हैं।",
-        "kn": "{label_part} ಟೈಮರ್ ಮತ್ತೆ ಪ್ರಾರಂಭಿಸಲಾಗಿದೆ, {duration} ಬಾಕಿ ಇದೆ.",
+        "kn": "{label_part} ಟೈಮರ್ ಮತ್ತೆ ಶುರು ಮಾಡಲಾಗಿದೆ, ಇನ್ನೂ {duration} ಬಾಕಿ ಇದೆ.",
     },
     "timer_cancelled": {
         "en": "Cancelled timer{label_part}.",
         "hi": "{label_part} टाइमर रद्द कर दिया गया है।",
-        "kn": "{label_part} ಟೈಮರ್ ರದ್ದುಗೊಳಿಸಲಾಗಿದೆ.",
+        "kn": "{label_part} ಟೈಮರ್ ರದ್ದು ಮಾಡಲಾಗಿದೆ.",
     },
     "timers_cancelled_all": {
         "en": "Cancelled {count} timer(s).",
         "hi": "{count} टाइमर रद्द कर दिए गए हैं।",
-        "kn": "{count} ಟೈಮರ್‌ಗಳನ್ನು ರದ್ದುಗೊಳಿಸಲಾಗಿದೆ.",
+        "kn": "{count} ಟೈಮರ್‌ಗಳನ್ನು ರದ್ದು ಮಾಡಲಾಗಿದೆ.",
     },
     "timer_remaining": {
         "en": "Timer{label_part} has {duration} remaining.",
         "hi": "{label_part} टाइमर में {duration} बाकी हैं।",
-        "kn": "{label_part} ಟೈಮರ್‌ನಲ್ಲಿ {duration} ಬಾಕಿ ಇದೆ.",
+        "kn": "{label_part} ಟೈಮರ್‌ನಲ್ಲಿ ಇನ್ನೂ {duration} ಬಾಕಿ ಇದೆ.",
     },
     "timer_completed": {
         "en": "Time is up! Your{label_part} timer has finished.",
@@ -103,17 +103,17 @@ _TEMPLATES: dict[str, dict[LanguageCode, str]] = {
     "help": {
         "en": "You can ask for the time, date, manage timers, control simulated smart-home lights, fans, AC, TV, curtains, or appliances, or chat in English, Hindi, or Kannada.",
         "hi": "आप अंग्रेज़ी, हिंदी या कन्नड़ में समय, तारीख पूछ सकते हैं, टाइमर चला सकते हैं, स्मार्ट होम डिवाइस और रूटीन नियंत्रित कर सकते हैं, या बातचीत कर सकते हैं।",
-        "kn": "ನೀವು ಇಂಗ್ಲಿಷ್, ಹಿಂದಿ ಅಥವಾ ಕನ್ನಡದಲ್ಲಿ ಸಮಯ, ದಿನಾಂಕ, ಟೈಮರ್‌ಗಳು, ಸ್ಮಾರ್ಟ್ ಹೋಮ್ ಸಾಧನಗಳು ಮತ್ತು ದಿನಚರಿಗಳನ್ನು ನಿಯಂತ್ರಿಸಬಹುದು ಅಥವಾ ಮಾತನಾಡಬಹುದು.",
+        "kn": "ನೀವು ಕನ್ನಡ, ಹಿಂದಿ ಅಥವಾ ಇಂಗ್ಲಿಷ್‌ನಲ್ಲಿ ಸಮಯ, ದಿನಾಂಕ ಕೇಳಬಹುದು, ಟೈಮರ್ ಇಡಬಹುದು, ಮನೆಯ ದೀಪ, ಫ್ಯಾನ್, ಎಸಿ ನಿಯಂತ್ರಿಸಬಹುದು ಅಥವಾ ಮಾತನಾಡಬಹುದು.",
     },
     "stopped": {
         "en": "Stopped.",
         "hi": "ठीक है, रोक दिया गया।",
-        "kn": "ಸರಿ, ನಿಲ್ಲಿಸಲಾಗಿದೆ.",
+        "kn": "ಸರಿ.",
     },
     "empty_speech": {
         "en": "I did not hear anything. Please try again.",
         "hi": "मुझे कुछ सुनाई नहीं दिया। कृपया फिर से बोलें।",
-        "kn": "ನನಗೆ ಏನೂ ಕೇಳಿಸಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೊಮ್ಮೆ ಹೇಳಿ.",
+        "kn": "ನನಗೆ ಕೇಳಿಸಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೊಮ್ಮೆ ಹೇಳಿ.",
     },
     "ollama_unavailable": {
         "en": "Local reasoning service is unavailable, and I could not match that to a local command.",
@@ -123,32 +123,32 @@ _TEMPLATES: dict[str, dict[LanguageCode, str]] = {
     "invalid_duration": {
         "en": "Please specify a valid timer duration between 1 second and 24 hours.",
         "hi": "कृपया 1 सेकंड से 24 घंटे के बीच एक सही टाइमर समय बताएं।",
-        "kn": "ದಯವಿಟ್ಟು 1 ಸೆಕೆಂಡ್‌ನಿಂದ 24 ಗಂಟೆಗಳ ಒಳಗಿನ ಸರಿಯಾದ ಟೈಮರ್ ಸಮಯವನ್ನು ಹೇಳಿ.",
+        "kn": "ದಯವಿಟ್ಟು 1 ಸೆಕೆಂಡ್‌ನಿಂದ 24 ಗಂಟೆಯ ಒಳಗಿನ ಸರಿಯಾದ ಟೈಮರ್ ಸಮಯ ಹೇಳಿ.",
     },
     "greeting": {
         "en": "Hello! How can I help?",
         "hi": "नमस्ते! बताइए, क्या मदद करूँ?",
-        "kn": "ನಮಸ್ಕಾರ! ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
+        "kn": "ನಮಸ್ಕಾರ! ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
     },
     "acknowledgment": {
         "en": "You're welcome.",
         "hi": "आपका स्वागत है।",
-        "kn": "ನಿಮಗೆ ಸ್ವಾಗತ.",
+        "kn": "ಪರವಾಗಿಲ್ಲ, ಸಂತೋಷ.",
     },
     "farewell": {
         "en": "Goodbye!",
         "hi": "अलविदा!",
-        "kn": "ವಿದಾಯ!",
+        "kn": "ಮತ್ತೆ ಸಿಗೋಣ, ನಮಸ್ಕಾರ!",
     },
     "identity": {
         "en": "I am AURA EDGE, your local voice assistant.",
         "hi": "मैं ऑरा एज हूँ, आपका स्थानीय वॉइस असिस्टेंट।",
-        "kn": "ನಾನು ಆರಾ ಎಡ್ಜ್, ನಿಮ್ಮ ಸ್ಥಳೀಯ ವಾಯ್ಸ್ ಅಸಿಸ್ಟೆಂಟ್.",
+        "kn": "ನನ್ನ ಹೆಸರು ಆರಾ ಎಡ್ಜ್. ನಾನು ನಿಮ್ಮ ಸ್ಥಳೀಯ ಧ್ವನಿ ಸಹಾಯಕ.",
     },
     "supported_languages": {
         "en": "I support English, Hindi, and Kannada.",
         "hi": "मैं अंग्रेज़ी, हिंदी और कन्नड़ भाषाएं बोलता हूँ।",
-        "kn": "ನಾನು ಇಂಗ್ಲಿಷ್, ಹಿಂದಿ ಮತ್ತು ಕನ್ನಡ ಭಾಷೆಗಳನ್ನು ಮಾತ್ರ ಬೆಂಬಲಿಸುತ್ತೇನೆ.",
+        "kn": "ನಾನು ಕನ್ನಡ, ಹಿಂದಿ ಮತ್ತು ಇಂಗ್ಲಿಷ್ ಭಾಷೆಗಳನ್ನು ಮಾತನಾಡಬಲ್ಲೆ.",
     },
     "language_switched": {
         "en": "Okay, I will now speak in English.",
@@ -158,7 +158,7 @@ _TEMPLATES: dict[str, dict[LanguageCode, str]] = {
     "conversation_started": {
         "en": "Continuous conversation mode is active. Go ahead, I'm listening.",
         "hi": "लगातार बातचीत मोड चालू है। बताइए, मैं सुन रहा हूँ।",
-        "kn": "ನಿರಂತರ ಸಂಭಾಷಣೆ ಮೋಡ್ ಸಕ್ರಿಯವಾಗಿದೆ. ಹೇಳಿ, ನಾನು ಕೇಳಿಸಿಕೊಳ್ಳುತ್ತಿದ್ದೇನೆ.",
+        "kn": "ನಿರಂತರ ಮಾತುಕತೆ ಶುರುವಾಗಿದೆ. ಹೇಳಿ, ನಾನು ಕೇಳಿಸಿಕೊಳ್ಳುತ್ತಿದ್ದೇನೆ.",
     },
 }
 

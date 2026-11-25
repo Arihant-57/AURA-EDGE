@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import inspect
 import logging
 import time
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.exc import SQLAlchemyError
 
 from aura_edge.api.ws_events import WebSocketEventHub
@@ -55,6 +56,29 @@ from aura_edge.speech.vad import SileroVadDetector
 logger = logging.getLogger(__name__)
 
 
+def _empty_stage_timestamps() -> dict[str, float | None]:
+    return {
+        "speech_end": None,
+        "stt_start": None,
+        "stt_completion": None,
+        "routing_completion": None,
+        "tool_completion": None,
+        "llm_first_token": None,
+        "first_valid_speech_chunk": None,
+        "tts_completion": None,
+        "first_non_silent_output_callback": None,
+        "playback_completion": None,
+    }
+
+
+def _log_bg_task_exception(task: asyncio.Task[Any]) -> None:
+    if task.cancelled():
+        return
+    exc = task.exception()
+    if exc is not None:
+        logger.error("Background task %s failed: %s", task.get_name(), exc, exc_info=exc)
+
+
 class ProcessTurnOutput(BaseModel):
     """Unified output for text, audio-upload, PTT, and continuous voice turns."""
 
@@ -64,10 +88,17 @@ class ProcessTurnOutput(BaseModel):
     confidence: float
     intent_source: str
     detected_language: LanguageCode
+    preferred_reply_language: RequestedLanguage = "auto"
+    recognition_mode: str = "multilingual"
+    language_probability: float | None = None
+    transcript_confidence: float | None = None
+    stt_model: str | None = None
     slots: dict[str, Any]
     response_text: str
+    spoken_text: str = ""
     response_language: LanguageCode
     action_executed: bool
+    outcome: Literal["success", "clarification", "refusal", "cancelled", "runtime_failure"] = "success"
     status: str
     state: AssistantState
     data: dict[str, Any]
@@ -82,6 +113,12 @@ class ProcessTurnOutput(BaseModel):
     playback_ms: float | None = None
     ttfa_ms: float | None = None
     tts_cache_hit: bool = False
+    stage_timestamps: dict[str, float | None] = Field(default_factory=_empty_stage_timestamps)
+    time_to_first_text_ms: float | None = None
+    time_to_first_synthesized_audio_ms: float | None = None
+    time_to_first_audio_output_ms: float | None = None
+    playback_duration_ms: float | None = None
+    total_turn_duration_ms: float | None = None
     error: str | None = None
     transcript: str | None = None
 
@@ -104,6 +141,8 @@ class VoiceOrchestrator:
 
         self.compute_manager = ComputeManager(settings)
         self.session_language: RequestedLanguage = settings.default_language
+        self.stt_recognition_mode: Literal["multilingual", "strict"] = settings.stt_recognition_mode
+        self.stt_language: RequestedLanguage = settings.stt_language
         self._last_resolved_language: LanguageCode = (
             "en" if settings.default_language == "auto" else settings.default_language
         )
@@ -187,10 +226,8 @@ class VoiceOrchestrator:
         language: str | None,
     ) -> None:
         # Strict half-duplex: suspend microphone immediately upon entering SPEAKING
-        if state == AssistantState.SPEAKING:
+        if state == AssistantState.SPEAKING and not self.audio_capture.is_suspended:
             self.audio_capture.suspend_for_playback()
-        elif state in (AssistantState.CANCELLED, AssistantState.ERROR):
-            self.audio_capture.resume_after_playback()
 
         await self.ws_hub.broadcast(
             "assistant_state_change",
@@ -207,13 +244,18 @@ class VoiceOrchestrator:
         async with self._turn_lock:
             if self.fsm.state != AssistantState.IDLE or self.playback.is_playing:
                 return
-            self.audio_capture.suspend_for_playback()
+            if not self.audio_capture.is_suspended:
+                self.audio_capture.suspend_for_playback()
+            did_play = False
             try:
-                await self.playback.speak_text(phrase, language=lang, play_to_speaker=True)
+                _chunks, pm = await self.playback.speak_text_with_metrics(
+                    phrase, language=lang, play_to_speaker=True
+                )
+                did_play = pm.audio_playback_ms > 0.0
             except (OSError, RuntimeError, ValueError) as exc:
                 logger.debug("Timer completion audio skipped: %s", exc)
             finally:
-                await self._resume_mic_after_speaking(did_speak=True)
+                await self._resume_mic_after_speaking(did_speak=did_play)
 
     async def _handle_timer_event(self, event_type: str, timer_view: TimerView) -> None:
         await self.ws_hub.broadcast(event_type, {"timer": timer_view.model_dump()})
@@ -226,6 +268,7 @@ class VoiceOrchestrator:
             task = asyncio.create_task(self._speak_timer_notification(phrase, lang))
             self._timer_audio_tasks.add(task)
             task.add_done_callback(self._timer_audio_tasks.discard)
+            task.add_done_callback(_log_bg_task_exception)
 
     async def _resume_mic_after_speaking(self, *, did_speak: bool) -> None:
         """Resume microphone only after audio output drain and configurable acoustic cooldown."""
@@ -239,11 +282,25 @@ class VoiceOrchestrator:
         if self.fsm.state == AssistantState.LISTENING and active_turn is not None:
             await self.cancel_turn(turn_id=active_turn.turn_id)
 
-    def set_language(self, language: RequestedLanguage) -> RequestedLanguage:
+    def set_language(
+        self,
+        language: RequestedLanguage,
+        *,
+        recognition_mode: Literal["multilingual", "strict"] | None = None,
+    ) -> RequestedLanguage:
         self.session_language = language
         if language != "auto":
             self._last_resolved_language = language
+        if recognition_mode is not None:
+            self.stt_recognition_mode = recognition_mode
         return self.session_language
+
+    def set_recognition_mode(
+        self,
+        mode: Literal["multilingual", "strict"],
+    ) -> Literal["multilingual", "strict"]:
+        self.stt_recognition_mode = mode
+        return self.stt_recognition_mode
 
     def set_compute_mode(self, mode: ComputeMode) -> ComputePlacement:
         return self.compute_manager.set_mode(mode)
@@ -262,6 +319,8 @@ class VoiceOrchestrator:
             "stt_engine": "faster-whisper",
             "stt_model": self.settings.stt_model_size,
             "stt_kannada_specialist": "indic-conformer-kn" if kn_dir is not None else None,
+            "stt_recognition_mode": self.stt_recognition_mode,
+            "stt_language": self.stt_language,
             "stt_ready": stt_ready,
             "stt_device": placement.stt_device,
             "stt_compute_type": placement.stt_compute_type,
@@ -372,6 +431,7 @@ class VoiceOrchestrator:
         self._conversation_task = asyncio.create_task(
             self._continuous_conversation_loop(open_hardware_stream=open_hardware_stream)
         )
+        self._conversation_task.add_done_callback(_log_bg_task_exception)
         return {
             "active": True,
             "mode": "continuous",
@@ -491,6 +551,20 @@ class VoiceOrchestrator:
         except asyncio.CancelledError:
             self.audio_capture.stop_capture(cancel=True)
             raise
+        except Exception as exc:
+            logger.exception("Continuous conversation loop failed unexpectedly")
+            self._conversation_active = False
+            self._conversation_mode = "idle"
+            self.audio_capture.stop_capture(cancel=True)
+            with contextlib.suppress(Exception):
+                await self.ws_hub.broadcast(
+                    "error",
+                    {"code": "conversation_loop_error", "message": str(exc)},
+                )
+                await self.ws_hub.broadcast(
+                    "conversation_mode_change",
+                    {"active": False, "mode": "idle", "reason": "runtime_error"},
+                )
 
     async def start_ptt(self, *, language: RequestedLanguage | None = None) -> dict[str, Any]:
         if language is not None:
@@ -505,6 +579,8 @@ class VoiceOrchestrator:
             }
 
         await self._preempt_idle_listening()
+        if self.fsm.active_turn is not None:
+            await self.cancel_turn(turn_id=self.fsm.active_turn.turn_id)
 
         if not has_input_microphone(self.settings.audio_input_device):
             await self.ws_hub.broadcast(
@@ -513,30 +589,32 @@ class VoiceOrchestrator:
             )
             raise AudioDeviceUnavailableError("No usable input microphone detected on host.")
 
-        ctx = await self.fsm.start_turn(
-            source="voice_ptt",
-            language=self._last_resolved_language,
-            initial_state=AssistantState.LISTENING,
-        )
-        self._ptt_turn = ctx
-
-        async def _emit_level(rms_db: float, peak: float) -> None:
-            if not ctx.is_cancelled:
-                await self.ws_hub.broadcast("audio_level", {"rms_db": rms_db, "peak": peak})
-
-        self._ptt_task = asyncio.create_task(
-            self.audio_capture.start_ptt_capture(
-                use_vad_endpointing=True,
-                on_level=_emit_level,
-                open_hardware_stream=True,
+        async with self._turn_lock:
+            ctx = await self.fsm.start_turn(
+                source="voice_ptt",
+                language=self._last_resolved_language,
+                initial_state=AssistantState.LISTENING,
             )
-        )
-        return {
-            "started": True,
-            "turn_id": ctx.turn_id,
-            "state": self.fsm.state.value,
-            "language": self.session_language,
-        }
+            self._ptt_turn = ctx
+
+            async def _emit_level(rms_db: float, peak: float) -> None:
+                if not ctx.is_cancelled:
+                    await self.ws_hub.broadcast("audio_level", {"rms_db": rms_db, "peak": peak})
+
+            self._ptt_task = asyncio.create_task(
+                self.audio_capture.start_ptt_capture(
+                    use_vad_endpointing=True,
+                    on_level=_emit_level,
+                    open_hardware_stream=True,
+                )
+            )
+            self._ptt_task.add_done_callback(_log_bg_task_exception)
+            return {
+                "started": True,
+                "turn_id": ctx.turn_id,
+                "state": self.fsm.state.value,
+                "language": self.session_language,
+            }
 
     async def stop_ptt_and_process(self, *, speak: bool = True) -> ProcessTurnOutput:
         audio_f32, stop_reason = self.audio_capture.stop_capture(cancel=False)
@@ -570,13 +648,16 @@ class VoiceOrchestrator:
         *,
         source: str = "audio_upload",
         language: RequestedLanguage | None = None,
+        recognition_mode: Literal["multilingual", "strict"] | None = None,
         speak: bool = False,
         allow_llm_fallback: bool = True,
     ) -> ProcessTurnOutput:
         await self._preempt_idle_listening()
         async with self._turn_lock:
             if language is not None:
-                self.set_language(language)
+                self.set_language(language, recognition_mode=recognition_mode)
+            elif recognition_mode is not None:
+                self.set_recognition_mode(recognition_mode)
             ctx = await self.fsm.start_turn(
                 source=source,
                 language=self._last_resolved_language,
@@ -588,7 +669,40 @@ class VoiceOrchestrator:
                 stop_reason="uploaded",
                 speak=speak,
                 allow_llm_fallback=allow_llm_fallback,
+                recognition_mode=recognition_mode,
             )
+
+    def _invoke_stt(
+        self,
+        audio_f32: np.ndarray,
+        *,
+        stt_language: RequestedLanguage,
+        preferred_reply_language: RequestedLanguage,
+        recognition_mode: Literal["multilingual", "strict"],
+        strict_language: bool,
+        fallback_language: LanguageCode,
+        vad_voiced_ms: float | None,
+        noise_floor_rms: float | None,
+    ) -> TranscriptionResult:
+        kwargs: dict[str, Any] = {
+            "language": stt_language,
+            "preferred_reply_language": preferred_reply_language,
+            "recognition_mode": recognition_mode,
+            "strict_language": strict_language,
+            "fallback_language": fallback_language,
+            "vad_voiced_ms": vad_voiced_ms,
+            "noise_floor_rms": noise_floor_rms,
+        }
+        try:
+            sig = inspect.signature(self.stt.transcribe)
+            has_varkw = any(
+                p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+            )
+            if not has_varkw:
+                kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+        except (TypeError, ValueError):
+            pass
+        return self.stt.transcribe(audio_f32, **kwargs)
 
     async def _process_audio_with_turn(
         self,
@@ -599,64 +713,220 @@ class VoiceOrchestrator:
         speak: bool,
         allow_llm_fallback: bool = True,
         silent_empty: bool = False,
+        recognition_mode: Literal["multilingual", "strict"] | None = None,
     ) -> ProcessTurnOutput:
         t_start = time.perf_counter()
         loop = asyncio.get_running_loop()
+        timestamps = _empty_stage_timestamps()
+
+        capture_metrics = getattr(self.audio_capture, "last_capture_metrics", None)
+        vad_voiced_ms = getattr(capture_metrics, "voiced_ms", None) if capture_metrics is not None else None
+        noise_floor_rms = getattr(capture_metrics, "noise_floor_rms", None) if capture_metrics is not None else None
+        speech_end_mono = getattr(capture_metrics, "speech_end_mono", None) if capture_metrics is not None else None
+        if speech_end_mono is None and stop_reason != "uploaded":
+            speech_end_mono = t_start
+        timestamps["speech_end"] = speech_end_mono
+        base_mono = speech_end_mono if speech_end_mono is not None else t_start
+
+        rec_mode: Literal["multilingual", "strict"] = recognition_mode or self.stt_recognition_mode
+        preferred_reply_lang = self.session_language
+        if rec_mode == "strict" and preferred_reply_lang != "auto":
+            stt_lang: RequestedLanguage = preferred_reply_lang
+            strict_flag = True
+        else:
+            stt_lang = self.stt_language
+            strict_flag = False
 
         try:
             if self.fsm.state == AssistantState.LISTENING:
                 await self.fsm.transition(ctx.turn_id, AssistantState.TRANSCRIBING)
 
-            req_lang = self.session_language
+            timestamps["stt_start"] = time.perf_counter()
             stt_res: TranscriptionResult = await loop.run_in_executor(
                 None,
-                lambda: self.stt.transcribe(
+                lambda: self._invoke_stt(
                     audio_f32,
-                    language=req_lang,
+                    stt_language=stt_lang,
+                    preferred_reply_language=preferred_reply_lang,
+                    recognition_mode=rec_mode,
+                    strict_language=strict_flag,
                     fallback_language=self._last_resolved_language,
+                    vad_voiced_ms=vad_voiced_ms,
+                    noise_floor_rms=noise_floor_rms,
                 ),
             )
+            timestamps["stt_completion"] = time.perf_counter()
 
             if ctx.is_cancelled:
-                return self._cancelled_output(ctx, t_start)
+                return self._cancelled_output(ctx, t_start, timestamps=timestamps, base_mono=base_mono)
 
-            if stt_res.is_empty or not stt_res.text.strip():
-                lang = stt_res.detected_language
+            lang_prob = getattr(stt_res, "language_probability", None)
+            transcript_conf = getattr(stt_res, "transcript_confidence", None)
+            stt_rec_mode = getattr(stt_res, "recognition_mode", rec_mode)
+            stt_model = getattr(stt_res, "model_size", None)
+            quality_ok = bool(getattr(stt_res, "quality_ok", True))
+            rejection_reason = getattr(stt_res, "rejection_reason", None)
+            is_empty = bool(stt_res.is_empty or not stt_res.text.strip())
+
+            # R4 Gate: Do NOTHING on silence or background noise
+            if rejection_reason in ("silence", "noise"):
+                await self.fsm.finish_turn(ctx.turn_id)
+                end_mono = time.perf_counter()
+                e2e_ms = round((end_mono - t_start) * 1000.0, 2)
+                total_turn_ms = round((end_mono - base_mono) * 1000.0, 2)
+                reply_lang: LanguageCode = (
+                    preferred_reply_lang
+                    if preferred_reply_lang != "auto"
+                    else stt_res.detected_language
+                )
+                timings = self._build_timings_dict(
+                    timestamps=timestamps,
+                    base_mono=base_mono,
+                    stt_ms=stt_res.latency_ms,
+                    total_turn_duration_ms=total_turn_ms,
+                    latency_ms=e2e_ms,
+                )
+                await self._broadcast_response_completed(
+                    turn_id=ctx.turn_id,
+                    outcome="success",
+                    status="ignored_silence",
+                    action_executed=False,
+                    intent="NoSpeech",
+                    route_category="silence",
+                    language=reply_lang,
+                    detected_language=stt_res.detected_language,
+                    preferred_reply_language=preferred_reply_lang,
+                    response_text="",
+                    spoken_text="",
+                    silent=True,
+                    rejection_reason=rejection_reason,
+                    timings=timings,
+                    stage_timestamps=timestamps,
+                )
+                return ProcessTurnOutput(
+                    turn_id=ctx.turn_id,
+                    intent="NoSpeech",
+                    route_category="silence",
+                    confidence=0.0,
+                    intent_source="quality_gate",
+                    detected_language=stt_res.detected_language,
+                    preferred_reply_language=preferred_reply_lang,
+                    recognition_mode=stt_rec_mode,
+                    language_probability=lang_prob,
+                    transcript_confidence=transcript_conf,
+                    stt_model=stt_model,
+                    slots={},
+                    response_text="",
+                    spoken_text="",
+                    response_language=reply_lang,
+                    action_executed=False,
+                    outcome="success",
+                    status="ignored_silence",
+                    state=AssistantState.IDLE,
+                    data={"stop_reason": stop_reason, "rejection_reason": rejection_reason},
+                    latency_ms=e2e_ms,
+                    stt_ms=stt_res.latency_ms,
+                    stage_timestamps=timestamps,
+                    total_turn_duration_ms=total_turn_ms,
+                    transcript="",
+                )
+
+            # R4 Gate: Ask ONE short clarification on unclear speech, invalid script, or empty speech
+            if (not quality_ok and rejection_reason in ("unclear_speech", "invalid_script")) or is_empty:
+                lang: LanguageCode = (
+                    preferred_reply_lang
+                    if preferred_reply_lang != "auto"
+                    else stt_res.detected_language
+                )
                 await self.fsm.transition(ctx.turn_id, AssistantState.CLARIFYING)
                 msg = get_phrase("empty_speech", lang)
                 await self.ws_hub.broadcast(
                     "clarification_required",
-                    {"turn_id": ctx.turn_id, "language": lang, "message": msg},
+                    {
+                        "turn_id": ctx.turn_id,
+                        "language": lang,
+                        "message": msg,
+                        "reason": rejection_reason or "empty_speech",
+                    },
                 )
-                tts_ms, audio_startup_ms, playback_ms, ttfa_ms, tts_cache_hit = await self._maybe_speak(
+                should_speak_clarify = speak and (
+                    rejection_reason in ("unclear_speech", "invalid_script") or not silent_empty
+                )
+                speak_res = await self._maybe_speak(
                     ctx,
                     msg,
                     lang,
-                    speak=speak and not silent_empty,
-                    turn_start_perf=t_start,
+                    speak=should_speak_clarify,
+                    turn_start_perf=base_mono,
+                    timestamps=timestamps,
                 )
+                spoken_text = msg if should_speak_clarify and speak_res["did_speak_attempt"] else ""
                 await self.fsm.finish_turn(ctx.turn_id)
+                end_mono = time.perf_counter()
+                e2e_ms = round((end_mono - t_start) * 1000.0, 2)
+                total_turn_ms = round((end_mono - base_mono) * 1000.0, 2)
+                timings = self._build_timings_dict(
+                    timestamps=timestamps,
+                    base_mono=base_mono,
+                    stt_ms=stt_res.latency_ms,
+                    tts_ms=speak_res["tts_ms"],
+                    audio_startup_ms=speak_res["audio_startup_ms"],
+                    playback_ms=speak_res["playback_ms"],
+                    ttfa_ms=speak_res["ttfa_ms"],
+                    first_text_mono=timestamps["stt_completion"],
+                    total_turn_duration_ms=total_turn_ms,
+                    latency_ms=e2e_ms,
+                )
+                await self._broadcast_response_completed(
+                    turn_id=ctx.turn_id,
+                    outcome="clarification",
+                    status="clarification_required",
+                    action_executed=False,
+                    intent="Clarify",
+                    route_category="clarification",
+                    language=lang,
+                    detected_language=stt_res.detected_language,
+                    preferred_reply_language=preferred_reply_lang,
+                    response_text=msg,
+                    spoken_text=spoken_text,
+                    rejection_reason=rejection_reason,
+                    timings=timings,
+                    stage_timestamps=timestamps,
+                )
                 return ProcessTurnOutput(
                     turn_id=ctx.turn_id,
                     intent="Clarify",
                     route_category="clarification",
-                    confidence=1.0,
+                    confidence=0.0,
                     intent_source="clarification",
-                    detected_language=lang,
+                    detected_language=stt_res.detected_language,
+                    preferred_reply_language=preferred_reply_lang,
+                    recognition_mode=stt_rec_mode,
+                    language_probability=lang_prob,
+                    transcript_confidence=transcript_conf,
+                    stt_model=stt_model,
                     slots={},
                     response_text=msg,
+                    spoken_text=spoken_text,
                     response_language=lang,
                     action_executed=False,
+                    outcome="clarification",
                     status="clarification_required",
                     state=AssistantState.IDLE,
-                    data={"stop_reason": stop_reason},
-                    latency_ms=round((time.perf_counter() - t_start) * 1000.0, 2),
+                    data={"stop_reason": stop_reason, "rejection_reason": rejection_reason},
+                    latency_ms=e2e_ms,
                     stt_ms=stt_res.latency_ms,
-                    tts_ms=tts_ms,
-                    audio_startup_ms=audio_startup_ms,
-                    playback_ms=playback_ms,
-                    ttfa_ms=ttfa_ms,
-                    tts_cache_hit=tts_cache_hit,
+                    tts_ms=speak_res["tts_ms"],
+                    audio_startup_ms=speak_res["audio_startup_ms"],
+                    playback_ms=speak_res["playback_ms"],
+                    ttfa_ms=speak_res["ttfa_ms"],
+                    tts_cache_hit=speak_res["tts_cache_hit"],
+                    stage_timestamps=timestamps,
+                    time_to_first_text_ms=timings["time_to_first_text_ms"],
+                    time_to_first_synthesized_audio_ms=timings["time_to_first_synthesized_audio_ms"],
+                    time_to_first_audio_output_ms=timings["time_to_first_audio_output_ms"],
+                    playback_duration_ms=timings["playback_duration_ms"],
+                    total_turn_duration_ms=total_turn_ms,
                     transcript="",
                 )
 
@@ -666,45 +936,41 @@ class VoiceOrchestrator:
                     "turn_id": ctx.turn_id,
                     "transcript": stt_res.text,
                     "language": stt_res.detected_language,
-                    "model_size": stt_res.model_size,
+                    "preferred_reply_language": preferred_reply_lang,
+                    "recognition_mode": stt_rec_mode,
+                    "language_probability": lang_prob,
+                    "transcript_confidence": transcript_conf,
+                    "model_size": stt_model,
                     "stt_ms": stt_res.latency_ms,
                 },
-            )
-            effective_req_lang: RequestedLanguage = (
-                self.session_language
-                if self.session_language != "auto"
-                else stt_res.detected_language
             )
             return await self._run_nlu_and_execute(
                 ctx=ctx,
                 text=stt_res.text,
-                requested_language=effective_req_lang,
+                nlu_language="auto",
+                preferred_reply_language=preferred_reply_lang,
+                detected_input_language=stt_res.detected_language,
+                recognition_mode=stt_rec_mode,
+                language_probability=lang_prob,
+                transcript_confidence=transcript_conf,
+                stt_model=stt_model,
                 speak=speak,
                 allow_llm_fallback=allow_llm_fallback,
                 t_start=t_start,
+                base_mono=base_mono,
+                timestamps=timestamps,
                 stt_ms=stt_res.latency_ms,
                 transcript=stt_res.text,
             )
         except StaleTurnError:
-            return self._cancelled_output(ctx, t_start)
+            return self._cancelled_output(ctx, t_start, timestamps=timestamps, base_mono=base_mono)
         except ModelNotFoundError as exc:
             await self._safe_error(ctx, str(exc))
-            return ProcessTurnOutput(
-                turn_id=ctx.turn_id,
-                intent="Error",
-                confidence=0.0,
-                intent_source="error",
-                detected_language=self._last_resolved_language,
-                slots={},
-                response_text=str(exc),
-                response_language=self._last_resolved_language,
-                action_executed=False,
-                status="failed",
-                state=AssistantState.ERROR,
-                data={},
-                latency_ms=round((time.perf_counter() - t_start) * 1000.0, 2),
-                error=str(exc),
-            )
+            return self._error_output(ctx, str(exc), t_start, timestamps=timestamps, base_mono=base_mono)
+        except Exception as exc:
+            logger.exception("Unexpected error processing audio turn %s", ctx.turn_id)
+            await self._safe_error(ctx, str(exc))
+            return self._error_output(ctx, str(exc), t_start, timestamps=timestamps, base_mono=base_mono)
 
     async def process_text(
         self,
@@ -718,9 +984,10 @@ class VoiceOrchestrator:
         await self._preempt_idle_listening()
         async with self._turn_lock:
             t_start = time.perf_counter()
-            req_lang = language if language is not None else self.session_language
+            timestamps = _empty_stage_timestamps()
+            pref_lang = language if language is not None else self.session_language
             fallback_lang: LanguageCode = (
-                req_lang if req_lang != "auto" else self._last_resolved_language
+                pref_lang if pref_lang != "auto" else self._last_resolved_language
             )
             ctx = await self.fsm.start_turn(
                 source=source,
@@ -731,43 +998,89 @@ class VoiceOrchestrator:
                 return await self._run_nlu_and_execute(
                     ctx=ctx,
                     text=text,
-                    requested_language=req_lang,
+                    nlu_language="auto",
+                    preferred_reply_language=pref_lang,
+                    detected_input_language=None,
+                    recognition_mode=self.stt_recognition_mode,
+                    language_probability=None,
+                    transcript_confidence=None,
+                    stt_model=None,
                     speak=speak,
                     allow_llm_fallback=allow_llm_fallback,
                     t_start=t_start,
+                    base_mono=t_start,
+                    timestamps=timestamps,
                     stt_ms=None,
                     transcript=text,
                 )
             except StaleTurnError:
-                return self._cancelled_output(ctx, t_start)
+                return self._cancelled_output(ctx, t_start, timestamps=timestamps, base_mono=t_start)
+            except Exception as exc:
+                logger.exception("Unexpected error processing text turn %s", ctx.turn_id)
+                await self._safe_error(ctx, str(exc))
+                return self._error_output(ctx, str(exc), t_start, timestamps=timestamps, base_mono=t_start)
 
     async def _run_nlu_and_execute(
         self,
         *,
         ctx: TurnContext,
         text: str,
-        requested_language: RequestedLanguage,
+        nlu_language: RequestedLanguage,
+        preferred_reply_language: RequestedLanguage,
+        detected_input_language: LanguageCode | None,
+        recognition_mode: str,
+        language_probability: float | None,
+        transcript_confidence: float | None,
+        stt_model: str | None,
         speak: bool,
         allow_llm_fallback: bool,
         t_start: float,
+        base_mono: float,
+        timestamps: dict[str, float | None],
         stt_ms: float | None,
         transcript: str | None,
     ) -> ProcessTurnOutput:
         if self.fsm.state != AssistantState.UNDERSTANDING:
             await self.fsm.transition(ctx.turn_id, AssistantState.UNDERSTANDING)
 
+        fallback_nlu: LanguageCode = (
+            detected_input_language
+            or (preferred_reply_language if preferred_reply_language != "auto" else self._last_resolved_language)
+        )
         typed_intent, router_ms, llm_ms, llm_err = await self.planner.plan(
             text,
-            requested_language=requested_language,
-            fallback_language=self._last_resolved_language,
+            requested_language=nlu_language,
+            fallback_language=fallback_nlu,
             allow_llm_fallback=allow_llm_fallback,
         )
-        reply_language: LanguageCode = typed_intent.target_language or typed_intent.language
+        timestamps["routing_completion"] = time.perf_counter()
+
+        detected_lang: LanguageCode = detected_input_language or typed_intent.language
+        if typed_intent.target_language is not None:
+            reply_language: LanguageCode = typed_intent.target_language
+        elif preferred_reply_language != "auto":
+            reply_language = preferred_reply_language
+        else:
+            reply_language = detected_lang
         self._last_resolved_language = reply_language
         ctx.language = reply_language
 
         if ctx.is_cancelled:
-            return self._cancelled_output(ctx, t_start)
+            return await self._finalize_cancelled_turn(
+                ctx,
+                t_start,
+                timestamps=timestamps,
+                base_mono=base_mono,
+                detected_language=detected_lang,
+                preferred_reply_language=preferred_reply_language,
+                recognition_mode=recognition_mode,
+                language_probability=language_probability,
+                transcript_confidence=transcript_confidence,
+                stt_model=stt_model,
+                stt_ms=stt_ms,
+                router_ms=router_ms,
+                transcript=transcript,
+            )
 
         tool_t0 = time.perf_counter()
         llm_ttft_ms: float | None = None
@@ -777,10 +1090,17 @@ class VoiceOrchestrator:
         ttfa_ms: float | None = None
         tts_cache_hit = False
         already_spoke = False
+        spoken_text = ""
+        first_text_mono: float | None = timestamps["routing_completion"]
+        first_audio_ready_mono: float | None = None
 
         if typed_intent.intent_name == IntentName.CLARIFY:
             await self.fsm.transition(ctx.turn_id, AssistantState.CLARIFYING)
-            result = await self.tool_registry.execute_intent(typed_intent)
+            result = await self.tool_registry.execute_intent(
+                typed_intent, reply_language=reply_language
+            )
+            timestamps["tool_completion"] = time.perf_counter()
+            first_text_mono = timestamps["tool_completion"]
             await self.ws_hub.broadcast(
                 "clarification_required",
                 {"turn_id": ctx.turn_id, "language": reply_language, "message": result.message},
@@ -803,16 +1123,6 @@ class VoiceOrchestrator:
                 status="verified",
                 message=get_phrase(phrase_key, reply_language),
             )
-            await self.ws_hub.broadcast(
-                "response_completed",
-                {
-                    "turn_id": ctx.turn_id,
-                    "intent": typed_intent.intent_name.value,
-                    "route_category": "greeting",
-                    "language": reply_language,
-                    "response_text": result.message,
-                },
-            )
         elif typed_intent.intent_name == IntentName.SWITCH_LANGUAGE:
             self.set_language(reply_language)
             result = VerifiedActionResult(
@@ -822,39 +1132,37 @@ class VoiceOrchestrator:
                 data={"language": reply_language},
                 message=get_phrase("language_switched", reply_language),
             )
-            await self.ws_hub.broadcast(
-                "response_completed",
-                {
-                    "turn_id": ctx.turn_id,
-                    "intent": "SwitchLanguage",
-                    "route_category": "language_switch",
-                    "language": reply_language,
-                    "response_text": result.message,
-                },
-            )
         elif typed_intent.intent_name == IntentName.CONVERSATION:
             (
                 result,
                 llm_ttft_ms,
                 llm_ms,
-                tts_ms,
-                audio_startup_ms,
-                playback_ms,
-                ttfa_ms,
-                tts_cache_hit,
+                speak_res,
                 already_spoke,
+                spoken_text,
             ) = await self._execute_streaming_conversation(
                 ctx=ctx,
                 user_text=text,
                 reply_language=reply_language,
                 speak=speak,
-                t_start=t_start,
+                base_mono=base_mono,
+                timestamps=timestamps,
             )
+            tts_ms = speak_res["tts_ms"]
+            audio_startup_ms = speak_res["audio_startup_ms"]
+            playback_ms = speak_res["playback_ms"]
+            ttfa_ms = speak_res["ttfa_ms"]
+            tts_cache_hit = speak_res["tts_cache_hit"]
+            first_audio_ready_mono = speak_res["first_audio_ready_mono"]
+            if timestamps["llm_first_token"] is not None:
+                first_text_mono = timestamps["llm_first_token"]
+            else:
+                first_text_mono = time.perf_counter()
         elif typed_intent.intent_name == IntentName.UNSUPPORTED:
             result = VerifiedActionResult(
                 success=False,
                 action="Unsupported",
-                status="refused",
+                status="failed" if llm_err else "refused",
                 message=(
                     get_phrase("ollama_unavailable", reply_language)
                     if llm_err
@@ -864,7 +1172,11 @@ class VoiceOrchestrator:
             )
         else:
             await self.fsm.transition(ctx.turn_id, AssistantState.EXECUTING)
-            result = await self.tool_registry.execute_intent(typed_intent)
+            result = await self.tool_registry.execute_intent(
+                typed_intent, reply_language=reply_language
+            )
+            timestamps["tool_completion"] = time.perf_counter()
+            first_text_mono = timestamps["tool_completion"]
             if result.success:
                 ctx.record_completed_action(result.action)
             await self.fsm.transition(ctx.turn_id, AssistantState.VERIFYING)
@@ -878,25 +1190,126 @@ class VoiceOrchestrator:
                     "data": result.data,
                 },
             )
+            if result.status == "clarification_required":
+                await self.fsm.transition(ctx.turn_id, AssistantState.CLARIFYING)
+                await self.ws_hub.broadcast(
+                    "clarification_required",
+                    {
+                        "turn_id": ctx.turn_id,
+                        "language": reply_language,
+                        "message": result.message,
+                    },
+                )
 
-        tool_ms = round((time.perf_counter() - tool_t0) * 1000.0, 2) if typed_intent.route_category == "tool" else 0.0
+        tool_ms = (
+            round((time.perf_counter() - tool_t0) * 1000.0, 2)
+            if typed_intent.route_category == "tool"
+            else 0.0
+        )
 
         if ctx.is_cancelled:
-            return self._cancelled_output(ctx, t_start)
+            return await self._finalize_cancelled_turn(
+                ctx,
+                t_start,
+                timestamps=timestamps,
+                base_mono=base_mono,
+                detected_language=detected_lang,
+                preferred_reply_language=preferred_reply_language,
+                recognition_mode=recognition_mode,
+                language_probability=language_probability,
+                transcript_confidence=transcript_confidence,
+                stt_model=stt_model,
+                stt_ms=stt_ms,
+                router_ms=router_ms,
+                transcript=transcript,
+            )
 
         if typed_intent.intent_name == IntentName.STOP_ASSISTANT:
             self.playback.stop()
 
         if not already_spoke:
-            tts_ms, audio_startup_ms, playback_ms, ttfa_ms, tts_cache_hit = await self._maybe_speak(
+            speak_res = await self._maybe_speak(
                 ctx,
                 result.message,
                 reply_language,
                 speak=speak,
-                turn_start_perf=t_start,
+                turn_start_perf=base_mono,
+                timestamps=timestamps,
+            )
+            tts_ms = speak_res["tts_ms"]
+            audio_startup_ms = speak_res["audio_startup_ms"]
+            playback_ms = speak_res["playback_ms"]
+            ttfa_ms = speak_res["ttfa_ms"]
+            tts_cache_hit = speak_res["tts_cache_hit"]
+            first_audio_ready_mono = speak_res["first_audio_ready_mono"]
+            if speak and speak_res["did_speak_attempt"] and result.message.strip():
+                spoken_text = result.message
+
+        if ctx.is_cancelled:
+            return await self._finalize_cancelled_turn(
+                ctx,
+                t_start,
+                timestamps=timestamps,
+                base_mono=base_mono,
+                detected_language=detected_lang,
+                preferred_reply_language=preferred_reply_language,
+                recognition_mode=recognition_mode,
+                language_probability=language_probability,
+                transcript_confidence=transcript_confidence,
+                stt_model=stt_model,
+                stt_ms=stt_ms,
+                router_ms=router_ms,
+                transcript=transcript,
             )
 
         await self.fsm.finish_turn(ctx.turn_id)
+
+        action_executed = bool(result.success and typed_intent.route_category == "tool")
+        if result.status == "clarification_required" or typed_intent.intent_name == IntentName.CLARIFY:
+            outcome: Literal["success", "clarification", "refusal", "cancelled", "runtime_failure"] = "clarification"
+        elif result.status == "refused":
+            outcome = "refusal"
+        elif result.status == "failed":
+            outcome = "runtime_failure"
+        else:
+            outcome = "success"
+
+        end_mono = time.perf_counter()
+        e2e_ms = round((end_mono - t_start) * 1000.0, 2)
+        total_turn_ms = round((end_mono - base_mono) * 1000.0, 2)
+        timings = self._build_timings_dict(
+            timestamps=timestamps,
+            base_mono=base_mono,
+            stt_ms=stt_ms,
+            router_ms=router_ms,
+            llm_ttft_ms=llm_ttft_ms,
+            llm_ms=llm_ms,
+            tool_ms=tool_ms,
+            tts_ms=tts_ms,
+            audio_startup_ms=audio_startup_ms,
+            playback_ms=playback_ms,
+            ttfa_ms=ttfa_ms,
+            first_text_mono=first_text_mono,
+            first_audio_ready_mono=first_audio_ready_mono,
+            total_turn_duration_ms=total_turn_ms,
+            latency_ms=e2e_ms,
+        )
+
+        await self._broadcast_response_completed(
+            turn_id=ctx.turn_id,
+            outcome=outcome,
+            status=result.status,
+            action_executed=action_executed,
+            intent=typed_intent.intent_name.value,
+            route_category=typed_intent.route_category,
+            language=reply_language,
+            detected_language=detected_lang,
+            preferred_reply_language=preferred_reply_language,
+            response_text=result.message,
+            spoken_text=spoken_text,
+            timings=timings,
+            stage_timestamps=timestamps,
+        )
 
         # Commit turn atomically to session memory only when not cancelled or failed due to offline LLM
         if result.error is None and result.message.strip():
@@ -913,7 +1326,6 @@ class VoiceOrchestrator:
                 {"count": len(self.conversation.get_history()), "turn_id": ctx.turn_id},
             )
 
-        e2e_ms = round((time.perf_counter() - t_start) * 1000.0, 2)
         placement = self.compute_manager.resolve_placement()
         try:
             self.metric_repo.record_turn(
@@ -942,11 +1354,18 @@ class VoiceOrchestrator:
             route_category=typed_intent.route_category,
             confidence=typed_intent.confidence,
             intent_source=typed_intent.source,
-            detected_language=typed_intent.language,
+            detected_language=detected_lang,
+            preferred_reply_language=preferred_reply_language,
+            recognition_mode=recognition_mode,
+            language_probability=language_probability,
+            transcript_confidence=transcript_confidence,
+            stt_model=stt_model,
             slots=typed_intent.slots,
             response_text=result.message,
+            spoken_text=spoken_text,
             response_language=reply_language,
-            action_executed=result.success,
+            action_executed=action_executed,
+            outcome=outcome,
             status=result.status,
             state=self.fsm.state,
             data=result.data,
@@ -961,6 +1380,12 @@ class VoiceOrchestrator:
             playback_ms=playback_ms,
             ttfa_ms=ttfa_ms,
             tts_cache_hit=tts_cache_hit,
+            stage_timestamps=timestamps,
+            time_to_first_text_ms=timings["time_to_first_text_ms"],
+            time_to_first_synthesized_audio_ms=timings["time_to_first_synthesized_audio_ms"],
+            time_to_first_audio_output_ms=timings["time_to_first_audio_output_ms"],
+            playback_duration_ms=timings["playback_duration_ms"],
+            total_turn_duration_ms=total_turn_ms,
             error=result.error,
             transcript=transcript,
         )
@@ -972,19 +1397,26 @@ class VoiceOrchestrator:
         user_text: str,
         reply_language: LanguageCode,
         speak: bool,
-        t_start: float,
+        base_mono: float,
+        timestamps: dict[str, float | None],
     ) -> tuple[
         VerifiedActionResult,
         float | None,
         float | None,
-        float | None,
-        float | None,
-        float | None,
-        float | None,
+        dict[str, Any],
         bool,
-        bool,
+        str,
     ]:
-        """Stream Ollama tokens live, validate script/claims, and drive half-duplex playback."""
+        """Stream Ollama tokens live, validate every chunk, and drive half-duplex playback."""
+        empty_speak_res: dict[str, Any] = {
+            "tts_ms": None,
+            "audio_startup_ms": None,
+            "playback_ms": None,
+            "ttfa_ms": None,
+            "tts_cache_hit": False,
+            "first_audio_ready_mono": None,
+            "did_speak_attempt": False,
+        }
         caps = self.tool_registry.describe_capabilities(reply_language)
         messages = self.conversation.build_llm_messages(
             user_text,
@@ -1000,12 +1432,15 @@ class VoiceOrchestrator:
         sentence_queue: asyncio.Queue[str | None] = asyncio.Queue()
         speak_task: asyncio.Task[tuple[list[Any], PlaybackMetrics]] | None = None
         stream_tts_started = False
+        spoken_parts: list[str] = []
+        skipped_invalid_chunk = False
 
         async def _ensure_stream_tts_started() -> None:
             nonlocal speak_task, stream_tts_started
             if not speak or speak_task is not None or ctx.is_cancelled:
                 return
-            self.audio_capture.suspend_for_playback()
+            if not self.audio_capture.is_suspended:
+                self.audio_capture.suspend_for_playback()
             await self.fsm.transition(ctx.turn_id, AssistantState.SPEAKING, language=reply_language)
             stream_tts_started = True
             speak_task = asyncio.create_task(
@@ -1014,13 +1449,32 @@ class VoiceOrchestrator:
                     language=reply_language,
                     play_to_speaker=True,
                     external_cancel=ctx.cancel_event,
-                    turn_start_perf=t_start,
+                    turn_start_perf=base_mono,
                 )
             )
 
-        # For English, open playback pipeline immediately; for HI/KN, validate first sentence script first!
-        if speak and reply_language == "en":
-            await _ensure_stream_tts_started()
+        async def _queue_validated_chunk(chunk_text: str) -> None:
+            nonlocal skipped_invalid_chunk
+            clean_chunk = strip_markdown_for_speech(chunk_text)
+            if not clean_chunk:
+                return
+            valid_chunk, reason = validate_response_language(clean_chunk, reply_language)
+            if not valid_chunk:
+                skipped_invalid_chunk = True
+                logger.info(
+                    "Streaming chunk rejected before TTS (%s, target=%s): %r",
+                    reason,
+                    reply_language,
+                    clean_chunk,
+                )
+                return
+            if speak_task is None:
+                await _ensure_stream_tts_started()
+            if speak_task is not None:
+                if timestamps["first_valid_speech_chunk"] is None:
+                    timestamps["first_valid_speech_chunk"] = time.perf_counter()
+                spoken_parts.append(clean_chunk)
+                await sentence_queue.put(clean_chunk)
 
         raw_parts: list[str] = []
         llm_stats: dict[str, Any] = {}
@@ -1034,6 +1488,8 @@ class VoiceOrchestrator:
                     llm_stats = stats
                     break
                 if token:
+                    if timestamps["llm_first_token"] is None:
+                        timestamps["llm_first_token"] = time.perf_counter()
                     raw_parts.append(token)
                     await self.ws_hub.broadcast(
                         "response_text_delta",
@@ -1045,22 +1501,11 @@ class VoiceOrchestrator:
                     )
                     if speak:
                         for sentence in sentence_buf.push(token):
-                            clean_sent = strip_markdown_for_speech(sentence)
-                            if not clean_sent:
-                                continue
-                            if speak_task is None:
-                                valid_sent, _ = validate_response_language(clean_sent, reply_language)
-                                if not valid_sent:
-                                    continue
-                                await _ensure_stream_tts_started()
-                            if speak_task is not None:
-                                await sentence_queue.put(clean_sent)
+                            await _queue_validated_chunk(sentence)
 
             tail = sentence_buf.flush()
             if speak and tail and not ctx.is_cancelled:
-                clean_tail = strip_markdown_for_speech(tail)
-                if clean_tail and speak_task is not None:
-                    await sentence_queue.put(clean_tail)
+                await _queue_validated_chunk(tail)
         except OllamaUnavailableError as exc:
             if speak_task is not None:
                 await sentence_queue.put(None)
@@ -1079,17 +1524,17 @@ class VoiceOrchestrator:
                 ),
                 None,
                 None,
-                None,
-                None,
-                None,
-                None,
+                empty_speak_res,
                 False,
-                False,
+                "",
             )
 
         clean_full = strip_markdown_for_speech("".join(raw_parts)) or "..."
         is_valid, reason = validate_response_language(clean_full, reply_language)
-        if not is_valid and not ctx.is_cancelled:
+        if spoken_parts and (skipped_invalid_chunk or not is_valid):
+            # Displayed text must strictly match what was validated and spoken
+            clean_full = " ".join(spoken_parts)
+        elif not is_valid and not ctx.is_cancelled:
             logger.info("Response validation failed (%s); applying safe %s guardrail.", reason, reply_language)
             if reason == "unsupported_language_claim":
                 clean_full = get_phrase("supported_languages", reply_language)
@@ -1097,54 +1542,54 @@ class VoiceOrchestrator:
                 clean_full = "ಕ್ಷಮಿಸಿ, ನನಗೆ ಈ ಪ್ರಶ್ನೆಗೆ ಸ್ಪಷ್ಟ ಕನ್ನಡದಲ್ಲಿ ಉತ್ತರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ."
             elif reply_language == "hi":
                 clean_full = "माफ कीजिए, मैं इस सवाल का स्पष्ट हिंदी में उत्तर नहीं दे पाया।"
+            elif reply_language == "en":
+                clean_full = get_phrase("supported_languages", "en")
 
-        tts_ms: float | None = None
-        audio_startup_ms: float | None = None
-        playback_ms: float | None = None
-        ttfa_ms: float | None = None
-        cache_hit = False
+        speak_res = dict(empty_speak_res)
         already_spoke = False
+        spoken_text = ""
 
         if speak_task is not None:
             await sentence_queue.put(None)
             try:
                 _audios, pm = await speak_task
-                tts_ms = pm.tts_synthesis_ms
-                audio_startup_ms = pm.audio_startup_ms
-                playback_ms = pm.audio_playback_ms
-                ttfa_ms = pm.first_audio_ready_ms
-                cache_hit = pm.cache_hits > 0
+                speak_res["tts_ms"] = pm.tts_synthesis_ms
+                speak_res["audio_startup_ms"] = pm.audio_startup_ms
+                speak_res["playback_ms"] = pm.audio_playback_ms
+                speak_res["ttfa_ms"] = pm.first_audio_ready_ms
+                speak_res["tts_cache_hit"] = pm.cache_hits > 0
+                speak_res["first_audio_ready_mono"] = getattr(pm, "first_audio_ready_mono", None)
+                speak_res["did_speak_attempt"] = True
+                timestamps["tts_completion"] = getattr(pm, "tts_completed_mono", None) or (
+                    time.perf_counter() if pm.tts_synthesis_ms > 0.0 else None
+                )
+                timestamps["first_non_silent_output_callback"] = getattr(
+                    pm, "first_non_silent_callback_mono", None
+                )
+                timestamps["playback_completion"] = getattr(pm, "playback_completed_mono", None) or (
+                    time.perf_counter() if pm.audio_playback_ms > 0.0 else None
+                )
                 already_spoke = True
+                if not ctx.is_cancelled:
+                    spoken_text = " ".join(spoken_parts)
             except (OSError, RuntimeError, ValueError) as exc:
                 logger.warning("Streaming TTS playback failed: %s", exc)
             finally:
-                await self._resume_mic_after_speaking(did_speak=bool(playback_ms and playback_ms > 0.0))
+                did_play = bool(speak_res["playback_ms"] and speak_res["playback_ms"] > 0.0)
+                await self._resume_mic_after_speaking(did_speak=did_play)
         elif speak and not ctx.is_cancelled:
-            tts_ms, audio_startup_ms, playback_ms, ttfa_ms, cache_hit = await self._maybe_speak(
+            speak_res = await self._maybe_speak(
                 ctx,
                 clean_full,
                 reply_language,
                 speak=True,
-                turn_start_perf=t_start,
+                turn_start_perf=base_mono,
+                timestamps=timestamps,
             )
             already_spoke = True
+            if speak_res["did_speak_attempt"]:
+                spoken_text = clean_full
 
-        await self.ws_hub.broadcast(
-            "response_completed",
-            {
-                "turn_id": ctx.turn_id,
-                "intent": IntentName.CONVERSATION.value,
-                "route_category": "conversation",
-                "language": reply_language,
-                "response_text": clean_full,
-                "llm_ttft_ms": llm_stats.get("ttft_ms"),
-                "llm_ms": llm_stats.get("latency_ms"),
-                "tts_ms": tts_ms,
-                "audio_startup_ms": audio_startup_ms,
-                "playback_ms": playback_ms,
-                "ttfa_ms": ttfa_ms,
-            },
-        )
         return (
             VerifiedActionResult(
                 success=True,
@@ -1154,12 +1599,9 @@ class VoiceOrchestrator:
             ),
             llm_stats.get("ttft_ms"),
             llm_stats.get("latency_ms"),
-            tts_ms,
-            audio_startup_ms,
-            playback_ms,
-            ttfa_ms,
-            cache_hit,
+            speak_res,
             already_spoke,
+            spoken_text,
         )
 
     async def _maybe_speak(
@@ -1170,12 +1612,25 @@ class VoiceOrchestrator:
         *,
         speak: bool,
         turn_start_perf: float | None = None,
-    ) -> tuple[float | None, float | None, float | None, float | None, bool]:
+        timestamps: dict[str, float | None] | None = None,
+    ) -> dict[str, Any]:
+        empty: dict[str, Any] = {
+            "tts_ms": None,
+            "audio_startup_ms": None,
+            "playback_ms": None,
+            "ttfa_ms": None,
+            "tts_cache_hit": False,
+            "first_audio_ready_mono": None,
+            "did_speak_attempt": False,
+        }
         if not speak or not text.strip() or ctx.is_cancelled:
-            return None, None, None, None, False
-        self.audio_capture.suspend_for_playback()
+            return empty
+        if not self.audio_capture.is_suspended:
+            self.audio_capture.suspend_for_playback()
         if self.fsm.state != AssistantState.SPEAKING:
             await self.fsm.transition(ctx.turn_id, AssistantState.SPEAKING, language=language)
+        if timestamps is not None and timestamps["first_valid_speech_chunk"] is None:
+            timestamps["first_valid_speech_chunk"] = time.perf_counter()
         did_play = False
         try:
             _chunks, pm = await self.playback.speak_text_with_metrics(
@@ -1186,49 +1641,304 @@ class VoiceOrchestrator:
                 turn_start_perf=turn_start_perf,
             )
             did_play = pm.audio_playback_ms > 0.0
-            return (
-                pm.tts_synthesis_ms,
-                pm.audio_startup_ms,
-                pm.audio_playback_ms,
-                pm.first_audio_ready_ms,
-                pm.cache_hits > 0,
-            )
+            if timestamps is not None:
+                timestamps["tts_completion"] = getattr(pm, "tts_completed_mono", None) or (
+                    time.perf_counter() if pm.tts_synthesis_ms > 0.0 else None
+                )
+                timestamps["first_non_silent_output_callback"] = getattr(
+                    pm, "first_non_silent_callback_mono", None
+                )
+                timestamps["playback_completion"] = getattr(pm, "playback_completed_mono", None) or (
+                    time.perf_counter() if pm.audio_playback_ms > 0.0 else None
+                )
+            return {
+                "tts_ms": pm.tts_synthesis_ms,
+                "audio_startup_ms": pm.audio_startup_ms,
+                "playback_ms": pm.audio_playback_ms,
+                "ttfa_ms": pm.first_audio_ready_ms,
+                "tts_cache_hit": pm.cache_hits > 0,
+                "first_audio_ready_mono": getattr(pm, "first_audio_ready_mono", None),
+                "did_speak_attempt": True,
+            }
         except (OSError, RuntimeError, ValueError) as exc:
             logger.warning("TTS speaking skipped/failed: %s", exc)
-            return None, None, None, None, False
+            return empty
         finally:
             await self._resume_mic_after_speaking(did_speak=did_play)
 
+    def _build_timings_dict(
+        self,
+        *,
+        timestamps: dict[str, float | None],
+        base_mono: float,
+        stt_ms: float | None = None,
+        router_ms: float | None = None,
+        llm_ttft_ms: float | None = None,
+        llm_ms: float | None = None,
+        tool_ms: float | None = None,
+        tts_ms: float | None = None,
+        audio_startup_ms: float | None = None,
+        playback_ms: float | None = None,
+        ttfa_ms: float | None = None,
+        first_text_mono: float | None = None,
+        first_audio_ready_mono: float | None = None,
+        total_turn_duration_ms: float | None = None,
+        latency_ms: float | None = None,
+    ) -> dict[str, float | None]:
+        time_to_first_text_ms = (
+            round(max(0.0, (first_text_mono - base_mono) * 1000.0), 2)
+            if first_text_mono is not None
+            else None
+        )
+        time_to_first_synth_ms = (
+            round(max(0.0, (first_audio_ready_mono - base_mono) * 1000.0), 2)
+            if first_audio_ready_mono is not None
+            else ttfa_ms
+        )
+        cb_mono = timestamps.get("first_non_silent_output_callback")
+        time_to_first_output_ms = (
+            round(max(0.0, (cb_mono - base_mono) * 1000.0), 2)
+            if cb_mono is not None
+            else audio_startup_ms
+        )
+        return {
+            "stt_ms": stt_ms,
+            "router_ms": router_ms,
+            "llm_ttft_ms": llm_ttft_ms,
+            "llm_ms": llm_ms,
+            "tool_ms": tool_ms,
+            "tts_ms": tts_ms,
+            "audio_startup_ms": audio_startup_ms,
+            "playback_ms": playback_ms,
+            "ttfa_ms": ttfa_ms,
+            "time_to_first_text_ms": time_to_first_text_ms,
+            "time_to_first_synthesized_audio_ms": time_to_first_synth_ms,
+            "time_to_first_audio_output_ms": time_to_first_output_ms,
+            "playback_duration_ms": playback_ms,
+            "total_turn_duration_ms": total_turn_duration_ms,
+            "latency_ms": latency_ms,
+        }
+
+    async def _broadcast_response_completed(
+        self,
+        *,
+        turn_id: str,
+        outcome: Literal["success", "clarification", "refusal", "cancelled", "runtime_failure"],
+        status: str,
+        action_executed: bool,
+        intent: str,
+        route_category: str,
+        language: LanguageCode,
+        detected_language: LanguageCode,
+        preferred_reply_language: RequestedLanguage,
+        response_text: str,
+        spoken_text: str,
+        timings: dict[str, float | None],
+        stage_timestamps: dict[str, float | None],
+        silent: bool = False,
+        rejection_reason: str | None = None,
+        error: str | None = None,
+    ) -> None:
+        payload: dict[str, Any] = {
+            "turn_id": turn_id,
+            "outcome": outcome,
+            "status": status,
+            "action_executed": action_executed,
+            "intent": intent,
+            "route_category": route_category,
+            "language": language,
+            "detected_language": detected_language,
+            "preferred_reply_language": preferred_reply_language,
+            "response_text": response_text,
+            "spoken_text": spoken_text,
+            "silent": silent,
+            "timings": timings,
+            "stage_timestamps": dict(stage_timestamps),
+            # Preserve top-level timing keys for existing CLI/WS consumers
+            "llm_ttft_ms": timings.get("llm_ttft_ms"),
+            "tts_ms": timings.get("tts_ms"),
+            "audio_startup_ms": timings.get("audio_startup_ms"),
+            "playback_ms": timings.get("playback_ms"),
+            "ttfa_ms": timings.get("ttfa_ms"),
+        }
+        if rejection_reason is not None:
+            payload["rejection_reason"] = rejection_reason
+        if error is not None:
+            payload["error"] = error
+        await self.ws_hub.broadcast("response_completed", payload)
+
     async def _safe_error(self, ctx: TurnContext, message: str) -> None:
+        was_speaking = self.playback.is_playing or self.audio_capture.is_suspended
+        if was_speaking:
+            self.playback.stop()
         try:
             await self.fsm.transition(ctx.turn_id, AssistantState.ERROR, message=message)
         except (StaleTurnError, RuntimeError) as exc:
             logger.debug("Skipping ERROR state transition: %s", exc)
         await self.ws_hub.broadcast("error", {"turn_id": ctx.turn_id, "message": message})
         await self.fsm.finish_turn(ctx.turn_id)
+        if was_speaking:
+            await self._resume_mic_after_speaking(did_speak=True)
 
-    def _cancelled_output(self, ctx: TurnContext, t_start: float) -> ProcessTurnOutput:
+    def _error_output(
+        self,
+        ctx: TurnContext,
+        message: str,
+        t_start: float,
+        *,
+        timestamps: dict[str, float | None] | None = None,
+        base_mono: float | None = None,
+    ) -> ProcessTurnOutput:
+        ts = timestamps or _empty_stage_timestamps()
+        end_mono = time.perf_counter()
+        anchor = base_mono if base_mono is not None else t_start
+        return ProcessTurnOutput(
+            turn_id=ctx.turn_id,
+            intent="Error",
+            route_category="error",
+            confidence=0.0,
+            intent_source="error",
+            detected_language=self._last_resolved_language,
+            preferred_reply_language=self.session_language,
+            recognition_mode=self.stt_recognition_mode,
+            slots={},
+            response_text=message,
+            spoken_text="",
+            response_language=self._last_resolved_language,
+            action_executed=False,
+            outcome="runtime_failure",
+            status="failed",
+            state=self.fsm.state,
+            data={},
+            latency_ms=round((end_mono - t_start) * 1000.0, 2),
+            stage_timestamps=ts,
+            total_turn_duration_ms=round((end_mono - anchor) * 1000.0, 2),
+            error=message,
+        )
+
+    async def _finalize_cancelled_turn(
+        self,
+        ctx: TurnContext,
+        t_start: float,
+        *,
+        timestamps: dict[str, float | None],
+        base_mono: float,
+        detected_language: LanguageCode,
+        preferred_reply_language: RequestedLanguage,
+        recognition_mode: str,
+        language_probability: float | None,
+        transcript_confidence: float | None,
+        stt_model: str | None,
+        stt_ms: float | None,
+        router_ms: float | None,
+        transcript: str | None,
+    ) -> ProcessTurnOutput:
+        out = self._cancelled_output(
+            ctx,
+            t_start,
+            timestamps=timestamps,
+            base_mono=base_mono,
+            detected_language=detected_language,
+            preferred_reply_language=preferred_reply_language,
+            recognition_mode=recognition_mode,
+            language_probability=language_probability,
+            transcript_confidence=transcript_confidence,
+            stt_model=stt_model,
+            stt_ms=stt_ms,
+            router_ms=router_ms,
+            transcript=transcript,
+        )
+        timings = self._build_timings_dict(
+            timestamps=timestamps,
+            base_mono=base_mono,
+            stt_ms=stt_ms,
+            router_ms=router_ms,
+            total_turn_duration_ms=out.total_turn_duration_ms,
+            latency_ms=out.latency_ms,
+        )
+        await self._broadcast_response_completed(
+            turn_id=ctx.turn_id,
+            outcome="cancelled",
+            status="cancelled",
+            action_executed=out.action_executed,
+            intent="Cancelled",
+            route_category="cancellation",
+            language=out.response_language,
+            detected_language=detected_language,
+            preferred_reply_language=preferred_reply_language,
+            response_text=out.response_text,
+            spoken_text="",
+            timings=timings,
+            stage_timestamps=timestamps,
+        )
+        return out
+
+    def _cancelled_output(
+        self,
+        ctx: TurnContext,
+        t_start: float,
+        *,
+        timestamps: dict[str, float | None] | None = None,
+        base_mono: float | None = None,
+        detected_language: LanguageCode | None = None,
+        preferred_reply_language: RequestedLanguage | None = None,
+        recognition_mode: str | None = None,
+        language_probability: float | None = None,
+        transcript_confidence: float | None = None,
+        stt_model: str | None = None,
+        stt_ms: float | None = None,
+        router_ms: float | None = None,
+        transcript: str | None = None,
+    ) -> ProcessTurnOutput:
+        ts = timestamps or _empty_stage_timestamps()
+        end_mono = time.perf_counter()
+        anchor = base_mono if base_mono is not None else t_start
+        det_lang = detected_language or self._last_resolved_language
         return ProcessTurnOutput(
             turn_id=ctx.turn_id,
             intent="Cancelled",
-            confidence=1.0,
+            route_category="cancellation",
+            confidence=0.0,
             intent_source="cancellation",
-            detected_language=self._last_resolved_language,
+            detected_language=det_lang,
+            preferred_reply_language=preferred_reply_language or self.session_language,
+            recognition_mode=recognition_mode or self.stt_recognition_mode,
+            language_probability=language_probability,
+            transcript_confidence=transcript_confidence,
+            stt_model=stt_model,
             slots={},
             response_text="Cancelled.",
+            spoken_text="",
             response_language=self._last_resolved_language,
             action_executed=bool(ctx.completed_actions),
+            outcome="cancelled",
             status="cancelled",
             state=self.fsm.state,
             data={"completed_actions_preserved": list(ctx.completed_actions)},
-            latency_ms=round((time.perf_counter() - t_start) * 1000.0, 2),
+            latency_ms=round((end_mono - t_start) * 1000.0, 2),
+            stt_ms=stt_ms,
+            router_ms=router_ms,
+            stage_timestamps=ts,
+            total_turn_duration_ms=round((end_mono - anchor) * 1000.0, 2),
+            transcript=transcript,
         )
 
     async def cancel_turn(self, turn_id: str | None = None) -> dict[str, Any]:
+        was_speaking = self.playback.is_playing or self.audio_capture.is_suspended
         self.playback.stop()
         if self.audio_capture.is_recording:
             self.audio_capture.stop_capture(cancel=True)
         if self._ptt_task is not None and not self._ptt_task.done():
             self._ptt_task.cancel()
         res = await self.fsm.cancel_active_turn(turn_id=turn_id)
+        # Wait briefly for any active turn holding _turn_lock to finish unwinding
+        if self._turn_lock.locked():
+            acquired = False
+            with contextlib.suppress(TimeoutError):
+                await asyncio.wait_for(self._turn_lock.acquire(), timeout=1.0)
+                acquired = True
+            if acquired:
+                self._turn_lock.release()
+        if was_speaking:
+            await self._resume_mic_after_speaking(did_speak=True)
         return dict(res)

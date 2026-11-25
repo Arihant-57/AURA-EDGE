@@ -290,4 +290,10 @@ def test_ollama_offline_conversation_graceful_error(monkeypatch: Any) -> None:
         # Greetings & deterministic clock still work offline while Ollama is down!
         hi = client.post("/api/v1/intent/process", json={"text": "Hello", "speak": False}).json()
         assert hi["intent"] == "Greeting"
-        assert hi["action_executed"] is True
+        assert hi["outcome"] == "success"
+        assert hi["action_executed"] is False
+
+        clock = client.post("/api/v1/intent/process", json={"text": "What time is it?", "speak": False}).json()
+        assert clock["intent"] == "GetTime"
+        assert clock["outcome"] == "success"
+        assert clock["action_executed"] is True

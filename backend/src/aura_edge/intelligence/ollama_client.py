@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import time
@@ -63,8 +64,12 @@ class OllamaClient:
         json_mode: bool = False,
         temperature: float = 0.0,
         num_predict: int | None = None,
+        cancel_event: asyncio.Event | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
         """Stream NDJSON chunks from loopback ``/api/chat`` obeying CPU/GPU placement."""
+        if cancel_event is not None and cancel_event.is_set():
+            return
+
         target_model = model or self._settings.ollama_model
         url = f"{self._settings.ollama_url.rstrip('/')}/api/chat"
         placement = self._compute_manager.resolve_placement()
@@ -83,23 +88,53 @@ class OllamaClient:
             "messages": messages,
             "stream": True,
             "think": False,
-            "keep_alive": "15m",
+            "keep_alive": getattr(self._settings, "ollama_keep_alive", "15m"),
             "options": options,
         }
         if json_mode:
             payload["format"] = "json"
 
         async with self._vram_lock:
+            if cancel_event is not None and cancel_event.is_set():
+                return
             try:
                 async with build_async_http_client(
                     self._enforcer,
                     timeout=self._settings.ollama_timeout_sec,
                 ) as client, client.stream("POST", url, json=payload) as resp:
                     resp.raise_for_status()
-                    async for line in resp.aiter_lines():
-                        if not line.strip():
-                            continue
-                        yield json.loads(line)
+                    if cancel_event is None:
+                        async for line in resp.aiter_lines():
+                            if not line.strip():
+                                continue
+                            yield json.loads(line)
+                    else:
+                        lines_iter = resp.aiter_lines()
+                        cancel_task = asyncio.create_task(cancel_event.wait())
+                        try:
+                            while not cancel_event.is_set():
+                                next_task = asyncio.create_task(lines_iter.__anext__())
+                                done, _ = await asyncio.wait(
+                                    {next_task, cancel_task},
+                                    return_when=asyncio.FIRST_COMPLETED,
+                                )
+                                if cancel_task in done:
+                                    next_task.cancel()
+                                    with contextlib.suppress(asyncio.CancelledError, StopAsyncIteration):
+                                        await next_task
+                                    break
+                                try:
+                                    line = next_task.result()
+                                except StopAsyncIteration:
+                                    break
+                                if not line.strip():
+                                    continue
+                                yield json.loads(line)
+                        finally:
+                            if not cancel_task.done():
+                                cancel_task.cancel()
+                            with contextlib.suppress(asyncio.CancelledError):
+                                await cancel_task
             except NetworkPolicyViolationError as exc:
                 raise OllamaUnavailableError(f"Ollama blocked by network policy: {exc}") from exc
             except (httpx.HTTPError, OSError, json.JSONDecodeError) as exc:
@@ -125,6 +160,7 @@ class OllamaClient:
             json_mode=False,
             temperature=temperature,
             num_predict=num_predict,
+            cancel_event=cancel_event,
         ):
             if cancel_event is not None and cancel_event.is_set():
                 break

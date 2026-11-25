@@ -13,39 +13,111 @@ import numpy as np
 from aura_edge.config import Settings
 from aura_edge.intelligence.response_catalog import get_phrase
 from aura_edge.intelligence.schemas import LanguageCode
-from aura_edge.speech.tts_backends.base import SynthesizedAudio, TTSBackend
+from aura_edge.speech.tts_backends.base import (
+    SynthesizedAudio,
+    TTSBackend,
+    normalize_kannada_for_tts,
+)
 from aura_edge.speech.tts_backends.onecore_backend import OneCoreFallbackBackend
 from aura_edge.speech.tts_backends.sherpa_onnx_backend import SherpaOnnxBackend
 
-_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?।॥])\s+(?=[^\d])")
+_ABBREV_RE = re.compile(
+    r"(?:\b(?:Dr|Mr|Mrs|Ms|Prof|Sr|Jr|St|vs|etc|No|Rs)|(?:e\.g|i\.e|a\.m|p\.m))\.$",
+    re.IGNORECASE,
+)
+_SENTENCE_SPLIT_RE = re.compile(
+    r"(?<!\bDr)(?<!\bMr)(?<!\bMs)(?<!\bMrs)(?<!\bProf)(?<!\bSr)(?<!\bJr)(?<!\bSt)(?<!\bvs)(?<!\betc)(?<!\be\.g)(?<!\bi\.e)(?<!\ba\.m)(?<!\bp\.m)(?<=[.!?।॥])\s+(?=[^\d])"
+)
+_TERM_RE = re.compile(r"([.!?।॥])(?=\s+(?!\d))|\n+")
+_CLAUSE_RE = re.compile(r"([,;]|(?<!\d):(?=\s+(?!\d))|\s+[—–-])\s+")
 
 
 class SentenceStreamBuffer:
-    """Incremental multilingual sentence chunker for low-TTFA streaming TTS."""
+    """Incremental multilingual sentence/phrase chunker for low-TTFA streaming TTS."""
 
-    def __init__(self, *, min_chars: int = 24) -> None:
+    def __init__(
+        self,
+        *,
+        min_chars: int = 24,
+        clause_chars: int = 64,
+        max_chars: int = 110,
+    ) -> None:
         self.min_chars = max(1, int(min_chars))
+        self.clause_chars = max(self.min_chars + 8, int(clause_chars))
+        self.max_chars = max(self.clause_chars + 16, int(max_chars))
         self._buf = ""
 
+    def _is_protected_period(self, prefix: str, tail: str) -> bool:
+        """Guard decimals, abbreviations (Dr., e.g.), and mid-sentence a.m./p.m."""
+        if not prefix.endswith("."):
+            return False
+        # Inside a.m. / p.m. (before m.)
+        if re.search(r"\b[ap]\.$", prefix, re.IGNORECASE) and re.match(r"^\s*m\.", tail, re.IGNORECASE):
+            return True
+        if re.search(r"\b[ap]\.m\.$", prefix, re.IGNORECASE):
+            stripped_tail = tail.lstrip()
+            if stripped_tail and stripped_tail[0].islower():
+                return True
+        return bool(_ABBREV_RE.search(prefix))
+
     def push(self, token: str) -> list[str]:
-        """Append streamed token text and emit any complete speakable sentences."""
+        """Append streamed token text and emit any complete speakable sentences or phrases."""
         if not token:
             return []
         self._buf += token
         emitted: list[str] = []
 
         while True:
-            # Split at newline OR sentence terminator (.!?।॥) not followed by digit (e.g. 3.14)
-            m = re.search(r"([.!?।॥])(?=\s+(?!\d)|\s*$)|\n+", self._buf)
-            if m is None:
+            split_cut: int | None = None
+            search_from = 0
+            while True:
+                m = _TERM_RE.search(self._buf, search_from)
+                if m is None:
+                    break
+                cut_idx = m.end()
+                candidate = self._buf[:cut_idx].strip()
+                if "\n" not in m.group(0):
+                    if self._is_protected_period(candidate, self._buf[cut_idx:]):
+                        search_from = cut_idx
+                        continue
+                    if len(candidate) < self.min_chars:
+                        search_from = cut_idx
+                        continue
+                split_cut = cut_idx
                 break
-            cut_idx = m.end()
-            candidate = self._buf[:cut_idx].strip()
-            if len(candidate) < self.min_chars and "\n" not in m.group(0):
-                break
-            if candidate:
-                emitted.append(candidate)
-            self._buf = self._buf[cut_idx:].lstrip()
+
+            if split_cut is not None:
+                candidate = self._buf[:split_cut].strip()
+                if candidate:
+                    emitted.append(candidate)
+                self._buf = self._buf[split_cut:].lstrip()
+                continue
+
+            # Clause boundary fallback for long streaming sentences (low TTFA)
+            if len(self._buf) >= self.clause_chars:
+                clause_cut: int | None = None
+                for cm in _CLAUSE_RE.finditer(self._buf):
+                    if cm.end() >= self.min_chars:
+                        clause_cut = cm.end()
+                        break
+                if clause_cut is not None:
+                    candidate = self._buf[:clause_cut].strip()
+                    if candidate:
+                        emitted.append(candidate)
+                    self._buf = self._buf[clause_cut:].lstrip()
+                    continue
+
+            # Hard unpunctuated phrase fallback at word boundary
+            if len(self._buf) >= self.max_chars:
+                ws_idx = self._buf.rfind(" ", self.min_chars, self.max_chars)
+                if ws_idx > self.min_chars:
+                    candidate = self._buf[:ws_idx].strip()
+                    if candidate:
+                        emitted.append(candidate)
+                    self._buf = self._buf[ws_idx:].lstrip()
+                    continue
+
+            break
 
         return emitted
 
@@ -57,17 +129,17 @@ class SentenceStreamBuffer:
 
 
 def normalize_for_pronunciation(text: str, language: LanguageCode) -> str:
-    """Normalize symbols, times, and units for cleaner EN/HI/KN speech synthesis."""
+    """Normalize symbols, times, dates, decimals, and loanwords for EN/HI/KN synthesis."""
     out = re.sub(r"\s+", " ", text or "").strip()
     if not out:
         return ""
 
+    if language == "kn":
+        return normalize_kannada_for_tts(out)
+
     if language == "hi":
         out = out.replace("%", " प्रतिशत")
         out = out.replace("°C", " डिग्री सेल्सियस")
-    elif language == "kn":
-        out = out.replace("%", " ಶೇಕಡಾ")
-        out = out.replace("°C", " ಡಿಗ್ರಿ ಸೆಲ್ಸಿಯಸ್")
     else:
         out = out.replace("%", " percent")
         out = out.replace("°C", " degrees Celsius")
@@ -75,12 +147,6 @@ def normalize_for_pronunciation(text: str, language: LanguageCode) -> str:
     # Normalize 12h clock colons (e.g., 10:05 AM -> 10 05 AM) for VITS prosody
     out = re.sub(r"\b(\d{1,2}):00\b", r"\1", out)
     out = re.sub(r"\b(\d{1,2}):(\d{2})\b", r"\1 \2", out)
-
-    if language == "kn":
-        # vits-mms-kan tokens.txt covers Kannada (\u0C80-\u0CFF), 0-9, space, hyphen, apostrophe, and underscore;
-        # stripping unsupported ASCII Latin/punctuation avoids C++ stderr warnings and wasted blank frames.
-        out = re.sub(r"[^\u0C80-\u0CFF0-9\s'\-_]+", " ", out)
-        out = re.sub(r"\s+", " ", out)
 
     return out.strip()
 
@@ -220,10 +286,18 @@ class TTSRouter:
         return pcm_float32_to_wav_bytes(audio.samples, audio.sample_rate), audio
 
     def prewarm_common_phrases(self) -> dict[str, int]:
-        """Pre-synthesize frequently used EN/HI/KN greetings, identity, and language phrases."""
+        """Pre-synthesize frequently used EN/HI/KN greetings, identity, and status phrases."""
         warmed = 0
         for lang in self.available_languages():
-            for key in ("greeting", "acknowledgment", "farewell", "identity", "supported_languages"):
+            for key in (
+                "greeting",
+                "acknowledgment",
+                "farewell",
+                "identity",
+                "supported_languages",
+                "empty_speech",
+                "stopped",
+            ):
                 phrase = get_phrase(key, lang)
                 if phrase:
                     self.synthesize(phrase, language=lang)

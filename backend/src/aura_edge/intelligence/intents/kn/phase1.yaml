@@ -3,16 +3,17 @@ intents:
   GetTime:
     data:
       - sentences:
-          - "[ಈಗ] (ಎಷ್ಟು ಗಂಟೆ|ಸಮಯ ಎಷ್ಟು|ಟೈಮ್ ಎಷ್ಟು) [ಆಗಿದೆ]"
-          - "(ಸಮಯ|ಗಂಟೆ) ಹೇಳು"
+          - "[ಈಗ] (ಎಷ್ಟು ಗಂಟೆ|ಸಮಯ ಎಷ್ಟು|ಟೈಮ್ ಎಷ್ಟು|ಟೈಮ್ ಏನು) [ಆಗಿದೆ|ಇದೆ]"
+          - "(ಸಮಯ|ಗಂಟೆ|ಟೈಮ್) (ಹೇಳು|ಹೇಳಿ|ಎಷ್ಟು)"
           - "(eega|iga) (eshtu gante|samaya eshtu|time eshtu) [aagide]"
           - "samaya helu"
   GetDate:
     data:
       - sentences:
-          - "[ಇವತ್ತು|ಇಂದು] (ದಿನಾಂಕ ಏನು|ಯಾವ ದಿನ|ದಿನಾಂಕ ಎಷ್ಟು|ಯಾವ ತಾರೀಖು) [ಇದೆ]"
-          - "(ದಿನಾಂಕ|ತಾರೀಖು) ಹೇಳು"
-          - "(ivattu|indu) (dinanka enu|yava dina|date enu)"
+          - "[ಇವತ್ತು|ಇವತ್ತಿನ|ಇಂದು] (ದಿನಾಂಕ|ಡೇಟ್|ತಾರೀಖು) (ಏನು|ಎಷ್ಟು) [ಇದೆ]"
+          - "[ಇವತ್ತು|ಇಂದು] (ಯಾವ ದಿನ|ಯಾವ ತಾರೀಖು) [ಇದೆ]"
+          - "(ದಿನಾಂಕ|ತಾರೀಖು|ಡೇಟ್) (ಹೇಳು|ಹೇಳಿ)"
+          - "(ivattu|ivattina|indu) (dinanka|tareekhu|tarikhu|date|yava dina) [enu|eshtu]"
           - "dinanka helu"
   SetTimer:
     data:

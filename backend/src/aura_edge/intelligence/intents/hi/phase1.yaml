@@ -10,10 +10,10 @@ intents:
   GetDate:
     data:
       - sentences:
-          - "[आज] (तारीख क्या|कौन सी तारीख|क्या तारीख|क्या दिन|कौन सा दिन) [है]"
-          - "[आज की] तारीख [बताओ|बताइए]"
-          - "(aaj|aj) (kya tareekh|kya tarikh|kaun sa din|date kya) [hai]"
-          - "tareekh batao"
+          - "[आज] (तारीख क्या|कौन सी तारीख|क्या तारीख|डेट क्या|क्या दिन|कौन सा दिन) [है]"
+          - "[आज की] (तारीख|डेट) [क्या है|बताओ|बताइए]"
+          - "(aaj|aj) [ki] (kya tareekh|kya tarikh|tareekh kya|tarikh kya|kaun sa din|date kya) [hai]"
+          - "(tareekh|date) batao"
   SetTimer:
     data:
       - sentences:

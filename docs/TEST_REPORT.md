@@ -1,135 +1,62 @@
-# AURA EDGE — Phase 0 Test & Verification Report
+# AURA EDGE — Consolidated Test & Verification Report
 
-## Phase 2 focused verification
-
-`pytest -q backend/tests/test_phase2_smart_home.py`: **3 passed**. Coverage includes
-topology, restart persistence, validation, WebSocket events, appliance actions,
-routines, energy labels, sensor injection, EN/HI/KN voice parity, ambiguity and
-UI/voice history causality. The final full-suite result is recorded separately.
-
-Full Phase 0–2 backend acceptance: **141 passed in 103.03 seconds**, with
-`AURA_EDGE_REQUIRE_LIVE_DB=1`.
-
-**Date:** 2026-11-25
+**Date:** 2026-11-25  
+**Branch:** `feat/backend-intelligence`  
 **Host Hardware & Toolchain (Observed):**
 - **OS:** Microsoft Windows 11 Home Single Language (`10.0.26300`, 64-bit)
 - **CPU:** 13th Gen Intel(R) Core(TM) i7-13650HX (14 cores / 20 logical processors)
 - **RAM:** 15.78 GB
 - **GPU:** NVIDIA GeForce RTX 3050 6GB Laptop GPU (`6144` MiB VRAM via `nvidia-smi`, Driver `621.24`)
-- **Toolchains:** Python `3.13.2` (plus `3.12`), `uv`, Node.js `v26.13.1`, npm `11.20.0`, Git `2.55.0.windows.5`, Docker Engine `29.8.0`, Ollama `0.40.16` (stopped during checks)
+- **Toolchains:** Python `3.13.2`, Ruff, Pytest `9.2.0`, PostgreSQL `16.16` (`pgvector 0.8.7`), Ollama `0.40.16`
 
-## 1. Backend Lint & Automated Tests (`ruff` + `pytest`)
+---
 
-Commands executed from `C:\Users\ariha\Desktop\AURA-EDGE`:
+## 1. Consolidated Backend Lint & Full Phase 0–2 Regression Suite
+
+Executed from `C:\Users\ariha\Desktop\AURA-EDGE` against live PostgreSQL (`aura-edge-postgres`):
 
 ```powershell
-$env:PYTHONPATH = "C:\Users\ariha\Desktop\AURA-EDGE\backend\src"
-$env:AURA_EDGE_REQUIRE_LIVE_DB = "1"
 .\.venv\Scripts\ruff.exe check .\backend
+$env:AURA_EDGE_REQUIRE_LIVE_DB="1"
 .\.venv\Scripts\pytest.exe -v .\backend\tests
 ```
 
-Observed results:
-- `ruff check`: **All checks passed!** (0 errors)
-- `pytest`: **14 passed, 0 skipped, 0 failed** in `1.10s` (1 deprecation warning from FastAPI `TestClient` regarding `httpx2`):
-  - `test_config_and_db_guard.py`: 5 passed (strict_offline default, SQLite rejection, non-loopback strict bind host rejection, `lan_only` non-loopback bind host permission, CSV env list parsing)
-  - `test_db_live_integration.py`: 1 passed (real PostgreSQL + pgvector write/read/L2-distance verification)
-  - `test_health_api.py`: 3 passed (`/api/v1/health`, `/api/v1/policy`, `/api/v1/policy/check`, `/api/v1/readiness` 200 ready and 503 unavailable states)
-  - `test_network_policy.py`: 5 passed (strict_offline loopback-only, sync & async `PolicyEnforcingTransport` zero-I/O enforcement, `lan_only` RFC1918 & metadata blocking, `online_opt_in` host allowlist)
+**Observed Results:**
+- `ruff check .\backend`: **All checks passed!** (`0` errors)
+- `pytest -v .\backend\tests`: **`170 passed, 0 failed, 0 skipped` in `281.65s` (`0:04:41`)**
 
-## 2. PostgreSQL + pgvector Migration & Restart Persistence Smoke Test
-
-Commands executed against local Docker container `aura-edge-postgres` (`pgvector/pgvector:pg16`, bound to `127.0.0.1:5432`):
-
-```powershell
-docker compose up -d postgres
-.\.venv\Scripts\alembic.exe -c backend\alembic.ini upgrade head
-.\.venv\Scripts\python.exe backend\scripts\db_smoke_test.py --phase write --token phase0-restart-check
-docker compose restart postgres
-.\.venv\Scripts\python.exe backend\scripts\db_smoke_test.py --phase verify --token phase0-restart-check
-.\.venv\Scripts\alembic.exe -c backend\alembic.ini downgrade base
-.\.venv\Scripts\alembic.exe -c backend\alembic.ini upgrade head
-```
-
-Observed results:
-- `upgrade head`: applied `0001_phase0_foundation` (`CREATE EXTENSION IF NOT EXISTS vector`, `system_settings`, `connectivity_audit_events`, `phase0_vector_smoke`).
-- `--phase write`: committed `SystemSetting` (`phase0.smoke.phase0-restart-check`) and 3-D vector (`smoke-phase0-restart-check`) with `pgvector_version: "0.8.7"`.
-- `docker compose restart postgres`: container restarted cleanly and returned `healthy` after 6s.
-- `--phase verify`: verified persisted JSON payload, `l2_distance: 0.0`, and cleaned up smoke records (`status: "verified"`).
-- `downgrade base` + `upgrade head`: cleanly reversed and re-applied `0001_phase0_foundation`.
-
-## 3. Live FastAPI HTTP Smoke Test
-
-Started `uvicorn aura_edge.main:app --host 127.0.0.1 --port 8000` with live `aura-edge-postgres` running:
-- `GET http://127.0.0.1:8000/api/v1/health` -> HTTP `200`, `status: "ok"`, `connectivity_mode: "strict_offline"`, `bind_host: "127.0.0.1"`.
-- `GET http://127.0.0.1:8000/api/v1/readiness` -> HTTP `200`, `ready: true`, `postgres_version: "PostgreSQL 16.16 (Debian 16.16-1.pgdg12+1)..."`, `pgvector_installed: true`, `pgvector_version: "0.8.7"`, `alembic_revision: "0001_phase0_foundation"`, GPU `NVIDIA GeForce RTX 3050 6GB Laptop GPU` (`6144` MiB VRAM), Ollama `reachable: false` (server stopped).
-- `POST http://127.0.0.1:8000/api/v1/policy/check` with `{"url":"https://example.com"}` -> `allowed: false` (`strict_offline permits loopback targets only; non-loopback host denied.`).
-- `POST http://127.0.0.1:8000/api/v1/policy/check` with `{"url":"http://127.0.0.1:11434/api/tags"}` -> `allowed: true`.
-
-## 4. Frontend Typecheck, Tests & Offline Asset Verification
-
-Commands executed inside `C:\Users\ariha\Desktop\AURA-EDGE\frontend`:
-
-```powershell
-npx tsc --noEmit
-npm test -- --run
-npm run build
-```
-
-Observed results:
-- `npx tsc --noEmit`: exit code `0` (0 errors).
-- `npm test -- --run` (Vitest `v3.2.7`): **Test Files 1 passed (1), Tests 3 passed (3)** (`src/App.test.tsx`: ready metrics, HTTP 503 DB failure honesty, network unreachable alert).
-- `npm run build`: built `dist/index.html` (`0.48 kB`), `dist/assets/index-D_m0w1Kw.css` (`15.95 kB`), `dist/assets/index-BRSYkTM-.js` (`154.83 kB`).
-- `dist/index.html` contains only local `/assets/...` bundle references (zero external CSS/JS/font links).
-
-## 5. Original AURA V4 Untouched Check
-
-- `git -C C:\Users\ariha\local-ai-lab\phase4-agent status` confirmed unchanged relative to session start (zero edits inside `C:\Users\ariha\local-ai-lab\phase4-agent`).
+### Suite Breakdown (`170` Tests Total)
+- **Phase 0 Foundation (`14` passed):** `test_config_and_db_guard.py` (`5`), `test_db_live_integration.py` (`1`), `test_health_api.py` (`3`), `test_network_policy.py` (`5`).
+- **Phase 1 Core (`117` passed):**
+  - `test_phase1_multilingual_router.py` (`100`: 96 EN/HI/KN utterances + Unicode preservation, compound guard, LLM schema refusal, R5 colloquial clock & smart-home/routine/planner tests)
+  - `test_phase1_audio_and_vad.py` (`6`: host devices, missing mic error, echo suppression/cancel, Silero VAD, multi-frame onset `onset_frames=2`, pre-roll preservation + `CaptureMetrics`)
+  - `test_phase1_stt_and_compute.py` (`4`: CPU/GPU fallback, missing model guard, CPU/CUDA Whisper on EN/HI/KN, R2 decoupled EN/HI speech under KN reply preference)
+  - `test_phase1_tts_and_playback.py` (`3`: offline EN/HI/KN TTS, LRU eviction, sentence splitting & barge-in)
+  - `test_phase1_state_machine.py` (`2`), `test_phase1_timers_live_db.py` (`1`), `test_phase1_api_and_ws.py` (`2`), `test_phase1_voice_conversations.py` (`3`).
+- **Phase 1.5 & Phase 2 (`10` passed):** `test_phase1_5_conversation.py` (`7`), `test_phase2_smart_home.py` (`3`).
+- **Stabilization & Cross-Track Integration (`25` passed):**
+  - `test_speech_recognition_gate.py` (`4`: R4 silence/fan noise rejection, garbled/repetition/hallucination rejection, short command preservation, CTC script validation & quiet-mic AGC)
+  - `test_speech_generation_and_streaming.py` (`7`: R6 Kannada transliteration & `vits-mms-kan` normal == streaming parity, catalog/prewarm/voice consistency, `SentenceStreamBuffer` abbreviations/clauses, lock-free `_BoundedPcmBuffer`, concurrent prefetch & inside-callback monotonic timing, barge-in fade-out)
+  - `test_voice_bugfixes.py` (`6`: capability prompt, language enforcement, PCM conditioning & half-duplex suspension, 10 consecutive hands-free turns + concurrency, CLI validation & `TurnOutputDeduplicator`, CLI WS terminal outcomes)
+  - `test_voice_orchestrator_outcomes.py` (`8`: R2 capture metrics & strict mode, R4 silence vs unclear_speech, R5 `response_completed` ordering & ambiguous `DeviceControl` clarification, R8 per-chunk streaming validation & `spoken_text == response_text` parity, R7/R8 Ollama cancellation & half-duplex turn serialization, real WAV cross-lingual EN->KN and HI->KN replies, Hinglish/Kanglish mixed utterances end-to-end, simulated callback monotonic `stage_timestamps` + mid-stream cancellation concurrency).
 
 ---
 
-## 6. Phase 1 Verification Summary (`feat/backend-intelligence`)
+## 2. Independent Code Review (`R1`: CodeRabbit CLI + Local Diff Review)
 
-### 6.1 Lint & Automated Test Suite (`ruff` + `pytest`)
-
-Executed from `C:\Users\ariha\Desktop\AURA-EDGE` with `AURA_EDGE_REQUIRE_LIVE_DB=1` against live PostgreSQL `16.16` (`alembic` head `0002_phase1_voice_timers`):
-
-- `ruff check .\backend`: **All checks passed!** (`0` errors)
-- `pytest -v .\backend\tests`: **`131 passed, 0 failed, 0 skipped` in `37.22s`**:
-  - Phase 0 regressions (`14` passed): `test_config_and_db_guard.py` (`5`), `test_db_live_integration.py` (`1`, updated for `0002_phase1_voice_timers`), `test_health_api.py` (`3`), `test_network_policy.py` (`5`).
-  - Phase 1 suites (`117` passed):
-    - `test_phase1_multilingual_router.py` (`99`): 96 EN/HI/KN utterances (`100%` intent & language match), Unicode preservation, compound commands, clarification, refusal.
-    - `test_phase1_audio_and_vad.py` (`4`): Silero VAD speech/silence/noise, ring buffer capture, missing-mic error, self-trigger mute gating.
-    - `test_phase1_tts_and_playback.py` (`3`): EN/HI/KN offline synthesis, LRU cache hits, sentence splitting & barge-in cancellation.
-    - `test_phase1_stt_and_compute.py` (`3`): CPU vs CUDA Whisper `small` transcription, `ModelNotFoundError`, `ComputeManager` CPU/GPU/fallback reporting.
-    - `test_phase1_state_machine.py` (`2`): 10-state FSM transitions, stale-turn guard, completed-action preservation on cancel.
-    - `test_phase1_timers_live_db.py` (`1`): real PostgreSQL timer create/list/pause/resume/restart recovery + atomic duplicate-notification prevention.
-    - `test_phase1_api_and_ws.py` (`2`): Phase 1 REST routes + `/api/v1/ws/live` WebSocket state/timer events.
-    - `test_phase1_voice_conversations.py` (`3`): `indic-conformer-kn` Kannada accuracy + compound routing, clean HI/KN spoken time formatting, live `/voice/transcribe` EN & KN rounds.
-
-### 6.2 Launch Script, Live Conversations, Offline Audit & Benchmarks
-
-- **Turnkey Launch Verification (`.\scripts\start-aura-voice.ps1 -NoCli`):** Verified automated startup of Docker Desktop -> `aura-edge-postgres` (`healthy`) -> `alembic upgrade head` (`0002_phase1_voice_timers`) -> local Ollama (`reachable=True`) -> offline Uvicorn (`http://127.0.0.1:8000/api/v1/readiness` `ready=True`), and clean teardown via `.\scripts\stop-dev.ps1 -WithDb`.
-- **Alembic Reversibility:** Verified `upgrade head` (`0002_phase1_voice_timers`) -> `downgrade 0001_phase0_foundation` -> `upgrade head` cleanly against `aura-edge-postgres`.
-- **EN / HI / KN Multi-Turn Spoken Conversations (`backend/scripts/verify_voice_conversations.py`):** Verified `15 / 15` multi-turn spoken WAV interactions (`GetTime`, `SetTimer`, `GetTimerRemaining` / `ListTimers`, `CancelTimer` / `CancelAllTimers`, `Unsupported` refusal) + spoken WAV responses + live host Realtek mic PTT cycle (`started=true`, `stop_state="IDLE"`).
-- **Strict Offline & Process Socket Audit (`backend/scripts/verify_offline.py --require-live-backend`):** Confirmed `HF_HUB_OFFLINE=1` & `TRANSFORMERS_OFFLINE=1`, zero outbound I/O policy blocking on external URLs, `self_external_sockets=0`, and `backend_external_sockets=0` while processing live EN/HI/KN turns and TTS. *(Host OS Wi-Fi adapter was kept online during the automated run to avoid interrupting agent execution; manual airplane-mode verification steps are provided in [PHASE_1_HANDOVER.md](file:///C:/Users/ariha/Desktop/AURA-EDGE/docs/PHASE_1_HANDOVER.md).)*
-- **Benchmark & Multilingual Reports:** Full raw numbers documented in [VOICE_MODEL_EVALUATION.md](file:///C:/Users/ariha/Desktop/AURA-EDGE/docs/VOICE_MODEL_EVALUATION.md), [VOICE_BENCHMARKS.md](file:///C:/Users/ariha/Desktop/AURA-EDGE/docs/VOICE_BENCHMARKS.md), and [MULTILINGUAL_TEST_REPORT.md](file:///C:/Users/ariha/Desktop/AURA-EDGE/docs/MULTILINGUAL_TEST_REPORT.md).
+1. **CodeRabbit CLI Executions:**
+   - **Baseline (`d56a0ac..d429f44`):** `coderabbit review --agent --committed --base-commit d56a0ac --dir backend/src/aura_edge` emitted 4 `"reviewing"` heartbeats over ~237s with 0 findings before timeout cancellation; local review identified 24 confirmed + 3 partial baseline defects.
+   - **Post-Edit (`--uncommitted`):** `coderabbit review --agent --uncommitted --dir backend/src/aura_edge` emitted 4 `"reviewing"` heartbeats over >240s with 0 findings (`task-130` cancelled cleanly at 240s notification).
+2. **Local Diff Review (`git diff -- backend/src/aura_edge` across 21 modified source files + `voice_cli.py`):**
+   - Verified all 24 confirmed + 3 partial baseline defects resolved (`_turn_lock` around `start_ptt()`/`cancel_turn()`, background task error callbacks, half-duplex resume ordering, lock-free `_BoundedPcmBuffer`, 2-frame VAD onset + pre-roll + stream reuse, R2 STT/reply decoupling, R4 quality gate, R5 `response_completed` + `CLARIFYING` transitions, R6 Kannada transliteration, R7 Ollama `cancel_event` racing, R8 per-chunk validation + monotonic `stage_timestamps`).
+   - Caught and fixed two additional cross-track integration issues during verification:
+     - `fast_router.py`: fixed `\b` word-boundary failure after Indic characters (`"ಬೆಡ್‌ರೂಮ್ light on ಮಾಡು"`) and added Romanized Hinglish/Kanglish power verbs (`on karo`, `on maadu`, `off maadu`).
+     - `normalizer.py`: added context-guarded `"पाज -> पांच"` and `"मिनद -> मिनट"` ASR normalization so `faster-whisper-small`'s Hindi transcript of `phase1a_tts_hi.wav` routes deterministically to `SetTimer + GetTime` instead of falling back to Qwen.
 
 ---
 
-## 7. Phase 1.5, Phase 2 & Real-World Voice Bugfix Verification (`feat/backend-intelligence`)
+## 3. Empirical Benchmarks & Next Gate
 
-### 7.1 Lint & Full Pytest Regression (`ruff` + `pytest`)
-
-Executed from `C:\Users\ariha\Desktop\AURA-EDGE` with `AURA_EDGE_REQUIRE_LIVE_DB=1` against live PostgreSQL `16.16`:
-
-- `ruff check .\backend`: **All checks passed!** (`0` errors)
-- Focused acceptance check (`test_voice_bugfixes.py`, `test_phase1_5_conversation.py`, `test_phase1_tts_and_playback.py`, `test_phase1_multilingual_router.py`, `test_phase2_smart_home.py`): **`117 passed, 0 failed, 0 skipped`**
-- Full regression suite (`pytest -v .\backend\tests`): **`146 passed, 0 failed, 0 skipped` in `127.53s`**, adding:
-  - `test_phase1_5_conversation.py` (`7` passed): 6-way routing, bounded session history, streaming buffer/metrics separation, WS streaming, continuous loop, offline fallback.
-  - `test_phase2_smart_home.py` (`3` passed): 19-device simulator persistence, capability checks, appliance cycles, routines, energy, and EN/HI/KN voice dispatcher parity.
-  - `test_voice_bugfixes.py` (`5` passed): updated Phase 2 capability prompt & concise deterministic replies; EN/HI/KN language enforcement + Kannada script & Tagalog guards; PCM DC/anti-clipping/resampling + exclusive playback owner + half-duplex suspension; 10 consecutive hands-free turns + smart-home/timers + `_turn_lock` concurrency; CLI command validation & `TurnOutputDeduplicator`.
-
-### 7.2 Installed Local Ollama Comparison & Human Mic Gate
-
-- Local model comparison (`qwen3.5:4b`, `nemotron-3-nano:4b`, `qwen3.5:9b`) and the interactive Human Microphone Acceptance Test checklist are recorded in [VOICE_BUGFIX_REPORT.md](file:///C:/Users/ariha/Desktop/AURA-EDGE/docs/VOICE_BUGFIX_REPORT.md). Automated playback tests used `play_to_speaker=False` / mocked audio streams to avoid hardware-blocking flakiness.
+- **STT WER/CER, R4 Noise Probe & Kannada TTS Evaluation:** See [`docs/MULTILINGUAL_TEST_REPORT.md`](./MULTILINGUAL_TEST_REPORT.md) (`models/eval_audio/phase1_5_stabilization_benchmarks.json`).
+- **Ollama Placement & Monotonic Pipeline Latencies:** See [`docs/VOICE_LATENCY_REPORT.md`](./VOICE_LATENCY_REPORT.md).
+- **Human Acceptance Gate (`3–5 min`):** See [`docs/VOICE_BUGFIX_REPORT.md`](./VOICE_BUGFIX_REPORT.md). Automated verification did **not** test physical microphone acoustics, room echo, or human regional Karnataka speech; those require the human acceptance test before Phase 3.

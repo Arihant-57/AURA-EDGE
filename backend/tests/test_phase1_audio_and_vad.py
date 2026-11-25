@@ -118,3 +118,90 @@ def test_silero_vad_missing_model_and_timeout_and_speech_endpointing() -> None:
             observed.append(vad.process_frame(silence).event)
         assert "speech_start" in observed
         assert "speech_end" in observed
+
+
+def test_silero_vad_multi_frame_onset_blocks_single_frame_pop_and_tracks_metrics() -> None:
+    settings = Settings(_env_file=None)
+    vad_path = settings.models_dir / "vad" / "silero_vad.onnx"
+    vad = SileroVadDetector(
+        vad_path,
+        initial_timeout_sec=0.5,
+        trailing_silence_sec=0.35,
+        threshold=0.35,
+        onset_frames=2,
+    )
+
+    # Mock infer_probability so we can deterministically feed a single-frame transient pop
+    orig_infer = vad.infer_probability
+    probs = iter([0.05, 0.95, 0.05, 0.05, 0.90, 0.92, 0.05])
+    vad.infer_probability = lambda _f: next(probs, 0.05)  # type: ignore[method-assign]
+
+    quiet = (np.ones(512, dtype=np.float32) * 0.002 * 32767).astype(np.int16)
+    pop = (np.ones(512, dtype=np.float32) * 0.4 * 32767).astype(np.int16)
+    speech = (np.ones(512, dtype=np.float32) * 0.08 * 32767).astype(np.int16)
+
+    # Frame 1: quiet; Frame 2: single loud pop -> must NOT trigger speech_start or lock noise floor high
+    assert vad.process_frame(quiet).event == "none"
+    assert vad.process_frame(pop).event == "none"
+    assert vad.speech_started is False
+    assert vad.noise_floor_rms < 0.01
+
+    # Frame 3-4: quiet; Frame 5-6: 2 consecutive voiced frames -> triggers speech_start
+    assert vad.process_frame(quiet).event == "none"
+    assert vad.process_frame(quiet).event == "none"
+    assert vad.process_frame(speech).event == "none"
+    assert vad.process_frame(speech).event == "speech_start"
+    assert vad.speech_started is True
+    assert vad.voiced_ms >= 64.0
+    assert vad.snr_db is not None and vad.snr_db > 5.0
+    vad.infer_probability = orig_infer  # type: ignore[method-assign]
+
+
+async def test_audio_capture_preroll_preservation_and_capture_metrics() -> None:
+    settings = Settings(_env_file=None)
+    vad = SileroVadDetector(
+        settings.models_dir / "vad" / "silero_vad.onnx",
+        initial_timeout_sec=1.5,
+        trailing_silence_sec=0.25,
+        threshold=0.4,
+        onset_frames=2,
+    )
+    # Deterministic VAD probs: 30 silence frames (trimmed except pre-roll), 3 speech frames, 9 trailing silence
+    prob_seq = [0.02] * 30 + [0.9] * 3 + [0.02] * 12
+    idx = {"i": 0}
+
+    def _fake_infer(_frame: np.ndarray) -> float:
+        i = idx["i"]
+        idx["i"] += 1
+        return prob_seq[i] if i < len(prob_seq) else 0.02
+
+    vad.infer_probability = _fake_infer  # type: ignore[method-assign]
+
+    cap = AudioCapture(sample_rate=16000, frame_samples=512, preroll_sec=3.0, vad=vad)
+    task = asyncio.create_task(
+        cap.start_ptt_capture(use_vad_endpointing=True, open_hardware_stream=False)
+    )
+    await asyncio.sleep(0.03)
+
+    quiet_frame = np.zeros(512, dtype=np.int16)
+    speech_frame = (np.sin(2 * np.pi * 300 * np.arange(512) / 16000) * 6000).astype(np.int16)
+    for _ in range(30):
+        cap.push_test_frame(quiet_frame)
+    for _ in range(3):
+        cap.push_test_frame(speech_frame)
+    for _ in range(12):
+        cap.push_test_frame(quiet_frame)
+
+    await asyncio.wait_for(task, timeout=3.0)
+    audio, reason = cap.get_recorded_audio()
+    assert reason == "speech_end"
+    # Pre-roll (~14 frames = 448ms) + 2 onset + 1 speech + trailing silence (~8 frames) < all 45 frames
+    # Must preserve leading context before speech_start while trimming excessive early silence
+    assert 15 * 512 <= len(audio) < 35 * 512
+
+    metrics = cap.last_capture_metrics
+    assert metrics.voiced_ms >= 96.0
+    assert 0.0 < metrics["noise_floor_rms"] <= 0.01
+    assert metrics.peak_rms > 0.05
+    assert metrics.snr_db is not None and metrics.snr_db > 10.0
+    assert metrics.speech_end_mono is not None

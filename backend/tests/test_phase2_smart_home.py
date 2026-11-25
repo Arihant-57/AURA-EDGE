@@ -135,3 +135,29 @@ def test_multilingual_voice_and_manual_commands_share_dispatcher() -> None:
             "/api/v1/smart-home/history?device_id=fan.bedroom_ceiling"
         ).json()
         assert {entry["context_source"] for entry in history} >= {"voice", "ui"}
+
+        # Localized DeviceStatus (never raw Python dict) & routine & climate sensor queries
+        for query, exp_lang in [
+            ("Is the bedroom light on?", "en"),
+            ("बेडरूम की लाइट चालू है क्या?", "hi"),
+            ("ಬೆಡ್‌ರೂಮ್ ಲೈಟ್ ಆನ್ ಇದೆಯಾ?", "kn"),
+            ("What is the bedroom temperature?", "en"),
+        ]:
+            st = client.post(
+                "/api/v1/intent/process",
+                json={"text": query, "language": exp_lang, "speak": False},
+            )
+            assert st.status_code == 200
+            st_body = st.json()
+            assert st_body["intent"] == "DeviceControl"
+            assert st_body["action_executed"] is True
+            assert "{" not in st_body["response_text"]
+            assert "}" not in st_body["response_text"]
+
+        routine_res = client.post(
+            "/api/v1/intent/process",
+            json={"text": "Run the study routine", "language": "en", "speak": False},
+        )
+        assert routine_res.status_code == 200
+        assert routine_res.json()["action_executed"] is True
+        assert routine_res.json()["data"]["routine_id"] == "study"

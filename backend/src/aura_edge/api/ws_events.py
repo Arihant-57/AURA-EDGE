@@ -73,6 +73,7 @@ async def live_events_ws(websocket: WebSocket) -> None:
                     if orchestrator.fsm.active_turn
                     else None,
                     "language": orchestrator.session_language,
+                    "recognition_mode": getattr(orchestrator, "stt_recognition_mode", "multilingual"),
                 },
                 "timestamp_utc": datetime.now(UTC).isoformat(),
             }

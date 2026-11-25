@@ -100,9 +100,14 @@ class ToolRegistry:
                     return False, "SetTimer requires integer duration_seconds in 1..86400."
         return True, None
 
-    async def execute_intent(self, intent: TypedIntent) -> VerifiedActionResult:
+    async def execute_intent(
+        self,
+        intent: TypedIntent,
+        *,
+        reply_language: LanguageCode | None = None,
+    ) -> VerifiedActionResult:
         """Execute validated intent (including compound sub-actions) and verify result."""
-        lang = intent.language
+        lang: LanguageCode = reply_language or intent.target_language or intent.language
         if intent.intent_name == IntentName.CLARIFY:
             return VerifiedActionResult(
                 success=False,

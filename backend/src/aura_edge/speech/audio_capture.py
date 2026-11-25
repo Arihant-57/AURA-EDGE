@@ -7,6 +7,7 @@ import logging
 import math
 import queue
 import threading
+import time
 from collections import deque
 from collections.abc import Awaitable, Callable
 from enum import Enum
@@ -40,6 +41,22 @@ class AudioDeviceInfo(BaseModel):
     default_sample_rate: float
     is_default_input: bool = False
     is_default_output: bool = False
+
+
+class CaptureMetrics(BaseModel):
+    """Acoustic and endpoint timing metrics from the most recent audio capture."""
+
+    voiced_ms: float = 0.0
+    noise_floor_rms: float = 0.004
+    peak_rms: float = 0.0
+    snr_db: float | None = None
+    speech_end_mono: float | None = None
+
+    def __getitem__(self, key: str) -> Any:
+        return getattr(self, key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return getattr(self, key, default)
 
 
 AudioLevelCallback = Callable[[float, float], Awaitable[None]]
@@ -116,8 +133,13 @@ class AudioCapture:
         self.frame_samples = frame_samples
         max_preroll_frames = max(1, int((preroll_sec * sample_rate) / frame_samples))
         self._preroll: deque[np.ndarray] = deque(maxlen=max_preroll_frames)
+        self._pre_speech_keep_frames = max(
+            1,
+            int((min(max(preroll_sec, 0.05), 0.45) * sample_rate) / frame_samples),
+        )
         self._frame_queue: queue.Queue[np.ndarray] = queue.Queue(maxsize=256)
         self._input_device = input_device
+        self._stream_device = input_device
         self._vad = vad
 
         self._route_mode = AudioRouteMode.NORMAL
@@ -130,6 +152,12 @@ class AudioCapture:
         self._stop_event = threading.Event()
         self._cancelled = False
         self._last_capture_reason: str = "stopped"
+        self._speech_end_mono: float | None = None
+        self._last_capture_metrics = CaptureMetrics()
+
+    @property
+    def last_capture_metrics(self) -> CaptureMetrics:
+        return self._last_capture_metrics
 
     @property
     def route_mode(self) -> AudioRouteMode:
@@ -198,7 +226,18 @@ class AudioCapture:
     def select_device(self, device: int | str | None) -> None:
         if device is not None and not has_input_microphone(device):
             raise AudioDeviceUnavailableError(f"Requested microphone '{device}' is unavailable.")
+        if device != self._input_device:
+            self._close_stream()
         self._input_device = device
+
+    def _is_stream_active(self) -> bool:
+        stream = self._stream
+        if stream is None:
+            return False
+        try:
+            return bool(getattr(stream, "active", True))
+        except (OSError, RuntimeError, AttributeError):
+            return False
 
     def _audio_callback(
         self,
@@ -213,6 +252,10 @@ class AudioCapture:
         if self._speaking_suspended or self._user_muted or self._route_mode == AudioRouteMode.MUTED:
             return
         frame = np.copy(indata[:, 0] if indata.ndim > 1 else indata).astype(np.int16, copy=False)
+        if not self._recording:
+            if self._route_mode == AudioRouteMode.NORMAL:
+                self._preroll.append(frame)
+            return
         try:
             self._frame_queue.put_nowait(frame)
         except queue.Full:
@@ -226,10 +269,14 @@ class AudioCapture:
                 pass
 
     def push_test_frame(self, frame: np.ndarray) -> None:
-        """Inject a frame directly into the worker queue (for deterministic offline tests)."""
+        """Inject a frame directly into the worker queue or pre-roll (for deterministic offline tests)."""
         if self._speaking_suspended or self._user_muted or self._route_mode == AudioRouteMode.MUTED:
             return
-        self._frame_queue.put_nowait(frame.astype(np.int16, copy=False))
+        f_i16 = frame.astype(np.int16, copy=False)
+        if not self._recording and self._route_mode == AudioRouteMode.NORMAL:
+            self._preroll.append(f_i16)
+            return
+        self._frame_queue.put_nowait(f_i16)
 
     def _drain_queue(self) -> None:
         while True:
@@ -247,7 +294,8 @@ class AudioCapture:
         open_hardware_stream: bool = True,
     ) -> None:
         """Begin capturing audio frames in background until stop, cancel, or VAD end."""
-        if open_hardware_stream and not has_input_microphone(self._input_device):
+        reuse_existing = open_hardware_stream and self._is_stream_active() and self._stream_device == self._input_device
+        if open_hardware_stream and not reuse_existing and not has_input_microphone(self._input_device):
             raise AudioDeviceUnavailableError("No usable input microphone detected on host.")
 
         with self._capture_lock:
@@ -255,17 +303,27 @@ class AudioCapture:
             if self._speaking_suspended or self._user_muted or self._route_mode == AudioRouteMode.MUTED:
                 self._recording = False
                 return
-            self._recorded_frames = list(self._preroll) if self._route_mode == AudioRouteMode.NORMAL else []
-            self._preroll.clear()
+            if use_vad_endpointing and self._vad is not None:
+                # Retain bounded pre-roll while trimming excessive stale frames
+                if len(self._preroll) > self._pre_speech_keep_frames:
+                    tail = list(self._preroll)[-self._pre_speech_keep_frames :]
+                    self._preroll.clear()
+                    self._preroll.extend(tail)
+                self._recorded_frames = []
+            else:
+                self._recorded_frames = list(self._preroll) if self._route_mode == AudioRouteMode.NORMAL else []
+                self._preroll.clear()
             self._stop_event.clear()
             self._cancelled = False
             self._recording = True
             self._last_capture_reason = "recording"
+            self._speech_end_mono = None
 
         if self._vad is not None:
             self._vad.reset(initial_timeout_sec=initial_timeout_sec)
 
-        if open_hardware_stream:
+        if open_hardware_stream and not reuse_existing:
+            self._close_stream()
             import sounddevice as sd
 
             try:
@@ -279,6 +337,7 @@ class AudioCapture:
                     callback=self._audio_callback,
                 )
                 self._stream.start()
+                self._stream_device = self._input_device
             except Exception as exc:
                 self._recording = False
                 self._stream = None
@@ -292,7 +351,16 @@ class AudioCapture:
                 on_level=on_level,
             )
         finally:
-            self._close_stream()
+            keep_open = (
+                open_hardware_stream
+                and use_vad_endpointing
+                and self._last_capture_reason == "no_speech_timeout"
+                and not self._cancelled
+                and not self._speaking_suspended
+                and not self._user_muted
+            )
+            if not keep_open:
+                self._close_stream()
             with self._capture_lock:
                 self._recording = False
 
@@ -303,6 +371,8 @@ class AudioCapture:
         on_level: AudioLevelCallback | None,
     ) -> None:
         loop = asyncio.get_running_loop()
+        vad_gated = use_vad_endpointing and self._vad is not None
+        speech_started = not vad_gated
         while not self._stop_event.is_set():
             try:
                 frame = await loop.run_in_executor(None, self._poll_queue)
@@ -315,8 +385,9 @@ class AudioCapture:
                 # Ignore incoming frames while assistant is speaking
                 continue
 
-            with self._capture_lock:
-                self._recorded_frames.append(frame)
+            if not vad_gated:
+                with self._capture_lock:
+                    self._recorded_frames.append(frame)
 
             if on_level is not None:
                 rms_db, peak = compute_rms_db_and_peak(frame)
@@ -325,15 +396,98 @@ class AudioCapture:
                 except (RuntimeError, OSError, ValueError) as exc:
                     logger.debug("Audio level callback ignored error: %s", exc)
 
-            if use_vad_endpointing and self._vad is not None:
+            if vad_gated and self._vad is not None:
+                if not speech_started:
+                    with self._capture_lock:
+                        self._preroll.append(frame)
+                else:
+                    with self._capture_lock:
+                        self._recorded_frames.append(frame)
+
                 outcome = await loop.run_in_executor(None, self._vad.process_frame, frame)
-                if outcome.event in ("speech_end", "no_speech_timeout", "max_duration"):
+                if outcome.event == "speech_start" and not speech_started:
+                    speech_started = True
+                    keep_n = self._pre_speech_keep_frames + self._vad.onset_frames
+                    with self._capture_lock:
+                        self._recorded_frames = list(self._preroll)[-keep_n:]
+                        self._preroll.clear()
+                elif outcome.event in ("speech_end", "max_duration"):
+                    self._speech_end_mono = time.perf_counter()
+                    self._last_capture_reason = outcome.event
+                    self._stop_event.set()
+                    break
+                elif outcome.event == "no_speech_timeout":
                     self._last_capture_reason = outcome.event
                     self._stop_event.set()
                     break
 
     def _poll_queue(self) -> np.ndarray | None:
         return self._frame_queue.get(timeout=0.05)
+
+    def _finalize_capture_metrics_locked(
+        self,
+        joined: np.ndarray,
+        reason: str,
+    ) -> CaptureMetrics:
+        if joined.size == 0:
+            nf = self._vad.noise_floor_rms if self._vad is not None else 0.004
+            metrics = CaptureMetrics(
+                voiced_ms=0.0,
+                noise_floor_rms=nf,
+                peak_rms=0.0,
+                snr_db=None,
+                speech_end_mono=self._speech_end_mono if reason != "cancelled" else None,
+            )
+            self._last_capture_metrics = metrics
+            return metrics
+
+        if self._vad is not None and self._vad.voiced_frames > 0:
+            metrics = CaptureMetrics(
+                voiced_ms=self._vad.voiced_ms,
+                noise_floor_rms=self._vad.noise_floor_rms,
+                peak_rms=self._vad.peak_rms,
+                snr_db=self._vad.snr_db,
+                speech_end_mono=self._speech_end_mono,
+            )
+            self._last_capture_metrics = metrics
+            return metrics
+
+        # Fallback acoustic metrics when VAD was disabled or manual stop captured audio
+        n_frames = max(1, len(joined) // self.frame_samples)
+        usable = joined[: n_frames * self.frame_samples]
+        if usable.size >= self.frame_samples:
+            frames = usable.reshape(n_frames, self.frame_samples)
+            frame_rms = np.sqrt(np.mean(np.square(frames), axis=1))
+        else:
+            frame_rms = np.array([float(np.sqrt(np.mean(np.square(joined))))], dtype=np.float32)
+
+        peak_rms = round(float(np.max(frame_rms)), 6) if frame_rms.size else 0.0
+        est_floor = (
+            self._vad.noise_floor_rms
+            if self._vad is not None
+            else max(0.001, float(np.percentile(frame_rms, 15)))
+        )
+        gate = max(0.004, est_floor * 1.4)
+        voiced_mask = frame_rms >= gate
+        voiced_ms = round(
+            float(np.sum(voiced_mask)) * (self.frame_samples / float(self.sample_rate)) * 1000.0,
+            2,
+        )
+        if np.any(voiced_mask):
+            voiced_rms = float(np.sqrt(np.mean(np.square(frame_rms[voiced_mask]))))
+            snr_db: float | None = round(20.0 * math.log10(max(voiced_rms, 1e-6) / max(est_floor, 1e-6)), 2)
+        else:
+            snr_db = None
+
+        metrics = CaptureMetrics(
+            voiced_ms=voiced_ms,
+            noise_floor_rms=round(est_floor, 6),
+            peak_rms=peak_rms,
+            snr_db=snr_db,
+            speech_end_mono=self._speech_end_mono,
+        )
+        self._last_capture_metrics = metrics
+        return metrics
 
     def stop_capture(self, *, cancel: bool = False) -> tuple[np.ndarray, str]:
         """Stop active PTT capture and return ``(float32_audio_16k, reason)``."""
@@ -342,16 +496,33 @@ class AudioCapture:
             self._last_capture_reason = "cancelled"
         elif self._last_capture_reason == "recording":
             self._last_capture_reason = "manual_stop"
+            if self._speech_end_mono is None:
+                self._speech_end_mono = time.perf_counter()
         self._stop_event.set()
         self._close_stream()
 
         with self._capture_lock:
             self._recording = False
-            if cancel or not self._recorded_frames:
+            if cancel:
                 self._recorded_frames = []
+                self._preroll.clear()
+                self._finalize_capture_metrics_locked(np.zeros(0, dtype=np.float32), self._last_capture_reason)
+                return np.zeros(0, dtype=np.float32), self._last_capture_reason
+            if (
+                not self._recorded_frames
+                and self._vad is not None
+                and self._vad.onset_streak > 0
+                and self._preroll
+            ):
+                keep_n = self._pre_speech_keep_frames + self._vad.onset_streak
+                self._recorded_frames = list(self._preroll)[-keep_n:]
+                self._preroll.clear()
+            if not self._recorded_frames:
+                self._finalize_capture_metrics_locked(np.zeros(0, dtype=np.float32), self._last_capture_reason)
                 return np.zeros(0, dtype=np.float32), self._last_capture_reason
             joined = np.concatenate(self._recorded_frames).astype(np.float32) / 32768.0
             self._recorded_frames = []
+            self._finalize_capture_metrics_locked(joined, self._last_capture_reason)
             return joined, self._last_capture_reason
 
     def get_recorded_audio(self) -> tuple[np.ndarray, str]:
@@ -359,10 +530,17 @@ class AudioCapture:
         with self._capture_lock:
             if self._cancelled or not self._recorded_frames:
                 self._recorded_frames = []
+                self._finalize_capture_metrics_locked(np.zeros(0, dtype=np.float32), self._last_capture_reason)
                 return np.zeros(0, dtype=np.float32), self._last_capture_reason
             joined = np.concatenate(self._recorded_frames).astype(np.float32) / 32768.0
             self._recorded_frames = []
+            self._finalize_capture_metrics_locked(joined, self._last_capture_reason)
             return joined, self._last_capture_reason
+
+    def close(self) -> None:
+        """Close any reusable hardware input stream."""
+        self._stop_event.set()
+        self._close_stream()
 
     def _close_stream(self) -> None:
         stream = self._stream

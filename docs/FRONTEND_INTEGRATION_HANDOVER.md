@@ -1,65 +1,59 @@
 # Frontend Integration Handover (`feat/backend-intelligence` -> `feat/frontend-experience`)
 
-## Phase 1.5 integration note
-
-The Assistant UI can now use continuous conversation start/stop, mic mute,
-session history inspection/clear, and prewarm endpoints documented in
-`API_CONTRACT.md`. Render `transcript_ready`, append `response_text_delta`, and
-replace the provisional text with `response_completed`. Treat `refused` as an
-intentional safety/capability boundary and `failed` as a retryable runtime error;
-do not display a model outage as a successful assistant refusal.
-
-The backend emits actual state and latency fields. Do not synthesize success,
-streaming, or timing values in production integration.
-
-## Phase 2 integration
-
-Use `/api/v1/smart-home/rooms` for navigation and filter `/devices` by room.
-Render controls only from device `capabilities`; update UI from verified command
-responses or `device_state_changed`. Activities, history, routines and estimated
-energy have dedicated endpoints in `API_CONTRACT.md`. Preserve simulated and
-estimated labels. No frontend implementation file was changed.
-
 **Date:** 2026-11-25  
 **Backend Branch:** `feat/backend-intelligence`  
 **Contract Reference:** [`docs/API_CONTRACT.md`](./API_CONTRACT.md)
 
-This note notifies the frontend developer (`feat/frontend-experience`) of all newly live Phase 1 backend REST and WebSocket interfaces. **No files in `frontend/` were modified by the backend branch.**
+**Zero Frontend Edits Guarantee:** **No files in `frontend/` or `main` were modified on `feat/backend-intelligence`.**
 
 ---
 
 ## 1. Compatibility & Breaking-Change Check
 
 - **Phase 0 Endpoints Unchanged:** `/api/v1/health`, `/api/v1/readiness`, `/api/v1/policy`, and `/api/v1/policy/check` remain 100% backward compatible.
-- **Important Type Alignment Notice (`AssistantState`):**
-  - `docs/API_CONTRACT.md` previously sketched 5 lowercase states (`"idle" | "listening" | "processing" | "speaking" | "error"`).
-  - Phase 1 implements the full **10-state FSM** emitted in uppercase over `/api/v1/voice/status` and `/api/v1/ws/live`:
-    `IDLE | LISTENING | TRANSCRIBING | UNDERSTANDING | CLARIFYING | EXECUTING | VERIFYING | SPEAKING | CANCELLED | ERROR`.
+- **10-State Uppercase `AssistantState`:** All REST & WS events emit uppercase FSM states:
+  `IDLE | LISTENING | TRANSCRIBING | UNDERSTANDING | CLARIFYING | EXECUTING | VERIFYING | SPEAKING | CANCELLED | ERROR`.
+- **Decoupled Reply Language vs. STT Recognition Mode:**
+  - `PUT /api/v1/voice/language` accepts optional `recognition_mode?: "multilingual" | "strict"` and returns `{ session_language, resolved_language, recognition_mode, stt_language }`.
+  - Default `recognition_mode: "multilingual"` detects English/Hindi/Kannada independently from `session_language` (preferred reply language).
+- **Authoritative `response_completed` Contract:**
+  - `response_completed` is emitted **once** per turn **after** audio playback finishes (and before `conversation_history_updated`).
+  - Render `transcript_ready` and `response_text_delta` provisionally, then finalize from `response_completed`.
+  - Ignore/do not render an assistant chat bubble when `payload.silent === true` (R4 silence/noise gate rejection).
+  - Treat `outcome === "refusal"` (`status === "refused"`) as an intentional capability boundary and `outcome === "runtime_failure"` (`status === "failed"`) as a retryable runtime/model error.
+  - Check `action_executed` (`true` only for verified tool/device/timer actions; `false` for conversation/greeting/clarification/refusal).
+
+---
 
 ## 2. Live Endpoints Available for Integration
 
 | Feature | Method & Endpoint | Notes for Frontend |
 |---|---|---|
-| Voice & Hardware Status | `GET /api/v1/voice/status` | Poll on load for `mic_detected`, `speaker_detected`, `stt_ready`, `stt_kannada_specialist`, `vad_ready`, `tts_summary`, `compute`, `session_language`, `active_state`. |
+| Voice & Hardware Status | `GET /api/v1/voice/status` | Poll on load for `mic_detected`, `speaker_detected`, `stt_ready`, `stt_recognition_mode`, `stt_language`, `stt_kannada_specialist`, `vad_ready`, `tts_summary`, `compute`, `session_language`, `active_state`. |
 | Push-to-Talk Start | `POST /api/v1/voice/mic/start` | Optional `{"language": "auto"\|"en"\|"hi"\|"kn"}`. Returns `503` if no mic is connected. |
 | Push-to-Talk Stop | `POST /api/v1/voice/mic/stop` | Stops capture, runs STT -> Router/LLM -> Tool -> optional TTS (`{"speak": true}`). Returns `ProcessTurnOutput`. |
-| Upload WAV Audio | `POST /api/v1/voice/transcribe` | `multipart/form-data` (`file`, `language`, `speak`, `allow_llm_fallback`). Useful for browser MediaRecorder WAV testing. |
-| Text Command | `POST /api/v1/intent/process` | Same backend pipeline as voice (`{"text", "language": null\|"auto"\|"en"\|"hi"\|"kn", "source": "text_input", "speak": false}`). Omitting `language` honors `session_language`. |
+| Upload WAV Audio | `POST /api/v1/voice/transcribe` | `multipart/form-data` (`file`, `language`, `recognition_mode`, `speak`, `allow_llm_fallback`). |
+| Text Command | `POST /api/v1/intent/process` | `{"text", "language": null\|"auto"\|"en"\|"hi"\|"kn", "source": "text_input", "speak": false}`. Omitting `language` honors `session_language`. |
 | Offline TTS Audio | `POST /api/v1/voice/synthesize` | Returns `audio/wav` stream (`en`, `hi`, `kn`) + cache headers (`X-Aura-TTS-Cached`). |
 | Cancel Active Turn | `POST /api/v1/voice/cancel` | Immediately aborts mic/playback and transitions FSM to `CANCELLED -> IDLE`. |
 | Continuous Mode & Mute | `POST /api/v1/voice/conversation/{start,stop}`, `PUT /api/v1/voice/mic/mute` | Half-duplex VAD continuous listening with acoustic cooldown & sticky user mute. |
 | Session History & Prewarm | `GET/DELETE /api/v1/conversation/history`, `POST /api/v1/voice/prewarm` | Inspect/clear bounded session turns (`max 12`) and warm EN/HI/KN TTS + Ollama. |
-| Language Switch | `PUT /api/v1/voice/language` | `{"language": "auto"\|"en"\|"hi"\|"kn"}`. |
+| Language & Mode Switch | `PUT /api/v1/voice/language` | `{"language": "auto"\|"en"\|"hi"\|"kn", "recognition_mode"?: "multilingual"\|"strict"}`. |
 | Compute Mode Switch | `PUT /api/v1/voice/compute-mode` | `{"compute_mode": "auto"\|"cpu"\|"gpu"}` — returns honest `effective_mode` and `fallback_reason`. |
 | Persistent Timers | `GET/POST /api/v1/timers`, `POST /api/v1/timers/{id}/{pause,resume}`, `DELETE /api/v1/timers/{id}` | Authoritative PostgreSQL state; survives backend restarts. |
-| Smart-Home Simulator | `GET /api/v1/smart-home/{rooms,devices,activities,history,energy,routines}`, `POST /api/v1/smart-home/devices/{id}/command` | Phase 2 simulated home state (strict capability checks + `device_state_changed` WS events). |
-| Real-Time Events | `WS /api/v1/ws/live` | Emits `assistant_state_change`, `audio_level`, `transcript_ready`, `response_text_delta`, `response_completed`, `conversation_mode_change`, `mic_mute_change`, `conversation_history_updated`, `timer_*`, `action_verified`, `device_state_changed`, `clarification_required`, `error`. |
+| Smart-Home Simulator | `GET /api/v1/smart-home/{rooms,devices,activities,history,energy,routines}`, `POST /api/v1/smart-home/devices/{id}/command` | Use `/rooms` for navigation, filter `/devices` by room, render controls from `capabilities`, and preserve simulated/estimated labels. |
+| Real-Time Events | `WS /api/v1/ws/live` | Initial snapshot includes `recognition_mode`; emits `assistant_state_change`, `audio_level`, `transcript_ready`, `response_text_delta`, `response_completed`, `conversation_mode_change`, `mic_mute_change`, `conversation_history_updated`, `timer_*`, `action_verified`, `device_*`, `activity_completed`, `simulated_sensor_changed`, `routine_completed`, `clarification_required`, `error`. |
+
+---
 
 ## 3. Recommended TypeScript Types for `frontend/src/api/types.ts`
 
 ```typescript
 export type LanguageCode = "en" | "hi" | "kn";
 export type RequestedLanguage = "auto" | LanguageCode;
+export type RecognitionMode = "multilingual" | "strict";
+export type TurnOutcome = "success" | "clarification" | "refusal" | "cancelled" | "runtime_failure";
+
 export type AssistantState =
   | "IDLE"
   | "LISTENING"
@@ -71,6 +65,37 @@ export type AssistantState =
   | "SPEAKING"
   | "CANCELLED"
   | "ERROR";
+
+export interface StageTimestamps {
+  speech_end: number | null;
+  stt_start: number | null;
+  stt_completion: number | null;
+  routing_completion: number | null;
+  tool_completion: number | null;
+  llm_first_token: number | null;
+  first_valid_speech_chunk: number | null;
+  tts_completion: number | null;
+  first_non_silent_output_callback: number | null;
+  playback_completion: number | null;
+}
+
+export interface TurnTimings {
+  stt_ms: number | null;
+  router_ms: number | null;
+  llm_ttft_ms: number | null;
+  llm_ms: number | null;
+  tool_ms: number | null;
+  tts_ms: number | null;
+  audio_startup_ms: number | null;
+  playback_ms: number | null;
+  ttfa_ms: number | null;
+  time_to_first_text_ms: number | null;
+  time_to_first_synthesized_audio_ms: number | null;
+  time_to_first_audio_output_ms: number | null;
+  playback_duration_ms: number | null;
+  total_turn_duration_ms: number | null;
+  latency_ms: number | null;
+}
 
 export interface TimerView {
   id: string;
@@ -90,13 +115,20 @@ export interface ProcessTurnOutput {
   intent: string;
   route_category: string;
   confidence: number;
-  intent_source: "hassil_fast" | "llm_tool" | "llm_conversation" | "clarification" | "refusal" | "cancellation" | "error";
+  intent_source: string;
   detected_language: LanguageCode;
+  preferred_reply_language: RequestedLanguage;
+  recognition_mode: RecognitionMode;
+  language_probability: number | null;
+  transcript_confidence: number | null;
+  stt_model: string | null;
   slots: Record<string, unknown>;
   response_text: string;
+  spoken_text: string;
   response_language: LanguageCode;
   action_executed: boolean;
-  status: "verified" | "failed" | "clarification_required" | "refused" | "cancelled";
+  outcome: TurnOutcome;
+  status: "verified" | "failed" | "clarification_required" | "refused" | "cancelled" | "ignored_silence";
   state: AssistantState;
   data: Record<string, unknown>;
   latency_ms: number;
@@ -110,8 +142,50 @@ export interface ProcessTurnOutput {
   playback_ms: number | null;
   ttfa_ms: number | null;
   tts_cache_hit: boolean;
+  stage_timestamps: StageTimestamps;
+  time_to_first_text_ms: number | null;
+  time_to_first_synthesized_audio_ms: number | null;
+  time_to_first_audio_output_ms: number | null;
+  playback_duration_ms: number | null;
+  total_turn_duration_ms: number | null;
   error: string | null;
   transcript: string | null;
+}
+
+export interface ResponseCompletedPayload {
+  turn_id: string;
+  outcome: TurnOutcome;
+  status: string;
+  action_executed: boolean;
+  intent: string;
+  route_category: string;
+  language: LanguageCode;
+  detected_language: LanguageCode;
+  preferred_reply_language: RequestedLanguage;
+  response_text: string;
+  spoken_text: string;
+  silent: boolean;
+  timings: TurnTimings;
+  stage_timestamps: StageTimestamps;
+  llm_ttft_ms?: number | null;
+  tts_ms?: number | null;
+  audio_startup_ms?: number | null;
+  playback_ms?: number | null;
+  ttfa_ms?: number | null;
+  rejection_reason?: string;
+  error?: string;
+}
+
+export interface LanguageSelectRequest {
+  language: RequestedLanguage;
+  recognition_mode?: RecognitionMode | null;
+}
+
+export interface LanguageSelectResponse {
+  session_language: RequestedLanguage;
+  resolved_language: LanguageCode;
+  recognition_mode: RecognitionMode;
+  stt_language: RequestedLanguage;
 }
 ```
 
@@ -119,11 +193,7 @@ export interface ProcessTurnOutput {
 
 ## 4. How the Frontend Developer (`feat/frontend-experience`) Pulls This Contract
 
-The updated API contract is published on GitHub on `origin/feat/backend-intelligence` without modifying `frontend/` or `main`:
-
 ```powershell
 git fetch origin feat/backend-intelligence
 git checkout origin/feat/backend-intelligence -- docs/API_CONTRACT.md docs/FRONTEND_INTEGRATION_HANDOVER.md
 ```
-
-Or review directly in [`docs/API_CONTRACT.md`](./API_CONTRACT.md) on branch `feat/backend-intelligence`.

@@ -87,9 +87,12 @@ class Settings(BaseSettings):
     # Phase 1 Voice, Speech & Local Intelligence Settings
     models_dir: Path = _DEFAULT_MODELS_DIR
     stt_model_size: Literal["base", "small"] = "small"
+    stt_language: Literal["auto", "en", "hi", "kn"] = "auto"
+    stt_recognition_mode: Literal["multilingual", "strict"] = "multilingual"
     ollama_model: str = "qwen3.5:4b"
     ollama_num_ctx: int = 4096
     ollama_timeout_sec: float = 30.0
+    ollama_keep_alive: str = "15m"
     default_language: Literal["auto", "en", "hi", "kn"] = "auto"
 
     audio_sample_rate: int = 16000

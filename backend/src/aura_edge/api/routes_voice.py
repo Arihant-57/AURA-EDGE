@@ -38,6 +38,7 @@ class SynthesizeRequest(BaseModel):
 
 class LanguageSelectRequest(BaseModel):
     language: RequestedLanguage
+    recognition_mode: Literal["multilingual", "strict"] | None = None
 
 
 class ComputeModeRequest(BaseModel):
@@ -134,6 +135,7 @@ async def transcribe_uploaded_audio(
     request: Request,
     file: Annotated[UploadFile, _FILE_PARAM],
     language: Annotated[RequestedLanguage, _FORM_PARAM] = "auto",
+    recognition_mode: Annotated[Literal["multilingual", "strict"] | None, _FORM_PARAM] = None,
     speak: Annotated[bool, _FORM_PARAM] = False,
     allow_llm_fallback: Annotated[bool, _FORM_PARAM] = True,
 ) -> ProcessTurnOutput:
@@ -145,6 +147,7 @@ async def transcribe_uploaded_audio(
             audio_f32,
             source="audio_upload",
             language=language,
+            recognition_mode=recognition_mode,
             speak=speak,
             allow_llm_fallback=allow_llm_fallback,
         )
@@ -200,8 +203,13 @@ async def cancel_voice_turn(
 @router.put("/voice/language")
 def select_language(body: LanguageSelectRequest, request: Request) -> dict[str, object]:
     orch: VoiceOrchestrator = request.app.state.orchestrator
-    selected = orch.set_language(body.language)
-    return {"session_language": selected, "resolved_language": orch._last_resolved_language}
+    selected = orch.set_language(body.language, recognition_mode=body.recognition_mode)
+    return {
+        "session_language": selected,
+        "resolved_language": orch._last_resolved_language,
+        "recognition_mode": orch.stt_recognition_mode,
+        "stt_language": orch.stt_language,
+    }
 
 
 @router.put("/voice/compute-mode")

@@ -1,58 +1,74 @@
-# AURA EDGE — Multilingual Test & Failure-Mode Report
+# AURA EDGE — Multilingual Test, STT/TTS Evaluation & Failure-Mode Report
 
 **Date:** 2026-11-25  
-**Fixture Suite:** `backend/tests/fixtures/multilingual_utterances.json` (`96` utterances: `32` English, `32` Hindi, `32` Kannada)  
-**Test Suite:** `backend/tests/test_phase1_multilingual_router.py` (`99` test cases) + `test_phase1_voice_conversations.py` (`3`) + Audio/VAD/STT/TTS/FSM/DB/API suites (**`131` total tests passed, `0` failed, `0` skipped**)
+**Branch:** `feat/backend-intelligence`  
+**Benchmark Artifact:** `models/eval_audio/phase1_5_stabilization_benchmarks.json` (`backend/scripts/benchmark_stabilization.py`)
 
 ---
 
-## 1. Utterance Coverage & Accuracy Summary
+## 1. Speech Recognition Decoupling (`R2`)
 
-| Language | Tested Scripts & Modes | Utterances | Deterministic Accuracy | Verified Tool Action Success | False / Incorrect Action Rate |
-|---|---|---|---|---|---|
-| **English (`en`)** | Native script + natural phrasing + numeric words (`five`, `one minute and 30 seconds`) | `32` | `32 / 32` (`100.0%`) | `100.0%` | `0.0%` |
-| **Hindi (`hi`)** | Devanagari (`\u0900-\u097F`) + Indic digits (`५`) + Romanized (`5 minute ka timer lagao`, `kitne baje hain`) | `32` | `32 / 32` (`100.0%`) | `100.0%` | `0.0%` |
-| **Kannada (`kn`)** | Kannada script (`\u0C80-\u0CFF`) + Indic digits (`೫`) + Romanized (`5 nimisha timer idu`, `samaya estu`) | `32` | `32 / 32` (`100.0%`) | `100.0%` | `0.0%` |
-| **Total** | Full Phase 1 multilingual matrix | `96` | `96 / 96` (`100.0%`) | `100.0%` | `0.0%` |
+`WhisperTranscriber` and `VoiceOrchestrator` now separate five distinct concepts that were previously coupled:
+1. **Preferred reply language** (`VoiceOrchestrator.session_language`: `"auto" | "en" | "hi" | "kn"`).
+2. **Recognition mode** (`stt_recognition_mode`: `"multilingual"` default, or explicit `"strict"`).
+3. **Detected spoken language** (`TranscriptionResult.detected_language`: `"en" | "hi" | "kn"`).
+4. **Recognition model used** (`TranscriptionResult.model_size`: `"small"`, `"base"`, or `"indic-conformer-kn"`).
+5. **Real confidence & quality metrics** (`language_probability: float | None`, `transcript_confidence: float | None`, `avg_logprob`, `no_speech_prob`, `compression_ratio`, `voiced_ms`, `snr_db`, `quality_ok`, `rejection_reason`).
 
-### Tested Intent & Edge Categories per Language
-- Current time queries (`GetTime`)
-- Current date queries (`GetDate`)
-- Timer creation with seconds/minutes/hours and Hindi/Kannada/English number words (`SetTimer`)
-- Named timers (e.g., `tea`, `pasta`, `चाय`, `ಟೀ` labels preserved via Unicode regexes)
-- Compound multi-action commands (e.g., `"Set a timer for 5 minutes and tell me the current time"`, `"पांच मिनट का टाइमर लगाओ और समय बताओ"`, `"ಐದು ನಿಮಿಷದ ಟೈಮರ್ ಸೆಟ್ ಮಾಡು ಮತ್ತು ಸಮಯ ಹೇಳು"`)
-- Timer inspection (`ListTimers`), remaining time (`RemainingTimer`), pause (`PauseTimer`), resume (`ResumeTimer`), cancel single (`CancelTimer`), and cancel all (`CancelAllTimers`)
-- Ambiguous commands (`"Set a timer"`, `"Cancel timer"`, `"टाइमर लगाओ"`, `"ಟೈಮರ್ ಸೆಟ್ ಮಾಡು"`) -> routed to `Clarify` state with localized question
-- Unsupported/out-of-scope requests (smart home light control, food ordering, weather lookup) -> routed to `Unsupported` refusal with `action_executed=False`
-- Assistant capabilities (`Help`) and turn stop phrases (`StopAssistant`)
+**Behavior verified in automated tests (`test_phase1_stt_and_compute.py`, `test_voice_orchestrator_outcomes.py`):**
+- With Kannada selected as preferred reply language (`PUT /api/v1/voice/language {"language": "kn"}`), English speech (`phase1a_tts_en.wav`) is detected as `"en"` (`prob=0.9844`), routed in English to `SetTimer`, executed, and answered in Kannada.
+- Hindi speech (`phase1a_tts_hi.wav`) under `"kn"` preference is detected as `"hi"` (`prob=0.9902`), normalized (`पाज मिन्त -> पांच मिनट`, `तामर -> टाइमर`), executed, and answered in Kannada.
+- Fabricated `language_probability=1.0` was eliminated (`strict` CTC returns `language_probability=None`; `multilingual` returns Whisper's real probability).
 
 ---
 
-## 2. Recorded Speech & Live Microphone Verification
+## 2. STT Model Evaluation & WER / CER (`R3`)
 
-1. **Live Multi-Turn Spoken Conversations (`backend/scripts/verify_voice_conversations.py`, `models/eval_audio/phase1_voice_conversations.json`):**
-   - Verified `15 / 15` end-to-end spoken WAV upload turns (`POST /api/v1/voice/transcribe` -> `POST /api/v1/voice/synthesize`) against a live server started via `scripts/start-aura-voice.ps1 -NoCli`:
-     - **English (`5/5` passed, STT `174.25–570.62 ms`):** `GetTime` -> `SetTimer("tea", 120s)` -> `GetTimerRemaining("tea")` -> `CancelTimer("tea")` -> `Unsupported` refusal.
-     - **Hindi (`5/5` passed, STT `329.95–400.67 ms`):** `GetTime` (`"अभी दोपहर के 4 बजकर 50 मिनट हुए हैं।"`) -> `SetTimer("चाय", 120s)` -> `ListTimers` -> `CancelAllTimers` -> `Unsupported` refusal.
-     - **Kannada (`5/5` passed via `indic-conformer-kn`, STT `170.58–420.57 ms`):** `GetTime` (`"ಈಗ ಮಧ್ಯಾಹ್ನ 4 ಗಂಟೆ 50 ನಿಮಿಷ ಆಗಿದೆ."`) -> `SetTimer` -> `ListTimers` -> `CancelAllTimers` -> `Unsupported` refusal.
-2. **Live Microphone Hardware Verification (`AudioCapture` & Live API PTT):**
-   - Executed `POST /api/v1/voice/ptt/start` -> `0.4s` host capture -> `POST /api/v1/voice/ptt/stop` (`started=true`, `stop_state="IDLE"`), confirming real Windows hardware mic (`Microphone Array (Realtek(R) Audio)`) operation through the live FastAPI backend.
-   - Standalone `AudioCapture.start_ptt_capture(open_hardware_stream=True)` recorded `1536` non-blocking PCM samples (`0.096s`) inside the zero-inference ring-buffer callback and closed cleanly (`reason=manual_stop`).
+> **Critical Dataset Caveat:** **Zero real human microphone recordings exist** in `AURA-EDGE`, `AURA-EDGE-RESEARCH`, or `phase4-agent`. All WER/CER values below were measured on **synthetic TTS waveforms** (saved `phase1a_tts_{en,hi,kn}.wav` and synthesized clean / 15 dB Gaussian-noise phrases). **Regional Karnataka Kannada accuracy (northern Karnataka expressions, colloquial pronunciation, natural human prosody) cannot be claimed from synthetic TTS alone and requires human microphone acceptance testing.**
+
+### 2.1 Measured WER / CER on Identical Synthetic Audio (`faster-whisper-small` CUDA `int8_float16` vs `indic-conformer-kn` CPU `int8` vs Decoupled Selective Fallback)
+
+| Sample (`source_kind`) | Ref Lang | `faster-whisper-small` (Raw Multilingual) | `indic-conformer-kn` (Direct CTC) | Decoupled Selective Fallback (`preferred_reply_language="kn"`) |
+|---|---|---|---|---|
+| `phase1a_tts_en.wav` (`synthetic_tts_saved`) | `en` | WER `0.0833`, CER `0.0870` (`en`, `812.73 ms` cold) | WER `1.0000`, CER `1.0000` (`89.28 ms`) | **`small`** (`en`, `prob=0.9844`), WER **`0.0833`**, CER **`0.0870`** (`282.65 ms`) |
+| `synth_en_time` (`synthetic_tts`) | `en` | WER `0.0000`, CER `0.0000` (`en`, `234.59 ms`) | WER `1.2000`, CER `1.1875` (`37.22 ms`) | **`small`** (`en`, `prob=0.9922`), WER **`0.0000`**, CER **`0.0000`** (`236.81 ms`) |
+| `synth_en_noisy` (`synthetic_tts_noisy_15db`) | `en` | WER `0.0000`, CER `0.0000` (`en`, `234.43 ms`) | WER `1.2000`, CER `1.1579` (`46.03 ms`) | **`small`** (`en`, `prob=0.9707`), WER **`0.0000`**, CER **`0.0000`** (`236.21 ms`) |
+| `phase1a_tts_hi.wav` (`synthetic_tts_saved`) | `hi` | WER `0.5833`, CER `0.2500` (`hi`, `506.53 ms`) | WER `1.0000`, CER `1.0750` (`123.18 ms`) | **`small`** (`hi`, `prob=0.9902`), WER **`0.5833`**, CER **`0.2500`** (`517.45 ms`) |
+| `synth_hi_date` (`synthetic_tts`) | `hi` | WER `0.2500`, CER `0.0769` (`hi`, `284.65 ms`) | WER `1.0000`, CER `1.1538` (`41.90 ms`) | **`small`** (`hi`, `prob=0.9492`), WER **`0.2500`**, CER **`0.0769`** (`282.97 ms`) |
+| `phase1a_tts_kn.wav` (`synthetic_tts_saved`) | `kn` | WER `1.0000`, CER `1.0238` (`kn`, `2547.66 ms`) | WER `0.2000`, CER `0.0714` (`155.56 ms`) | **`indic-conformer-kn`** (`kn`, `prob=0.8433`), WER **`0.2000`**, CER **`0.0714`** (`2601.99 ms`) |
+| `synth_kn_time` (`synthetic_tts`) | `kn` | WER `1.2500`, CER `1.1875` (`kn`, `2260.23 ms`) | WER `0.0000`, CER `0.0000` (`77.02 ms`) | **`indic-conformer-kn`** (`kn`, `prob=0.8384`), WER **`0.0000`**, CER **`0.0000`** (`1369.73 ms`) |
+| `synth_kn_room` (`synthetic_tts`) | `kn` | WER `1.0000`, CER `1.0000` (`te`, `1981.83 ms`) | WER `1.0000`, CER `0.1500` (`55.42 ms`) | **`indic-conformer-kn`** (`kn`, `prob=0.3660`), WER **`1.0000`**, CER **`0.1500`** (`1819.92 ms`) |
+| `synth_kn_noisy` (`synthetic_tts_noisy_15db`) | `kn` | WER `1.0000`, CER `1.1176` (`kn`, `2389.48 ms`) | WER `0.0000`, CER `0.0000` (`59.64 ms`) | **`indic-conformer-kn`** (`kn`, `prob=0.8584`), WER **`0.0000`**, CER **`0.0000`** (`2470.30 ms`) |
+
+**Key Findings:**
+- `faster-whisper-small` handles EN and HI well (`0–0.25` CER) and detects Kannada (`0.84–0.86`, or ambiguous `te` `0.366 < 0.85` on short loanword-heavy `"ಬೆಡ್‌ರೂಮ್ ಲೈಟ್ ಆನ್ ಮಾಡು."`), but its raw Kannada text is unusable (`CER >= 1.0`).
+- Selective fallback delegates only `kn` or ambiguous Dravidian (`ml`/`te`/`ta` `< 0.85`) utterances to `indic-conformer-kn`, achieving `0.0–0.15` Kannada CER without running both models on EN/HI or breaking EN/HI detection.
+- On `phase1a_tts_hi.wav`, Whisper's phonetic Devanagari errors (`"पाज मिन्त कर तामर लगाओ..."`) are deterministically repaired in `normalizer._normalize_hindi_asr_variants()` so compound `SetTimer + GetTime` still executes accurately.
 
 ---
 
-## 3. Failure-Mode & Resilience Matrix (All Executed in Automated Tests / Probes)
+## 3. Noise & False Speech Rejection Gate (`R4`)
 
-| Failure Condition Tested | Observed Behaviour | Verified By |
-|---|---|---|
-| **Empty speech / whitespace** | Transitions via `Clarify` and returns localized prompt without calling LLM or tools | `test_phase1_multilingual_router.py` |
-| **Noisy non-speech audio** | Adaptive noise-floor RMS + Silero VAD `initial_timeout_sec` rejects static noise frames | `test_phase1_audio_and_vad.py` |
-| **Ambiguous timer cancel w/ multiple active timers** | Returns `needs_clarification=True` listing active timer labels; refuses to guess which timer to cancel | `test_phase1_timers_live_db.py` |
-| **Missing microphone device** | `AudioCapture` raises clear error (`No microphone detected`) and transitions turn safely | `test_phase1_audio_and_vad.py` |
-| **Missing STT model files** | Raises `ModelNotFoundError` naming expected path and `prepare_models.py`; never downloads offline | `test_phase1_stt_and_compute.py` + `phase1a_report.json` |
-| **CUDA unavailable / GPU failure fallback** | `ComputeManager` falls back to CPU `int8` and records `effective_mode="cpu"` + explicit `fallback_reason` | `test_phase1_stt_and_compute.py` |
-| **Ollama unavailable (`503` / refused)** | Planner marks LLM unavailable and refuses unrouted requests safely instead of crashing or fabricating actions | `test_phase1_multilingual_router.py` |
-| **Database unavailable** | Readiness returns `503`, `timer_repo` propagates DB failure honestly without memory-only fakery | `test_health_api.py`, `test_db_live_integration.py` |
-| **Internet unavailable (`strict_offline`)** | `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`, `NetworkPolicyEnforcer` raises `NetworkPolicyViolationError` with `0` external TCP/UDP sockets opened | Live Python probe + `test_network_policy.py` |
-| **Barge-in / cancellation mid-turn** | `TurnContext` + stale-turn guard prevents old async events from overwriting new turns; completed timer rows are never falsely deleted (`completed_actions_preserved`) | `test_phase1_state_machine.py` + `test_phase1_api_and_ws.py` |
-| **PostgreSQL restart while timer running** | Timers survive container restart, recover on `TimerManager.recover_pending_timers()`, and `notified_at_utc IS NULL` atomic update guarantees zero duplicate completion notifications | `test_phase1_timers_live_db.py` |
+- **Empirical Fan Noise Probe (`rng.normal(0, 0.02, 32000)`):** Direct `indic-conformer-kn` hallucinated `'ಿದ್ದಾರೆ'` (`60.62 ms`), whereas the decoupled R4 gate rejected it with `quality_ok=False`, `rejection_reason="noise"`, `is_empty=True`, `text=""` (`366.29 ms`).
+- **Automated Gate Coverage (`test_speech_recognition_gate.py`, `test_voice_orchestrator_outcomes.py`):**
+  - Pure silence (`peak < 1e-4` / `rms < 3e-4`) and steady noise (`flat_noise`, `no_speech_prob > 0.78`, `snr_db < 2.0`, Whisper hallucination phrases) -> `VoiceOrchestrator` returns silently to `IDLE` with `status="ignored_silence"`, `silent=True` in `response_completed`, zero Qwen calls, zero TTS.
+  - Garbled/low-logprob/repetitive/wrong-script speech -> `rejection_reason="unclear_speech"` or `"invalid_script"` -> `VoiceOrchestrator` transitions to `CLARIFYING`, speaks one short `empty_speech` prompt, zero Qwen/tool execution.
+  - Legitimate short commands (`"stop"`, `"yes"`, `"no"`, `"ಹೌದು"`, `"ಇಲ್ಲ"`, `"ನಿಲ್ಲಿಸು"`, `"हाँ"`, `"नहीं"`, `"रुको"`) bypass false length rejection and execute normally.
+
+---
+
+## 4. Multilingual Intent Routing & Smart-Home Parity (`R5`)
+
+- **Fixture Suite (`multilingual_utterances.json`):** **`96 / 96` (`100.0%`)** across `en` (`32`), `hi` (`32`), `kn` (`32`), covering `GetTime`, `GetDate`, `SetTimer`, `ListTimers`, `GetTimerRemaining`, `PauseTimer`, `ResumeTimer`, `CancelTimer`, `CancelAllTimers`, `Help`, `StopAssistant`, compound actions, ambiguity clarification, and unsupported refusal.
+- **Colloquial, Hinglish, Kanglish & Smart-Home Extensions Verified:**
+  - Clock phrasings: `"What's the time?"`, `"Today's date?"`, `"Date today?"`, `"ಇವತ್ತಿನ ಡೇಟ್ ಏನು?"`, `"ಇವತ್ತು ತಾರೀಖು ಎಷ್ಟು?"`, `"ಈಗ ಎಷ್ಟು ಗಂಟೆ?"`, `"आज तारीख क्या है?"`, `"अभी कितने बजे हैं?"`, `"aaj ki date kya hai"`, `"ivattu tareekhu eshtu"`.
+  - Mixed-script & Romanized smart-home: `"ಪಠಣ ಕೋಣೆಯ ಲೈಟ್ ಆನ್ ಮಾಡು"` (fixed Malayalam `ഠ` -> Kannada `ಠ`), `"ಬೆಡ್‌ರೂಮ್ light on ಮಾಡು"`, `"bedroom ki light on karo"`, `"bedroom fan off maadu"`, `"Start the robot vacuum"` (`ac` boundary fix prevents false match inside `vacuum`), localized `DeviceStatus` (no raw Python dict), climate sensor queries, and `morning`/`night`/`study`/`away` routines.
+
+---
+
+## 5. Kannada TTS Evaluation & Limitations (`R6`)
+
+- **Active Kannada Voice:** `vits-mms-kan` (`facebook/mms-tts-kan`, 16 kHz, CC-BY-NC-4.0, CPU). One consistent voice per language is maintained (`en_US-lessac-medium`, `hi_IN-rohan-medium`, `vits-mms-kan`).
+- **Pronunciation & Normal vs Streaming Parity:** `normalize_kannada_for_tts()` preserves and transliterates English device names (`Light Bedroom Main`), timer labels, `"AURA EDGE"` (`ಆರಾ ಎಡ್ಜ್`), context-aware `AM`/`PM` (`ಬೆಳಗ್ಗೆ`/`ಮಧ್ಯಾಹ್ನ`/`ಸಂಜೆ`/`ರಾತ್ರಿ`), decimals, dates, `%`, and `°C`. Verified in `test_speech_generation_and_streaming.py` that normal `speak_text` and streaming `speak_sentence_stream` produce sample-identical PCM (`np.array_equal`) and strip `\u200c`/`\u200d` before `vits-mms-kan` token lookup.
+- **Evaluated Local `kn_piper` Model Limitation (`models/tts/kn_piper/kn_IN-syspin_male-medium.onnx`):** Inspected via `onnxruntime` and `sherpa_onnx.OfflineTts`: the ONNX file has an empty `custom_metadata_map: {}` (missing required `sample_rate`, `model_type`, `has_espeak`, `n_speakers` Piper metadata) and lacks Kannada `espeak-ng-data`, causing C++ abort at `offline-tts-vits-model.cc:Init:169`. Per project constraints, no unverified large models were downloaded; `vits-mms-kan` remains active.
+- **Inherent `vits-mms-kan` Limitations:** Trained on native Kannada script (`tokens.txt` has 75 entries, no English IPA), so transliterated novel English acronyms/loanwords remain phonetic approximations requiring human listening verification.

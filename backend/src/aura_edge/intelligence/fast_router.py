@@ -116,42 +116,155 @@ _RESTRICTED_ACTION_RE = re.compile(
 )
 
 _SMART_HOME_ROOMS = {
-    "living_room": ("living room", "hall", "बैठक", "ಹಾಲ್"),
-    "bedroom": ("bedroom", "बेडरूम", "ಮಲಗುವ ಕೋಣೆ", "ಬೆಡ್ ರೂಮ್"),
-    "kitchen": ("kitchen", "रसोई", "ಅಡುಗೆಮನೆ"),
-    "study": ("study", "अध्ययन", "ಪഠಣ", "ಅಧ್ಯಯನ"),
-    "utility_room": ("utility", "यूटिलिटी", "ಯುಟಿಲಿಟಿ"),
+    "living_room": (
+        "living room",
+        "living",
+        "hall",
+        "लिविंग रूम",
+        "बैठक",
+        "ಹಾಲ್",
+        "ಲಿವಿಂಗ್ ರೂಮ್",
+        "ಲಿವಿಂಗ್‌ರೂಮ್",
+    ),
+    "bedroom": (
+        "bedroom",
+        "bed room",
+        "बेडरूम",
+        "बेड रूम",
+        "ಮಲಗುವ ಕೋಣೆ",
+        "ಬೆಡ್‌ರೂಮ್",
+        "ಬೆಡ್ ರೂಮ್",
+        "ಬೆಡ್ರೂಮ್",
+    ),
+    "kitchen": ("kitchen", "रसोई", "किचन", "ಅಡುಗೆಮನೆ", "ಅಡುಗೆ ಮನೆ", "ಕಿಚನ್"),
+    "study": (
+        "study room",
+        "study",
+        "अध्ययन कक्ष",
+        "अध्ययन",
+        "स्टडी रूम",
+        "स्टडी",
+        "ಪಠಣ",
+        "ಅಧ್ಯಯನ ಕೊಠಡಿ",
+        "ಅಧ್ಯಯನ",
+        "ಸ್ಟಡಿ ರೂಮ್",
+        "ಸ್ಟಡಿ",
+    ),
+    "utility_room": (
+        "utility room",
+        "utility",
+        "यूटिलिटी रूम",
+        "यूटिलिटी",
+        "ಯುಟಿಲಿಟಿ ಕೊಠಡಿ",
+        "ಯುಟಿಲಿಟಿ",
+    ),
 }
 _SMART_HOME_TYPES = {
-    "light": ("light", "lights", "lamp", "लाइट", "बत्ती", "ಲೈಟ್", "ದೀಪ"),
-    "fan": ("fan", "पंखा", "फैन", "ಫ್ಯಾನ್"),
-    "air_conditioner": ("ac", "air conditioner", "एसी", "ಏಸಿ"),
-    "television": ("tv", "television", "टीवी", "ಟಿವಿ"),
+    "light": ("light", "lights", "lamp", "लाइट", "बत्ती", "ಲೈಟ್", "ದೀಪ", "ಬಲ್ಬ್"),
+    "fan": ("fan", "fans", "पंखा", "फैन", "ಫ್ಯಾನ್"),
+    "air_conditioner": ("air conditioner", "ac", "एसी", "ऐसी", "ಏಸಿ", "ಎಸಿ"),
+    "television": ("television", "tv", "टीवी", "ಟಿವಿ"),
     "curtain": ("curtain", "curtains", "पर्दा", "पर्दे", "ಪರದೆ"),
-    "washing_machine": ("washing machine", "washer", "वॉशिंग मशीन", "ವಾಷಿಂಗ್ ಮೆಷಿನ್"),
-    "robot_vacuum": ("vacuum", "robot", "वैक्यूम", "ವ್ಯಾಕ್ಯೂಮ್"),
-    "air_purifier": ("purifier", "प्यूरिफायर", "ಪ್ಯೂರಿಫೈಯರ್"),
-    "water_heater": ("water heater", "geyser", "गीजर", "ಗೀಸರ್"),
-    "water_pump": ("water pump", "pump", "पंप", "ಪಂಪ್"),
-    "refrigerator": ("refrigerator", "fridge", "फ्रिज", "ರೆಫ್ರಿಜರೇಟರ್"),
+    "washing_machine": (
+        "washing machine",
+        "washer",
+        "वॉशिंग मशीन",
+        "ವಾಷಿಂಗ್ ಮೆಷಿನ್",
+        "ವಾಷಿಂಗ್ ಮಷೀನ್",
+    ),
+    "robot_vacuum": ("robot vacuum", "vacuum", "robot", "रोबोट वैक्यूम", "वैक्यूम", "ವ್ಯಾಕ್ಯೂಮ್"),
+    "air_purifier": ("air purifier", "purifier", "प्यूरिफायर", "ಪ್ಯೂರಿಫೈಯರ್"),
+    "water_heater": ("water heater", "geyser", "गीजर", "ಗೀಸರ್", "ವಾಟರ್ ಹೀಟರ್"),
+    "water_pump": ("water pump", "pump", "पंप", "ಪಂಪ್", "ವಾಟರ್ ಪಂಪ್"),
+    "refrigerator": ("refrigerator", "fridge", "फ्रिज", "ರೆಫ್ರಿಜರೇಟರ್", "ಫ್ರಿಜ್"),
+    "climate_sensor": (
+        "climate sensor",
+        "temperature sensor",
+        "humidity sensor",
+        "climate",
+        "thermometer",
+        "हवामान",
+        "ಕ್ಲೈಮೇಟ್",
+    ),
 }
+_ROUTINE_ALIASES = {
+    "morning": ("morning", "सुबह", "मॉर्निंग", "ಬೆಳಗಿನ", "ಬೆಳಗ್ಗೆ", "ಮಾರ್ನಿಂಗ್"),
+    "night": ("night", "रात", "नाइट", "ರಾತ್ರಿ", "ನೈಟ್"),
+    "study": ("study", "पढ़ाई", "स्टडी", "ಅಧ್ಯಯನ", "ಸ್ಟಡಿ"),
+    "away": ("away", "बाहर", "ಹೊರಗೆ", "ಅವೇ"),
+}
+_ROUTINE_TRIGGER_RE = re.compile(
+    r"(?:\b(?:routine|mode)\b|रूटीन|मोड|ದಿನಚರಿ|ರೂಟೀನ್|ಮೋಡ್)",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+_STATUS_QUERY_RE = re.compile(
+    r"(?:^\s*(?:is|are|what(?:'s|\s+is)|check|tell\s+me)\b.*\b"
+    r"(?:on|off|open|closed|running|cleaning|paused|docked|idle|temperature|humidity|brightness|speed|volume|status|state)\b|"
+    r"\b(?:status|state|how\s+long|remaining)\b|"
+    r"क्या\b|है\s+क्या|चल\s+रही\s+है|कितना\s+(?:है|हुआ)|स्थिति|कितना\s+समय|"
+    r"ಇದೆಯಾ|ಇದೆಯೇ|ಆಗಿದೆಯಾ|ನಡೀತಿದೆಯಾ|ನಡೆಯುತ್ತಿದೆಯಾ|ಸ್ಥಿತಿ|ಎಷ್ಟು\s+ಸಮಯ|"
+    r"(?:ತಾಪಮಾನ|ಆರ್ದ್ರತೆ|ಪ್ರಕಾಶ|ವೇಗ|ವಾಲ್ಯೂಮ್)\s*(?:ಎಷ್ಟು|ಏನು))",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+_CLIMATE_QUERY_RE = re.compile(
+    r"(?:\b(?:temperature|humidity|climate)\b|तापमान|नमी|ತಾಪಮಾನ|ಆರ್ದ್ರತೆ)",
+    flags=re.IGNORECASE | re.UNICODE,
+)
 
 
 def _contains_alias(text: str, aliases: tuple[str, ...]) -> bool:
-    return any(alias in text for alias in aliases)
+    for alias in aliases:
+        if alias.isascii() and " " not in alias:
+            if re.search(rf"\b{re.escape(alias)}\b", text):
+                return True
+        elif alias in text:
+            return True
+    return False
 
 
 def _try_smart_home_action(text: str) -> TypedAction | None:
     low = text.lower()
     room = next((key for key, aliases in _SMART_HOME_ROOMS.items() if _contains_alias(low, aliases)), None)
     kind = next((key for key, aliases in _SMART_HOME_TYPES.items() if _contains_alias(low, aliases)), None)
+
+    if kind is None and _ROUTINE_TRIGGER_RE.search(low):
+        routine_id = next(
+            (key for key, aliases in _ROUTINE_ALIASES.items() if _contains_alias(low, aliases)),
+            None,
+        )
+        if routine_id is not None:
+            return TypedAction(
+                intent_name=IntentName.DEVICE_CONTROL,
+                slots={"action": "routine", "routine_id": routine_id},
+                confidence=0.94,
+            )
+
+    if kind is None and _CLIMATE_QUERY_RE.search(low):
+        kind = "climate_sensor"
+
     if kind is None:
         return None
     slots: dict[str, Any] = {"room": room, "device_type": kind}
     number = re.search(r"(?<!\d)(\d{1,3})(?:\s*(?:degrees?|percent|%|डिग्री|ಡಿಗ್ರಿ))?", low)
-    if re.search(r"\b(?:turn|switch)\s+on\b|\bon\s+करो|चालू|ಆನ್\s+ಮಾಡು|ಆನ್", low):
+    if _STATUS_QUERY_RE.search(low) or (
+        kind == "climate_sensor" and _CLIMATE_QUERY_RE.search(low) and number is None
+    ):
+        slots.update(action="status", value=None)
+    elif re.search(
+        r"\b(?:turn|switch)\s+on\b|\bon\s+(?:karo|maad[iu])\b|"
+        r"\bon\s+(?:करो|ಮಾಡು|ಮಾಡಿ)(?![\w\u0900-\u097F\u0C80-\u0CFF])|"
+        r"चालू\s*(?:करो|कर\s+दो)|ಆನ್\s+ಮಾಡು|ಆನ್\s+ಮಾಡಿ|"
+        r"(?<![\w\u0C80-\u0CFF])ಆನ್(?![\w\u0C80-\u0CFF])",
+        low,
+    ):
         slots.update(action="power", value=True)
-    elif re.search(r"\b(?:turn|switch)\s+off\b|\boff\s+करो|बंद\s+करो|ಆಫ್\s+ಮಾಡು|ಆಫ್", low):
+    elif re.search(
+        r"\b(?:turn|switch)\s+off\b|\boff\s+(?:karo|maad[iu])\b|"
+        r"\boff\s+(?:करो|ಮಾಡು|ಮಾಡಿ)(?![\w\u0900-\u097F\u0C80-\u0CFF])|"
+        r"बंद\s*(?:करो|कर\s+दो)|ಆಫ್\s+ಮಾಡು|ಆಫ್\s+ಮಾಡಿ|"
+        r"(?<![\w\u0C80-\u0CFF])ಆಫ್(?![\w\u0C80-\u0CFF])",
+        low,
+    ):
         slots.update(action="power", value=False)
     elif kind == "curtain" and re.search(r"\bopen\b|खोलो|ತೆರೆ", low):
         slots.update(action="position", value=100)
@@ -175,8 +288,6 @@ def _try_smart_home_action(text: str) -> TypedAction | None:
         slots.update(action="temperature", value=int(number.group(1)))
     elif number and kind == "television" and re.search(r"volume|आवाज़|ವಾಲ್ಯೂಮ್", low):
         slots.update(action="volume", value=int(number.group(1)))
-    elif re.search(r"status|state|how long|remaining|स्थिति|कितना समय|ಸ್ಥಿತಿ|ಎಷ್ಟು ಸಮಯ", low):
-        slots.update(action="status", value=None)
     else:
         return None
     return TypedAction(intent_name=IntentName.DEVICE_CONTROL, slots=slots, confidence=0.94)
@@ -362,14 +473,23 @@ class MultilingualFastRouter:
 
         # Time / Date quick catches
         if re.search(
-            r"(?:\bwhat(?:'s|\s+is)?\s+(?:the\s+)?time\b|\bcurrent\s+time\b|(?:क्या\s+)?समय\s*(?:क्या|हुआ|हुए|बता)|कितने\s+बजे|kitne\s+baje|samay\s+batao|ಎಷ್ಟು\s+ಗಂಟೆ|ಸಮಯ\s+ಎಷ್ಟು|eshtu\s+gante)",
+            r"(?:\bwhat(?:'s|\s+is)?\s+(?:the\s+)?time\b|\bwhat\s+time\s+is\s+it\b|\bcurrent\s+time\b|"
+            r"(?:क्या\s+)?समय\s*(?:क्या|हुआ|हुए|बता)|कितने\s+बजे|टाइम\s*(?:क्या|कितना)\s*(?:हुआ|है)|"
+            r"kitne\s+baje|samay\s+batao|time\s+kya\s+(?:hua|hai)|"
+            r"ಎಷ್ಟು\s+ಗಂಟೆ|ಗಂಟೆ\s+ಎಷ್ಟು|ಸಮಯ\s*(?:ಎಷ್ಟು|ಏನು|ಹೇಳು)|ಟೈಮ್\s*(?:ಎಷ್ಟು|ಏನು|ಹೇಳು)|"
+            r"eshtu\s+gante|samaya\s+eshtu|time\s+eshtu)",
             low,
             flags=re.UNICODE,
         ):
             return TypedAction(intent_name=IntentName.GET_TIME, confidence=0.92)
 
         if re.search(
-            r"(?:\btoday(?:'s)?\s+date\b|\bwhat(?:'s|\s+is)?\s+(?:the\s+)?(?:date|day)\b|तारीख\s+(?:क्या|बता)|आज\s+क्या\s+दिन|aaj\s+kya\s+tareekh|(?:ಇವತ್ತ\w*|ಇಂದು).*?(?:ಡೇಟ್|ದಿನಾಂಕ).*?ಏನು|ದಿನಾಂಕ\s+(?:ಏನು|ಎಷ್ಟು|ಹೇಳು)|ಯಾವ\s+ದಿನ|dinanka\s+enu)",
+            r"(?:\btoday(?:'s)?\s+date\b|\bdate\s+today\b|\bwhat(?:'s|\s+is)?\s+(?:the\s+|today(?:'s)?\s+)?(?:date|day)\b|"
+            r"(?:तारीख|डेट)\s*(?:क्या|कितनी|बता)|आज\s*(?:की\s+)?(?:तारीख|डेट)\s*(?:क्या|बता)?|आज\s+क्या\s+दिन|"
+            r"aaj\s+(?:ki\s+)?(?:kya\s+)?(?:tareekh|tarikh|date)|"
+            r"(?:ಇವತ್ತ\w*|ಇಂದು).*?(?:ಡೇಟ್|ದಿನಾಂಕ|ತಾರೀಖು).*?(?:ಏನು|ಎಷ್ಟು)|"
+            r"(?:ಡೇಟ್|ದಿನಾಂಕ|ತಾರೀಖು)\s*(?:ಏನು|ಎಷ್ಟು|ಹೇಳು)|ಯಾವ\s*(?:ದಿನ|ತಾರೀಖು)|"
+            r"dinanka\s+(?:enu|eshtu)|tareekhu\s+eshtu|(?:ivatt\w*|indu)\s+(?:date|dinanka|tareekhu)\s*(?:enu|eshtu)?)",
             low,
             flags=re.UNICODE,
         ):
@@ -489,8 +609,10 @@ class MultilingualFastRouter:
                     requested_language=requested_language,
                     fallback_language=norm.language,
                 )
-                act = self._try_hassil_single(sub_norm) or self._try_keyword_timer_or_clock(
-                    sub_norm
+                act = (
+                    self._try_hassil_single(sub_norm)
+                    or self._try_keyword_timer_or_clock(sub_norm)
+                    or _try_smart_home_action(sub_norm.normalized)
                 )
                 if act is None:
                     # Do NOT partially execute unvalidated compound actions deterministically
@@ -502,6 +624,7 @@ class MultilingualFastRouter:
                     intent_name=sub_actions[0].intent_name,
                     confidence=min(a.confidence for a in sub_actions),
                     source="hassil_fast",
+                    route_category="tool",
                     language=norm.language,
                     input_script=norm.script,
                     slots=sub_actions[0].slots,

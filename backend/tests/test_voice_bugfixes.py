@@ -324,3 +324,41 @@ def test_cli_validation_and_turn_output_deduplication() -> None:
     assert dedup.should_emit_ws_prompt() is False  # No duplicate AURA> prompt during HTTP turn
     dedup.end_http_turn()
     assert dedup.should_emit_ws_prompt() is True
+
+
+def test_cli_ws_event_worker_handles_all_terminal_outcomes(monkeypatch: Any, capsys: Any) -> None:
+    import json
+    import threading
+
+    frames = [
+        json.dumps({"type": "action_verified", "payload": {"turn_id": "t1", "action": "GetTime", "status": "verified"}}),
+        json.dumps({"type": "response_completed", "payload": {"turn_id": "t1", "language": "en", "response_text": "The time is 3:00 PM.", "tts_ms": 10.0, "ttfa_ms": 12.0}}),
+        json.dumps({"type": "clarification_required", "payload": {"turn_id": "t2", "language": "kn", "message": "ದಯವಿಟ್ಟು ಮತ್ತೊಮ್ಮೆ ಹೇಳಿ."}}),
+        json.dumps({"type": "response_completed", "payload": {"turn_id": "t2", "language": "kn", "response_text": "ದಯವಿಟ್ಟು ಮತ್ತೊಮ್ಮೆ ಹೇಳಿ."}}),
+        json.dumps({"type": "response_completed", "payload": {"turn_id": "t3", "language": "en", "response_text": "", "status": "ignored_silence", "silent": True}}),
+        json.dumps({"type": "error", "payload": {"turn_id": "t4", "message": "Mic unavailable"}}),
+    ]
+    stop_ev = threading.Event()
+
+    class _FakeWs:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def recv(self, timeout: float = 0.5) -> str:
+            if frames:
+                return frames.pop(0)
+            stop_ev.set()
+            raise TimeoutError
+
+    monkeypatch.setattr(_CLI_MOD, "ws_connect", lambda *_a, **_kw: _FakeWs())
+    dedup = _CLI_MOD.TurnOutputDeduplicator()
+    _CLI_MOD._ws_event_worker("ws://127.0.0.1:8000/api/v1/ws/live", stop_ev, dedup, threading.Lock())
+    out = capsys.readouterr().out
+    assert "[ACTION] GetTime: verified" in out
+    assert "[AURA (en)]: The time is 3:00 PM." in out
+    assert out.count("ದಯವಿಟ್ಟು ಮತ್ತೊಮ್ಮೆ ಹೇಳಿ.") == 1  # No duplicate print for clarification_required + response_completed
+    assert "[AURA (en)]: \n" not in out  # Silent ignored turn prints nothing
+    assert "[ERROR]: Mic unavailable" in out

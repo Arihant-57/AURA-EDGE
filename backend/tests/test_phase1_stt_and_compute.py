@@ -92,3 +92,51 @@ def test_offline_faster_whisper_cpu_and_cuda_on_recorded_en_hi_kn() -> None:
         gpu_res = stt_gpu.transcribe(audio_en, language="en", model_size="base")
         assert gpu_res.device == "cuda"
         assert gpu_res.is_empty is False
+
+
+def test_r2_decoupled_stt_en_and_hi_speech_when_kannada_reply_preferred() -> None:
+    cfg = Settings(
+        _env_file=None,
+        connectivity_mode=ConnectivityMode.STRICT_OFFLINE,
+        compute_mode=ComputeMode.CPU,
+        stt_model_size="small",
+    )
+    stt = WhisperTranscriber(cfg, ComputeManager(cfg))
+
+    # EN speech with language='kn' (reply preference) must detect English, NOT force IndicConformer KN
+    audio_en = _load_wav_16k_float32(cfg.models_dir / "eval_audio" / "phase1a_tts_en.wav")
+    en_res = stt.transcribe(audio_en, language="kn", preferred_reply_language="kn")
+    assert en_res.detected_language == "en"
+    assert en_res.preferred_reply_language == "kn"
+    assert en_res.recognition_mode == "multilingual"
+    assert en_res.model_size == "small"
+    assert en_res.language_probability is not None and 0.5 < en_res.language_probability < 1.0
+    assert en_res.quality_ok is True
+    assert en_res.avg_logprob is not None
+    assert en_res.no_speech_prob is not None
+    assert en_res.transcript_confidence is not None and en_res.transcript_confidence < 1.0
+    assert "timer" in en_res.text.lower()
+
+    # HI speech with preferred_reply_language='kn' must detect Hindi, NOT force IndicConformer KN
+    audio_hi = _load_wav_16k_float32(cfg.models_dir / "eval_audio" / "phase1a_tts_hi.wav")
+    hi_res = stt.transcribe(audio_hi, language="kn", preferred_reply_language="kn")
+    assert hi_res.detected_language == "hi"
+    assert hi_res.preferred_reply_language == "kn"
+    assert hi_res.model_size == "small"
+    assert hi_res.language_probability is not None and 0.5 < hi_res.language_probability < 1.0
+    assert hi_res.quality_ok is True
+
+    # KN speech in multilingual mode uses Whisper detection -> selective IndicConformer with real prob < 1.0
+    audio_kn = _load_wav_16k_float32(cfg.models_dir / "eval_audio" / "phase1a_tts_kn.wav")
+    kn_res = stt.transcribe(audio_kn, language="kn")
+    assert kn_res.detected_language == "kn"
+    assert kn_res.model_size == "indic-conformer-kn"
+    assert kn_res.language_probability is not None and 0.0 < kn_res.language_probability < 1.0
+    assert kn_res.quality_ok is True
+
+    # Explicit strict mode sets language_probability=None (never fabricated 1.0)
+    strict_res = stt.transcribe(audio_kn, language="kn", recognition_mode="strict")
+    assert strict_res.recognition_mode == "strict"
+    assert strict_res.model_size == "indic-conformer-kn"
+    assert strict_res.language_probability is None
+    assert strict_res.quality_ok is True

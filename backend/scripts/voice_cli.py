@@ -232,7 +232,26 @@ def _ws_event_worker(
                                 stream_turn_id = turn_id
                                 dedup.mark_streamed(turn_id)
                             print(payload.get("token", ""), end="", flush=True)
+                    elif ev == "action_verified":
+                        # Action metadata arrives before TTS finishes; response_completed prints the final reply.
+                        if dedup.should_emit_ws_prompt() and payload.get("status") == "verified":
+                            with out_lock:
+                                print(f"  [ACTION] {payload.get('action')}: verified", flush=True)
+                    elif ev == "clarification_required":
+                        # Rendered once on response_completed after playback completes to prevent duplicates.
+                        continue
+                    elif ev == "error":
+                        if dedup.should_emit_ws_prompt() and dedup.claim_render(turn_id):
+                            with out_lock:
+                                print(f"\n  [ERROR]: {payload.get('message')}", flush=True)
+                                print("AURA> ", end="", flush=True)
                     elif ev == "response_completed":
+                        if payload.get("silent") or (
+                            not payload.get("response_text")
+                            and payload.get("status") == "ignored_silence"
+                        ):
+                            stream_turn_id = None
+                            continue
                         if dedup.was_streamed(turn_id):
                             dedup.claim_render(turn_id)
                             with out_lock:
@@ -249,7 +268,18 @@ def _ws_event_worker(
                             stream_turn_id = None
                         elif dedup.should_emit_ws_prompt() and dedup.claim_render(turn_id):
                             with out_lock:
-                                print(f"\n  [AURA ({payload.get('language')})]: {payload.get('response_text')}", flush=True)
+                                print(
+                                    f"\n  [AURA ({payload.get('language')})]: {payload.get('response_text')}",
+                                    flush=True,
+                                )
+                                if payload.get("tts_ms") is not None or payload.get("ttfa_ms") is not None:
+                                    print(
+                                        f"  [LATENCY] tts_synth={payload.get('tts_ms')}ms "
+                                        f"startup={payload.get('audio_startup_ms')}ms "
+                                        f"playback={payload.get('playback_ms')}ms "
+                                        f"ttfa={payload.get('ttfa_ms')}ms",
+                                        flush=True,
+                                    )
                         if dedup.should_emit_ws_prompt():
                             with out_lock:
                                 print("AURA> ", end="", flush=True)
@@ -261,10 +291,11 @@ def _ws_event_worker(
                                     end="",
                                     flush=True,
                                 )
-                    elif ev == "timer_completed":
+                    elif ev in ("timer_completed", "timer_missed"):
                         t = payload.get("timer") or {}
+                        tag = "TIMER MISSED" if ev == "timer_missed" else "TIMER COMPLETED"
                         with out_lock:
-                            msg = f"\n  [TIMER COMPLETED] {t.get('label') or t.get('id')}"
+                            msg = f"\n  [{tag}] {t.get('label') or t.get('id')}"
                             if dedup.should_emit_ws_prompt():
                                 msg += "\nAURA> "
                             print(msg, end="" if dedup.should_emit_ws_prompt() else "\n", flush=True)

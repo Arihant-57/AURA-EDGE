@@ -13,7 +13,7 @@ from typing import Any
 import numpy as np
 
 from aura_edge.intelligence.schemas import LanguageCode
-from aura_edge.speech.tts_backends.base import SynthesizedAudio
+from aura_edge.speech.tts_backends.base import SynthesizedAudio, normalize_kannada_for_tts
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +146,9 @@ class SherpaOnnxBackend:
         safe_speed = max(0.5, min(2.0, float(speed)))
         clean = text.strip()
         if language == "kn":
+            clean = normalize_kannada_for_tts(clean)
+            # vits-mms-kan tokens.txt omits ZWNJ/ZWJ; join without spaces so compound words stay intact
+            clean = clean.replace("\u200c", "").replace("\u200d", "")
             clean = re.sub(r"[^\u0C80-\u0CFF0-9\s'\-_]+", " ", clean)
             clean = re.sub(r"\s+", " ", clean).strip()
         if not clean:

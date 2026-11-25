@@ -4,12 +4,16 @@ intents:
     data:
       - sentences:
           - "(what is|whats|what's|tell me) [the] [current] time [right now|now]"
-          - "time [please]"
+          - "what time is it [right now|now]"
+          - "[current] time [please|now]"
   GetDate:
     data:
       - sentences:
           - "(what is|whats|what's|tell me) [today's|todays|the] date [today]"
+          - "[today's|todays] date [today]"
+          - "date today"
           - "what day is [it] [today]"
+          - "what is the day today"
   SetTimer:
     data:
       - sentences:

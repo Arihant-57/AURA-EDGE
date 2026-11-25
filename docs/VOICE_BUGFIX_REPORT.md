@@ -1,65 +1,86 @@
-# AURA EDGE — Real-World Voice & Conversational Bugfix Report
+# AURA EDGE — Real-World Voice & Conversational Stabilization Report
 
-**Branch:** `feat/backend-intelligence` (building on `d56a0ac`)  
-**Scope:** Real-world microphone, playback, language fidelity, CLI, and concurrency fixes across Phase 0–2 without altering `frontend/`, `main`, AURA V4, or starting Phase 3.
-
----
-
-## 1. Root Causes Found & Fixed
-
-| Area | Root Cause | Implemented Fix | File(s) |
-|---|---|---|---|
-| **1. Audio Playback Quality** | Blocking chunk writes (`stream.write`) caused buffer underruns between sentences, rate mismatches (`16000` Hz Kannada vs `22050` Hz EN/HI vs `48000` Hz Windows WASAPI), clipping/DC clicks, and concurrent audio tasks (`speak_text` + timer notifications) could contend for playback. | Implemented single-owner exclusive `AudioPlayback` (`_owner_lock` + monotonic `_playback_gen` guard), callback-driven `_BoundedPcmBuffer` (8s circular buffer outputting clean zeros during brief sentence gaps), `prepare_pcm_for_playback()` (DC removal, silence trimming, peak limiting `<= 0.95`, 5 ms/8 ms fades, `resample_poly` fallback to host default `48000`/`44100` Hz), 2-sentence prefetch, and `55 ms` inter-sentence pause. Speed clamped safely to `0.5..2.0`. | [`playback.py`](../backend/src/aura_edge/speech/playback.py), [`sherpa_onnx_backend.py`](../backend/src/aura_edge/speech/tts_backends/sherpa_onnx_backend.py), [`tts_router.py`](../backend/src/aura_edge/speech/tts_router.py) |
-| **2. Microphone Feedback (Echo Loop)** | `AudioRouteMode.MONITOR_ONLY` only softened callback routing and restored `NORMAL` immediately on `IDLE`, letting lingering speaker reverb re-trigger Silero VAD in hands-free mode. | Switched to strict **half-duplex** gating: entering speech calls `AudioCapture.suspend_for_playback()`, which closes the active hardware `InputStream`, drops incoming frames, drains `_frame_queue`, clears `_preroll`/`_recorded_frames`, and resets Silero VAD. `resume_after_playback()` runs only after physical output drain plus configurable `audio_post_playback_cooldown_sec` (`0.65s`, `AURA_EDGE_AUDIO_POST_PLAYBACK_COOLDOWN_SEC`), while preserving explicit user mute. | [`audio_capture.py`](../backend/src/aura_edge/speech/audio_capture.py), [`voice_orchestrator.py`](../backend/src/aura_edge/application/voice_orchestrator.py), [`config.py`](../backend/src/aura_edge/config.py) |
-| **3. EN/HI/KN Language Enforcement & Hallucinations** | (a) `normalizer._replace_number_words()` replaced `"do"` -> `"2"` unconditionally whenever `language != "en"`, corrupting English sentences like `"What languages do you support?"` after `/lang kn`. (b) `IntentProcessRequest.language` defaulted to `"auto"`, overriding `/voice/language`. (c) `stt.py` could propagate unsupported Whisper language codes. (d) LLMs could answer in English while tagged `"kn"` or claim Tagalog support. | Restricted `_ROMAN_INDIC_NUMBER_WORDS` to always require a trailing time unit; defaulted `IntentProcessRequest.language = None` (honoring `session_language`); locked `stt.py` to Unicode script + `{"en", "hi", "kn"}`; added `validate_response_language()` rejecting `<35%` Kannada/Devanagari script or unsupported-language claims before Kannada/Hindi TTS speaks. | [`normalizer.py`](../backend/src/aura_edge/intelligence/normalizer.py), [`stt.py`](../backend/src/aura_edge/speech/stt.py), [`routes_voice.py`](../backend/src/aura_edge/api/routes_voice.py), [`conversation.py`](../backend/src/aura_edge/intelligence/conversation.py) |
-| **4. Outdated Capability Prompt** | `_CONVERSATION_SYSTEM_PROMPT` line 28 still claimed AURA could not control smart-home lights after Phase 2 was merged. | Added `ToolRegistry.describe_capabilities(language)` dynamically summarizing `DateTimeTool`, `TimerManager`, and active `SmartHomeService` rooms/devices/routines, injected into `ConversationSession.build_llm_messages()`, while keeping strict tool-verification honesty. | [`conversation.py`](../backend/src/aura_edge/intelligence/conversation.py), [`tool_registry.py`](../backend/src/aura_edge/execution/tool_registry.py), [`planner.py`](../backend/src/aura_edge/intelligence/planner.py) |
-| **5. Short Natural Deterministic Replies** | Greetings, acknowledgments, and identity/language questions gave verbose boilerplate or hit Ollama. | Shortened `"greeting"`, `"acknowledgment"`, `"farewell"` templates; added deterministic `Identity` and `SupportedLanguages` intents in `fast_router.py` / `schemas.py`; kept `keep_alive="15m"` and `num_predict=120` (`220` only for detailed explanations). | [`response_catalog.py`](../backend/src/aura_edge/intelligence/response_catalog.py), [`fast_router.py`](../backend/src/aura_edge/intelligence/fast_router.py), [`ollama_client.py`](../backend/src/aura_edge/intelligence/ollama_client.py) |
-| **6. CLI Validation & Deduplication** | Bare `/`, bare `/lang`, unknown `/foo`, and punctuation (`...`) fell through to `/intent/process` and Ollama; WebSocket + HTTP both printed turns and duplicate `AURA>` prompts. | Added `parse_cli_command()` rejecting invalid/incomplete slash commands and punctuation-only input locally (Unicode-safe for Devanagari/Kannada); added `TurnOutputDeduplicator` deduplicating WS/HTTP output by `turn_id` and suppressing WS prompts while HTTP turns are in flight. | [`voice_cli.py`](../backend/scripts/voice_cli.py) |
-| **7. Concurrency & Turn Serialization** | Concurrent text inputs, continuous VAD turns, and timer completion chimes could race over FSM state and playback. | Added `_turn_lock` in `VoiceOrchestrator`, `_preempt_idle_listening()` before text/PTT/upload turns, serialized `_speak_timer_notification()`, and checked cancellation before opening audio output. | [`voice_orchestrator.py`](../backend/src/aura_edge/application/voice_orchestrator.py) |
-| **8. Separated Latency Telemetry** | Needed explicit distinction between synthesis readiness and actual audible output start/drain. | Added `audio_startup_ms` (`PlaybackMetrics`, `ProcessTurnOutput`, `response_completed` WS event) cleanly separated from `stt_ms`, `llm_ttft_ms`, `llm_ms`, `tts_ms`, `first_audio_ready_ms`/`ttfa_ms`, and actual `playback_ms`. | [`playback.py`](../backend/src/aura_edge/speech/playback.py), [`voice_orchestrator.py`](../backend/src/aura_edge/application/voice_orchestrator.py) |
+**Branch:** `feat/backend-intelligence` (building on `d429f44` / `d56a0ac`)  
+**Scope:** Root-cause voice pipeline stabilization across Phases 0, 1, 1.5, and 2 (`R1–R8`) without altering `frontend/`, `main`, AURA V4, or starting Phase 3.
 
 ---
 
-## 2. Installed Local Ollama Model Evaluation (No Downloads)
+## 1. Root Causes Found & Fixed (`R1–R8`)
 
-Evaluated already-installed local Ollama models (`127.0.0.1:11434`, `think=false`, `num_predict=100`, `num_ctx=4096`) on short EN/HI/KN knowledge prompts (`"Why is the sky blue in simple words?"`, `"आकाश नीला क्यों दिखता है?"`, `"ಆಕಾಶ ಏಕೆ ನೀಲಿಯಾಗಿ ಕಾಣುತ್ತದೆ?"`):
+| Req | Area | Root Cause | Implemented Fix | File(s) |
+|---|---|---|---|---|
+| **R1** | **Independent Review & Concurrency** | `start_ptt()` and `cancel_turn()` bypassed `_turn_lock`; background tasks (`_timer_audio_tasks`, `_conversation_task`, `SmartHomeService._simulation_task`) lacked exception logging; `process_text` and `_continuous_conversation_loop` could leave FSM stuck on unexpected errors; empty/cancelled turns hardcoded `confidence=1.0`. | Serialized `start_ptt()` and `cancel_turn()` with `_turn_lock` (bounded 1.0s wait in `cancel_turn`); added `_log_bg_task_exception` callbacks and loop `try/except` guards; set `confidence=0.0` on empty/clarify/cancelled turns; preserved `_vram_lock`, `WhisperTranscriber._lock`, and `_owner_lock`. | [`voice_orchestrator.py`](../backend/src/aura_edge/application/voice_orchestrator.py), [`smart_home.py`](../backend/src/aura_edge/application/smart_home.py) |
+| **R2** | **Decoupled STT & Reply Language** | `stt.py` (lines 168–183) bypassed Whisper whenever `language="kn"`, invoked `indic-conformer-kn` directly, and fabricated `language_probability=1.0`—turning English speech and noise into random Kannada syllables. | Separated `session_language` (preferred reply language) from `stt_language="auto"` and `stt_recognition_mode="multilingual"` (with optional `"strict"` mode). Default `"multilingual"` mode always runs Whisper multilingual detection first and selectively delegates to `indic-conformer-kn` using Whisper's real `language_probability` (or `None` in strict CTC mode—never `1.0`). | [`stt.py`](../backend/src/aura_edge/speech/stt.py), [`voice_orchestrator.py`](../backend/src/aura_edge/application/voice_orchestrator.py), [`routes_voice.py`](../backend/src/aura_edge/api/routes_voice.py), [`config.py`](../backend/src/aura_edge/config.py) |
+| **R3** | **KN/HI STT & Audio Input** | `_preroll` ring buffer was never populated; continuous loop reopened `sd.InputStream` every 8s timeout; single-frame VAD pops locked `_noise_floor_rms` high; quiet mics lacked bounded AGC; `indic-conformer-kn` could emit non-Kannada Indic tokens from its 5,633-token vocab. | Populated `_preroll` during idle/pre-speech and kept ~448 ms pre-speech context on `speech_start`; reused active `InputStream` across `no_speech_timeout`; added `onset_frames=2` (64 ms), bounded noise-floor adaptation, and continuation hysteresis in `SileroVadDetector`; added `CaptureMetrics` (`last_capture_metrics`); added quiet-mic AGC (capped 6x), Phase 2 domain prompts, `_validate_kn_ctc_output()`, and Hindi/Kannada ASR variant normalization (`पाज -> पांच`, `तामर -> टाइमर`, `ಗಂತೆ -> ಗಂಟೆ`). | [`vad.py`](../backend/src/aura_edge/speech/vad.py), [`audio_capture.py`](../backend/src/aura_edge/speech/audio_capture.py), [`stt.py`](../backend/src/aura_edge/speech/stt.py), [`normalizer.py`](../backend/src/aura_edge/intelligence/normalizer.py) |
+| **R4** | **Noise & False Speech Rejection** | `stt.py` only checked `peak < 1e-4` and passed `vad_filter=False`; noise hallucinations (`"Thanks for watching"`, `"ಿದ್ದಾರೆ"`) fell through to Qwen LLM or triggered 20s introductions / clarification loops. | Added `_estimate_audio_stats`, `_extract_segment_metrics` (`avg_logprob`, `no_speech_prob`, `compression_ratio`), and `_evaluate_quality_gate` returning `rejection_reason` (`"silence"`, `"noise"`, `"unclear_speech"`, `"invalid_script"`) while preserving legitimate short commands (`stop`, `yes`, `no`, `ಹೌದು`, `ಇಲ್ಲ`, `ನಿಲ್ಲಿಸು`, `हाँ`, `नहीं`, `रुको`). `VoiceOrchestrator` silently returns to `IDLE` on `silence`/`noise` and speaks one short clarification on `unclear_speech`/`invalid_script`. | [`stt.py`](../backend/src/aura_edge/speech/stt.py), [`voice_orchestrator.py`](../backend/src/aura_edge/application/voice_orchestrator.py) |
+| **R5** | **Routing, Tools & Terminal Outcomes** | Missing colloquial/mixed EN/HI/KN date, time, smart-home, and routine patterns; `fast_router.py` had a Malayalam `ഠ` typo in `"study"` (`ಪಠಣ`) and `\b` boundary failures on Indic suffixes; `planner.py` lacked `DeviceControl` schema; deterministic tools never emitted `response_completed`; `CLARIFYING` FSM transitions and `voice_cli.py` handlers were incomplete. | Added EN/HI/KN/Hinglish/Kanglish clock, smart-home status, climate, and routine patterns + fixed `ಪಠಣ` & Indic boundary regexes; added `DeviceControl` validation in `planner.py`; localized `SmartHomeService` device status replies; ensured every turn emits `response_completed` ONCE after `_maybe_speak()` with explicit `outcome` (`success`, `clarification`, `refusal`, `cancelled`, `runtime_failure`) and accurate `action_executed`; updated `voice_cli.py` WS worker. | [`fast_router.py`](../backend/src/aura_edge/intelligence/fast_router.py), [`intents/*/phase1.yaml`](../backend/src/aura_edge/intelligence/intents/en/phase1.yaml), [`planner.py`](../backend/src/aura_edge/intelligence/planner.py), [`tool_registry.py`](../backend/src/aura_edge/execution/tool_registry.py), [`smart_home.py`](../backend/src/aura_edge/application/smart_home.py), [`voice_orchestrator.py`](../backend/src/aura_edge/application/voice_orchestrator.py), [`voice_cli.py`](../backend/scripts/voice_cli.py) |
+| **R6** | **Natural Kannada TTS & Pronunciation** | `tts_router.py` and `sherpa_onnx_backend.py` stripped all Latin characters, erasing English device names (`Light Bedroom Main`), timer labels, `AURA EDGE`, `AM`/`PM`, and decimal points (`3.5`); `vits-mms-kan` emitted ZWNJ/ZWJ unknown-char warnings; Kannada templates were literal/anglicized. | Implemented shared `normalize_kannada_for_tts()` transliterating device names, `AURA EDGE` (`ಆರಾ ಎಡ್ಜ್`), context-aware `AM`/`PM`, decimals, dates, `%`, `°C`, and unknown English words; stripped ZWNJ/ZWJ immediately before `vits-mms-kan` token lookup; refined Kannada templates in `response_catalog.py`; prewarmed `empty_speech` and `stopped`; preserved one fixed voice per language (`vits-mms-kan`, `en_US-lessac-medium`, `hi_IN-rohan-medium`). | [`tts_backends/base.py`](../backend/src/aura_edge/speech/tts_backends/base.py), [`sherpa_onnx_backend.py`](../backend/src/aura_edge/speech/tts_backends/sherpa_onnx_backend.py), [`tts_router.py`](../backend/src/aura_edge/speech/tts_router.py), [`response_catalog.py`](../backend/src/aura_edge/intelligence/response_catalog.py) |
+| **R7** | **Model Selection & Placement** | Needed empirical VRAM/RAM/throughput verification across installed Ollama models and mid-stream cancellation responsiveness. | Evaluated `qwen3.5:4b`, `qwen3.5:9b`, and `nemotron-3-nano:4b` sequentially (see [`VOICE_LATENCY_REPORT.md`](./VOICE_LATENCY_REPORT.md)); confirmed `qwen3.5:4b` (100% GPU, `40.48–41.55 tok/s`, 4944 MiB VRAM) as optimal default; kept `keep_alive="15m"` configurable and added race-against-`cancel_event` inside `OllamaClient.stream_chat`. | [`ollama_client.py`](../backend/src/aura_edge/intelligence/ollama_client.py), [`config.py`](../backend/src/aura_edge/config.py) |
+| **R8** | **Streaming, Audio Stability & Latency** | Streaming language guard only checked sentence #1 in HI/KN and skipped EN + tail; `_BoundedPcmBuffer` acquired `threading.Condition` inside PortAudio callback; final sentence received a 55 ms trailing silence pad; `stop()` skipped `apply_fade_out()`; monotonic `stage_timestamps` were missing. | Validated every streamed sentence and tail chunk via `validate_response_language()` before TTS queuing and enforced `spoken_text == response_text` parity; rewrote `_BoundedPcmBuffer` as lock-free SPSC ring buffer capturing `first_non_silent_mono` inside callback; added concurrent 2-sentence prefetch `_feeder` and barge-in fade-out; fixed premature mic resume on `CANCELLED`/`ERROR`; added all 10 `stage_timestamps` and derived latency fields. | [`playback.py`](../backend/src/aura_edge/speech/playback.py), [`tts_router.py`](../backend/src/aura_edge/speech/tts_router.py), [`voice_orchestrator.py`](../backend/src/aura_edge/application/voice_orchestrator.py) |
 
-| Model | Lang | TTFT (ms) | Total (ms) | Speed (tok/s) | Script Valid | Honest Observed Quality |
-|---|---|---:|---:|---:|---|---|
-| `qwen3.5:4b` (default) | `en` | `4564.46` | `8566.39` | `8.51` | Yes | Accurate & concise ("Rayleigh scattering"). |
-| `qwen3.5:4b` (default) | `hi` | `4433.39` | `14575.96` | `7.30` | Yes | Fluent grammar, but mistranslated Rayleigh as `"रूट-फ्रैक्टल"` and inserted Latin parens `(Rayleigh scattering)`. |
-| `qwen3.5:4b` (default) | `kn` | `5079.10` | `19241.86` | `7.06` | Yes | Weak semantics: hallucinated `"ರೇಲಿ ಸ್ಪರ್ಧ"` and `"ಮಣ್ಣಿನಲ್ಲಿ"` ("in soil"). Requires human verification; keep responses brief. |
-| `nemotron-3-nano:4b` | `en` | `725.78` | `1052.09` | `42.87` | Yes | Very fast & accurate in English. |
-| `nemotron-3-nano:4b` | `hi` | `564.06` | `762.79` | `50.38` | Yes | Broken Hindi (`"आकाश हल्का है।"` — "the sky is light"). |
-| `nemotron-3-nano:4b` | `kn` | `542.10` | `1033.70` | `46.76` | Yes | Broken truncated Kannada (`"ಆಕಾಶ ಅಲ್ಲ, ನೀಲಿಯಾಗಿ ಕಾಣುತ್."`). |
-| `qwen3.5:9b` (installed) | `en` | `1028.79` | `4337.08` | `10.28` | Yes | Accurate & well-paced. |
-| `qwen3.5:9b` (installed) | `hi` | `961.68` | `5669.87` | `10.41` | Yes | Pure Devanagari, accurate & natural (`"वायुमंडल के छोटे कण..."`). |
-| `qwen3.5:9b` (installed) | `kn` | `1119.97` | `6925.50` | `9.99` | Yes | Pure Kannada script, accurate & concise explanation (minor suffix slip `"ಬೆಳಕಿನನ್ನು"` vs `"ಬೆಳಕನ್ನು"`). |
+---
 
-**Takeaway:** Default stays `qwen3.5:4b` to respect the 6 GB RTX 3050 VRAM budget alongside `faster-whisper-small`, with `validate_response_language()` guarding Hindi/Kannada output. For higher-quality local Hindi and Kannada dialogue (with slower/tighter VRAM headroom), already-installed `qwen3.5:9b` can be selected via `AURA_EDGE_OLLAMA_MODEL=qwen3.5:9b`. Live human Kannada voice evaluation remains required before claiming production-grade Kannada fluency.
+## 2. Installed Ollama Comparison Summary (Sequential Measurement)
+
+Measured sequentially via local Ollama (`127.0.0.1:11434`, `think=false`, `num_predict=100`, `num_ctx=4096`) on RTX 3050 6 GB Laptop GPU + 16 GB RAM:
+
+| Model | Placement (`ollama ps`) | VRAM Active / Total | Warm Speed (tok/s) | Warm TTFT (EN/HI/KN) | Observed Quality |
+|---|---|---:|---:|---:|---|
+| **`qwen3.5:4b` (default)** | `100% GPU` | `4944 / 6144 MiB` | `40.48–41.55` | `257 / 296 / 296 ms` | Accurate EN/HI; valid Kannada script (`validate_response_language` passes), brief & fits 6 GB VRAM alongside Whisper. |
+| `qwen3.5:9b` | `41%/59% CPU/GPU` | `5573 / 6144 MiB` | `9.85–9.95` | `374 / 695 / 687 ms` | Best Kannada prose, but ~4x slower (`first_valid_sentence` 7.69s in KN) and spills 41% to RAM. |
+| `nemotron-3-nano:4b` | `100% GPU` | `3764 / 6144 MiB` | `47.62–50.54` | `253 / 344 / 313 ms` | Fast EN, but semantically broken in HI (`"है, आपका सवाल है।"`) and KN (echoes question). |
 
 ---
 
 ## 3. Automated Verification Summary
 
-- `ruff check .\backend`: **All checks passed!** (`0` errors)
-- Focused bugfix + Phase 1.5/2 check (`test_voice_bugfixes.py`, `test_phase1_5_conversation.py`, `test_phase1_tts_and_playback.py`, `test_phase1_multilingual_router.py`, `test_phase2_smart_home.py`): **`117 passed, 0 failed, 0 skipped`**
-- Full regression suite against live PostgreSQL (`AURA_EDGE_REQUIRE_LIVE_DB=1 .\.venv\Scripts\pytest.exe -v .\backend\tests`): **`146 passed, 0 failed, 0 skipped`** in `127.53s`.
+- `.\.venv\Scripts\ruff.exe check .\backend`: **All checks passed!** (`0` errors)
+- Full Phase 0–2 regression suite against live PostgreSQL (`$env:AURA_EDGE_REQUIRE_LIVE_DB="1"; .\.venv\Scripts\pytest.exe -v .\backend\tests`): **`170 passed, 0 failed, 0 skipped` in `281.65s`**.
+
+> **Important Honesty Note:** Automated tests ran with simulated/null speaker streams (zero physical speaker output) and synthetic TTS WAV fixtures (`0` real human microphone recordings exist in the workspace). Acoustic echo suppression, TTS pronunciation naturalness, and regional Karnataka Kannada STT accuracy **cannot** be claimed complete until verified in the human microphone acceptance test below.
 
 ---
 
-## 4. Human Microphone Acceptance Test (5-Minute Verification)
+## 4. Human Microphone Acceptance Test (3–5 Minute Verification)
 
-Automated tests ran with physical speaker output disabled (`play_to_speaker=False` / mocked streams) to isolate concurrency and timing cleanly. Before marking acoustic voice quality final on your hardware, run:
+### Startup & Diagnostic Log Capture
+
+Open PowerShell in `C:\Users\ariha\Desktop\AURA-EDGE` and capture both console transcript and backend diagnostics:
 
 ```powershell
 cd C:\Users\ariha\Desktop\AURA-EDGE
+New-Item -ItemType Directory -Force -Path .runtime\logs | Out-Null
+Start-Transcript -Path .runtime\logs\human_acceptance_cli.log -Append
 .\scripts\start-aura-voice.ps1 -ConversationMode continuous
 ```
 
-Check each item interactively in a quiet room:
-1. **Prompt & CLI Hygiene:** Type `/`, `/lang`, `/unknown`, and `...` at `AURA>` — verify local usage hints appear cleanly and AURA does **not** speak or hit Ollama. Verify only one `AURA>` prompt renders per turn.
-2. **Short Greetings & Identity:** Say `"Hello"` -> verify brief reply (`"Hello! How can I help?"`), clean smooth audio, zero clicks/stuttering. Ask `"What is your name?"` -> brief identity reply. Ask `"What languages do you support?"` -> confirms ONLY English, Hindi, and Kannada.
-3. **Half-Duplex Anti-Feedback:** After AURA speaks a long answer (e.g. `"Why is the sky blue?"`), stay silent for 3 seconds — verify AURA does **not** transcribe its own speaker echo into a second turn.
-4. **Explicit Language & Smart-Home / Timers:** Run `/lang kn`, ask `"ಈಗ ಎಷ್ಟು ಗಂಟೆ ಆಗಿದೆ?"` and `"ಬೆಡ್‌ರೂಮ್ ಫ್ಯಾನ್ ಆನ್ ಮಾಡು"` (or `"Turn on the bedroom fan"`), then set a `5 second timer` while talking — confirm smooth Kannada/English voice switches with zero overlapping playback.
-5. **Clean Shutdown:** Press `/quit` and run `.\scripts\stop-dev.ps1 -WithDb`.
+*(Backend logs are also written under `.runtime\`; check `GET http://127.0.0.1:8000/api/v1/voice/status` or inspect `AURA>` `[LATENCY]` lines.)*
+
+### Required 8 Acceptance Scenarios
+
+| # | Scenario | Action / Spoken Utterance | Expected Result |
+|---:|---|---|---|
+| 1 | **English question while Kannada is selected** | Type `/lang kn` at `AURA>`, then speak `"What is today's date?"` | Whisper detects `en` (NOT forced to Kannada syllables), reads real host clock, replies & speaks today's date in Kannada. |
+| 2 | **Natural Kannada conversation** | With `kn` active, speak `"ಆಕಾಶ ಏಕೆ ನೀಲಿಯಾಗಿ ಕಾಣುತ್ತದೆ?"` (or a regional/colloquial Kannada greeting) | Valid Kannada script reply, smooth consistent `vits-mms-kan` voice, zero Latin truncation. |
+| 3 | **Hindi conversation** | Speak `"नमस्ते"` then `"आकाश नीला क्यों दिखता है?"` (or switch `/lang hi`) | Devanagari reply, consistent `hi_IN-rohan-medium` voice, smooth streaming playback. |
+| 4 | **Current date and time** | Speak `"What's the time?"`, `"Today's date?"`, `"ಈಗ ಎಷ್ಟು ಗಂಟೆ?"`, `"आज तारीख क्या है?"` | Instant deterministic host-clock answer (`action_executed=True`) in the expected reply language. |
+| 5 | **Timer creation** | Speak `"Set a 10 second timer"` | Timer created in PostgreSQL, spoken confirmation plays, completion alert fires after 10s without duplicate lines. |
+| 6 | **Bedroom light control** | Speak `"Turn on the bedroom light"` (or `"ಬೆಡ್‌ರೂಮ್ ಲೈಟ್ ಆನ್ ಮಾಡು"`) | `light.bedroom_main` turns on (`action_executed=True`), localized confirmation spoken cleanly (`"ಬೆಡ್‌ರೂಮ್ ಲೈಟ್..."` transliterated if in Kannada). |
+| 7 | **Silence after assistant response** | After a long spoken reply finishes, remain silent for `3–5 seconds` | Half-duplex suspension + `0.65s` cooldown + R4 noise gate ignore room reverberation; zero self-trigger or spurious Qwen turn. |
+| 8 | **Voice smoothness & pronunciation** | Listen across EN/HI/KN for `"AURA EDGE"`, numbers, dates, `AM`/`PM`, device names | No buffer clicks/pops, no mid-reply voice changes, no dropped English device names in Kannada speech. |
+
+### Push-to-Talk Fallback & Shutdown
+
+If room reverberation, speaker bleed, or noisy background makes hands-free continuous VAD unreliable, run in Push-to-Talk mode instead:
+
+```powershell
+.\scripts\start-aura-voice.ps1 -ConversationMode ptt
+```
+
+When finished:
+
+```powershell
+# Type /quit at AURA> prompt, then:
+.\scripts\stop-dev.ps1 -WithDb
+Stop-Transcript
+```

@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import math
 import threading
 import time
-from collections import deque
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any
@@ -31,6 +31,10 @@ class PlaybackMetrics:
     cache_hits: int
     chunks_spoken: int
     audio_startup_ms: float | None = None
+    tts_completed_mono: float | None = None
+    first_audio_ready_mono: float | None = None
+    first_non_silent_callback_mono: float | None = None
+    playback_completed_mono: float | None = None
 
 
 def apply_fade_out(samples: np.ndarray, fade_samples: int = 64) -> np.ndarray:
@@ -111,86 +115,118 @@ def prepare_pcm_for_playback(
 
 
 class _BoundedPcmBuffer:
-    """Thread-safe ring buffer decoupling TTS producer from PortAudio callback."""
+    """Lock-free SPSC circular ring buffer decoupling TTS producer from PortAudio callback."""
 
     def __init__(self, sample_rate: int, *, max_seconds: float = 8.0) -> None:
         self.sample_rate = max(8000, int(sample_rate))
         self.capacity = max(2048, int(self.sample_rate * max_seconds))
-        self._chunks: deque[np.ndarray] = deque()
-        self._head_pos = 0
-        self._buffered = 0
+        self._ring_size = self.capacity + 1
+        self._ring = np.zeros(self._ring_size, dtype=np.float32)
+        self._write_idx = 0
+        self._read_idx = 0
         self._finished = False
         self._cancelled = False
-        self._started_event = threading.Event()
-        self._cond = threading.Condition()
+        self._fade_requested = False
+        self.fade_done = False
+        self.first_non_silent_mono: float | None = None
+        self.status_events = 0
 
     @property
-    def started_event(self) -> threading.Event:
-        return self._started_event
+    def buffered_samples(self) -> int:
+        return (self._write_idx - self._read_idx) % self._ring_size
+
+    def request_fade_out(self) -> None:
+        self._fade_requested = True
 
     def cancel(self) -> None:
-        with self._cond:
-            self._cancelled = True
-            self._chunks.clear()
-            self._head_pos = 0
-            self._buffered = 0
-            self._finished = True
-            self._cond.notify_all()
+        self._cancelled = True
+        self._finished = True
 
     def mark_finished(self) -> None:
-        with self._cond:
-            self._finished = True
-            self._cond.notify_all()
+        self._finished = True
 
     def write(self, pcm: np.ndarray, *, stop_check: Any) -> bool:
         """Write PCM blocks with bounded backpressure until consumed or cancelled."""
         if pcm.size == 0:
-            return not stop_check()
+            return not stop_check() and not self._cancelled
         data = pcm.astype(np.float32, copy=False).reshape(-1)
         pos = 0
+        size = self._ring_size
         while pos < len(data):
-            with self._cond:
-                while self._buffered >= self.capacity and not self._cancelled and not stop_check():
-                    self._cond.wait(timeout=0.05)
-                if self._cancelled or stop_check():
-                    return False
-                room = max(1024, self.capacity - self._buffered)
-                take = min(room, len(data) - pos)
-                self._chunks.append(data[pos : pos + take])
-                self._buffered += take
-                pos += take
-                self._cond.notify_all()
+            if self._cancelled or self._fade_requested or stop_check():
+                return False
+            w = self._write_idx
+            r = self._read_idx
+            free = (r - w - 1) % size
+            if free == 0:
+                time.sleep(0.005)
+                continue
+            take = min(free, len(data) - pos)
+            first_part = min(take, size - w)
+            self._ring[w : w + first_part] = data[pos : pos + first_part]
+            rem = take - first_part
+            if rem > 0:
+                self._ring[0:rem] = data[pos + first_part : pos + take]
+            self._write_idx = (w + take) % size
+            pos += take
         return True
 
     def read_into_callback(self, out_mono: np.ndarray) -> bool:
-        """Fill PortAudio callback buffer cleanly (outputs silence on brief gap, never crackles)."""
+        """Fill PortAudio callback buffer with zero locks, zero blocking, and zero logging."""
         need = len(out_mono)
-        written = 0
-        out_mono.fill(0.0)
-        with self._cond:
-            if self._cancelled:
-                return False
-            while written < need and self._chunks:
-                head = self._chunks[0]
-                avail = len(head) - self._head_pos
-                take = min(avail, need - written)
-                out_mono[written : written + take] = head[self._head_pos : self._head_pos + take]
-                self._head_pos += take
-                self._buffered -= take
-                written += take
-                if self._head_pos >= len(head):
-                    self._chunks.popleft()
-                    self._head_pos = 0
-            if written > 0:
-                self._started_event.set()
-                self._cond.notify_all()
-            done = self._finished and self._buffered == 0
-            return not done
+        if self._cancelled:
+            out_mono.fill(0.0)
+            return False
+
+        w = self._write_idx
+        r = self._read_idx
+        size = self._ring_size
+        avail = (w - r) % size
+        take = min(need, avail)
+
+        if take > 0:
+            first_part = min(take, size - r)
+            out_mono[:first_part] = self._ring[r : r + first_part]
+            rem = take - first_part
+            if rem > 0:
+                out_mono[first_part:take] = self._ring[0:rem]
+            self._read_idx = (r + take) % size
+
+        if take < need:
+            out_mono[take:] = 0.0
+
+        if take > 0 and self.first_non_silent_mono is None and float(np.max(np.abs(out_mono[:take]))) > 1e-6:
+            self.first_non_silent_mono = time.perf_counter()
+
+        if self._fade_requested:
+            if take > 1:
+                out_mono[:take] = apply_fade_out(out_mono[:take], fade_samples=take)
+            elif take == 1:
+                out_mono[0] = 0.0
+            self._read_idx = w
+            self._cancelled = True
+            self._finished = True
+            self.fade_done = True
+            return False
+
+        done = self._finished and ((w - self._read_idx) % size) == 0
+        return not done
 
     def wait_until_drained(self, *, stop_check: Any) -> None:
-        with self._cond:
-            while (self._buffered > 0 or not self._finished) and not self._cancelled and not stop_check():
-                self._cond.wait(timeout=0.05)
+        last_r = self._read_idx
+        last_progress = time.monotonic()
+        stall_limit = max(3.0, (self.capacity / float(self.sample_rate)) + 2.0)
+        while not self._cancelled and not stop_check():
+            r = self._read_idx
+            if r != last_r:
+                last_r = r
+                last_progress = time.monotonic()
+            if self._finished and self.buffered_samples == 0:
+                break
+            if self._finished and (time.monotonic() - last_progress) > stall_limit:
+                logger.warning("Audio output buffer drain stalled; releasing stream.")
+                break
+            time.sleep(0.005)
 
 
 class AudioPlayback:
@@ -266,10 +302,8 @@ class AudioPlayback:
 
             def _cb(outdata: np.ndarray, frames: int, _t: Any, status: Any, *, _b: _BoundedPcmBuffer = buf_ref) -> None:
                 if status:
-                    logger.debug("PortAudio output status: %s", status)
-                mono = np.empty(frames, dtype=np.float32)
-                _b.read_into_callback(mono)
-                outdata[:, 0] = mono
+                    _b.status_events += 1
+                _b.read_into_callback(outdata[:frames, 0])
 
             try:
                 stream = sd.OutputStream(
@@ -290,26 +324,32 @@ class AudioPlayback:
         raise RuntimeError(f"Unable to open audio output stream: {last_exc}")
 
     def stop(self) -> None:
-        """Immediately abort active audio playback and invalidate stale turns."""
+        """Immediately fade out and abort active audio playback, invalidating stale turns."""
         with self._stream_lock:
             self._playback_gen += 1
             self._cancel_event.set()
             self._is_playing = False
-            if self._active_buffer is not None:
-                self._active_buffer.cancel()
-                self._active_buffer = None
+            buf = self._active_buffer
+            self._active_buffer = None
             stream = self._stream
             self._stream = None
             self._stream_sr = None
-            if stream is not None:
-                try:
-                    stream.abort()
-                except (OSError, RuntimeError) as exc:
-                    logger.debug("Ignoring output stream abort error: %s", exc)
-                try:
-                    stream.close()
-                except (OSError, RuntimeError) as exc:
-                    logger.debug("Ignoring output stream close error: %s", exc)
+        if buf is not None:
+            if stream is not None and buf.buffered_samples > 0:
+                buf.request_fade_out()
+                deadline = time.monotonic() + 0.04
+                while not buf.fade_done and time.monotonic() < deadline:
+                    time.sleep(0.002)
+            buf.cancel()
+        if stream is not None:
+            try:
+                stream.abort()
+            except (OSError, RuntimeError) as exc:
+                logger.debug("Ignoring output stream abort error: %s", exc)
+            try:
+                stream.close()
+            except (OSError, RuntimeError) as exc:
+                logger.debug("Ignoring output stream close error: %s", exc)
 
     def _close_stream_gracefully(self, stream: Any) -> None:
         with self._stream_lock:
@@ -407,13 +447,17 @@ class AudioPlayback:
             cache_hits = 0
             first_audio_ready_ms: float | None = None
             audio_startup_ms: float | None = None
-            play_started_perf: float | None = None
+            first_audio_ready_mono: float | None = None
+            tts_completed_mono: float | None = None
+            first_non_silent_callback_mono: float | None = None
+            playback_completed_mono: float | None = None
 
             active_stream: Any = None
             active_buf: _BoundedPcmBuffer | None = None
             active_sr: int | None = None
-            prefetch: deque[Future[SynthesizedAudio]] = deque()
-            eof_reached = False
+            chunks_written = 0
+            prefetch_queue: asyncio.Queue[Future[SynthesizedAudio] | None] = asyncio.Queue(maxsize=2)
+            submitted_futures: list[Future[SynthesizedAudio]] = []
 
             def _is_cancelled() -> bool:
                 return (
@@ -425,42 +469,67 @@ class AudioPlayback:
             def _tts_task(sentence: str) -> SynthesizedAudio:
                 return self._tts.synthesize(sentence, language=language, speed=speed)
 
-            def _drain_nonblocking_prefetch(max_pending: int = 2) -> None:
-                nonlocal eof_reached
-                while not eof_reached and len(prefetch) < max_pending and not sentence_queue.empty():
-                    nxt = sentence_queue.get_nowait()
-                    if nxt is None:
-                        eof_reached = True
-                        break
-                    prefetch.append(self._executor.submit(_tts_task, nxt))
+            async def _feeder() -> None:
+                try:
+                    while not _is_cancelled():
+                        try:
+                            nxt = await asyncio.wait_for(sentence_queue.get(), timeout=0.05)
+                        except TimeoutError:
+                            continue
+                        if nxt is None:
+                            await prefetch_queue.put(None)
+                            break
+                        if not nxt.strip():
+                            continue
+                        fut = self._executor.submit(_tts_task, nxt)
+                        submitted_futures.append(fut)
+                        while not _is_cancelled():
+                            try:
+                                await asyncio.wait_for(prefetch_queue.put(fut), timeout=0.05)
+                                break
+                            except TimeoutError:
+                                continue
+                except asyncio.CancelledError:
+                    pass
+
+            feeder_task = asyncio.create_task(_feeder())
 
             try:
-                while True:
-                    _drain_nonblocking_prefetch(2)
-                    while not prefetch and not eof_reached:
-                        nxt = await sentence_queue.get()
-                        if nxt is None:
-                            eof_reached = True
+                while not _is_cancelled():
+                    fut: Future[SynthesizedAudio] | None = None
+                    got_item = False
+                    while not _is_cancelled():
+                        try:
+                            fut = await asyncio.wait_for(prefetch_queue.get(), timeout=0.05)
+                            got_item = True
                             break
-                        prefetch.append(self._executor.submit(_tts_task, nxt))
-                        _drain_nonblocking_prefetch(2)
-
-                    if not prefetch or _is_cancelled():
+                        except TimeoutError:
+                            if feeder_task.done() and prefetch_queue.empty():
+                                got_item = True
+                                fut = None
+                                break
+                            continue
+                    if not got_item or fut is None or _is_cancelled():
                         break
 
-                    fut = prefetch.popleft()
-                    audio = await asyncio.wrap_future(fut)
+                    wrapped_fut = asyncio.wrap_future(fut)
+                    while not wrapped_fut.done() and not _is_cancelled():
+                        await asyncio.wait({wrapped_fut}, timeout=0.03)
                     if _is_cancelled():
+                        fut.cancel()
                         break
 
-                    _drain_nonblocking_prefetch(2)
+                    audio = wrapped_fut.result()
+                    now_mono = time.perf_counter()
+                    tts_completed_mono = now_mono
                     results.append(audio)
                     tts_synth_ms += float(audio.latency_ms)
                     if audio.cached:
                         cache_hits += 1
 
-                    if first_audio_ready_ms is None:
-                        first_audio_ready_ms = round((time.perf_counter() - base_perf) * 1000.0, 2)
+                    if first_audio_ready_mono is None:
+                        first_audio_ready_mono = now_mono
+                        first_audio_ready_ms = round((now_mono - base_perf) * 1000.0, 2)
 
                     if not play_to_speaker or audio.samples.size == 0:
                         continue
@@ -490,27 +559,24 @@ class AudioPlayback:
                             active_sr = audio.sample_rate
 
                     if active_buf is not None and active_sr is not None:
-                        more_pending = bool(prefetch) or not eof_reached
                         prepared, _ = prepare_pcm_for_playback(
                             audio.samples,
                             audio.sample_rate,
                             target_rate=active_sr,
-                            add_pause_ms=55.0 if more_pending else 0.0,
+                            add_pause_ms=0.0,
                         )
                         if prepared.size > 0:
+                            if chunks_written > 0:
+                                pause_samples = int(active_sr * 0.055)
+                                if pause_samples > 0:
+                                    prepared = np.concatenate(
+                                        [np.zeros(pause_samples, dtype=np.float32), prepared]
+                                    )
                             ok = await loop.run_in_executor(
                                 None,
                                 lambda p=prepared, b=active_buf: b.write(p, stop_check=_is_cancelled),
                             )
-                            started_hit = await loop.run_in_executor(
-                                None,
-                                active_buf.started_event.wait,
-                                0.3,
-                            )
-                            if play_started_perf is None and started_hit:
-                                now_p = time.perf_counter()
-                                play_started_perf = now_p
-                                audio_startup_ms = round((now_p - base_perf) * 1000.0, 2)
+                            chunks_written += 1
                             if not ok:
                                 break
 
@@ -528,15 +594,27 @@ class AudioPlayback:
                         except (OSError, RuntimeError, TypeError, ValueError):
                             hw_latency = 0.08
                         await asyncio.sleep(hw_latency + 0.04)
+                        playback_completed_mono = time.perf_counter()
+
+                    first_non_silent_callback_mono = active_buf.first_non_silent_mono
+                    if first_non_silent_callback_mono is not None:
+                        audio_startup_ms = round((first_non_silent_callback_mono - base_perf) * 1000.0, 2)
+                    if active_buf.status_events > 0:
+                        logger.debug("PortAudio output reported %d status flag(s).", active_buf.status_events)
 
                 playback_ms = (
-                    round((time.perf_counter() - play_started_perf) * 1000.0, 2)
-                    if play_started_perf is not None
+                    round(max(0.0, (playback_completed_mono - first_non_silent_callback_mono) * 1000.0), 2)
+                    if (playback_completed_mono is not None and first_non_silent_callback_mono is not None)
                     else 0.0
                 )
             finally:
-                for pending_fut in prefetch:
-                    pending_fut.cancel()
+                if not feeder_task.done():
+                    feeder_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await feeder_task
+                for pending_fut in submitted_futures:
+                    if not pending_fut.done():
+                        pending_fut.cancel()
                 if active_buf is not None and _is_cancelled():
                     active_buf.cancel()
                 if active_stream is not None:
@@ -552,6 +630,10 @@ class AudioPlayback:
                 cache_hits=cache_hits,
                 chunks_spoken=len(results),
                 audio_startup_ms=audio_startup_ms,
+                tts_completed_mono=tts_completed_mono,
+                first_audio_ready_mono=first_audio_ready_mono,
+                first_non_silent_callback_mono=first_non_silent_callback_mono,
+                playback_completed_mono=playback_completed_mono,
             )
             self.last_metrics = metrics
             return results, metrics

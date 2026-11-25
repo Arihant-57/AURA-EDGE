@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import copy
+import logging
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -15,7 +16,170 @@ from sqlalchemy.orm import Session
 
 from aura_edge.api.ws_events import WebSocketEventHub
 from aura_edge.data.models import SmartHomeDevice, SmartHomeRoutine, SmartHomeStateHistory
+from aura_edge.intelligence.response_catalog import format_duration_spoken
 from aura_edge.intelligence.schemas import LanguageCode, VerifiedActionResult
+
+logger = logging.getLogger(__name__)
+
+_ROOM_LABELS: dict[str, dict[LanguageCode, str]] = {
+    "living_room": {"en": "living room", "hi": "लिविंग रूम", "kn": "ಲಿವಿಂಗ್ ರೂಮ್"},
+    "bedroom": {"en": "bedroom", "hi": "बेडरूम", "kn": "ಬೆಡ್‌ರೂಮ್"},
+    "kitchen": {"en": "kitchen", "hi": "किचन", "kn": "ಕಿಚನ್"},
+    "study": {"en": "study room", "hi": "स्टडी रूम", "kn": "ಸ್ಟಡಿ ರೂಮ್"},
+    "utility_room": {"en": "utility room", "hi": "यूटिलिटी रूम", "kn": "ಯುಟಿಲಿಟಿ ರೂಮ್"},
+}
+_DEVICE_LABELS: dict[str, dict[LanguageCode, str]] = {
+    "light": {"en": "light", "hi": "लाइट", "kn": "ಲೈಟ್"},
+    "fan": {"en": "fan", "hi": "पंखा", "kn": "ಫ್ಯಾನ್"},
+    "air_conditioner": {"en": "AC", "hi": "एसी", "kn": "ಏಸಿ"},
+    "television": {"en": "TV", "hi": "टीवी", "kn": "ಟಿವಿ"},
+    "curtain": {"en": "curtain", "hi": "पर्दा", "kn": "ಪರದೆ"},
+    "washing_machine": {"en": "washing machine", "hi": "वॉशिंग मशीन", "kn": "ವಾಷಿಂಗ್ ಮೆಷಿನ್"},
+    "robot_vacuum": {"en": "robot vacuum", "hi": "रोबोट वैक्यूम", "kn": "ರೋಬೋಟ್ ವ್ಯಾಕ್ಯೂಮ್"},
+    "air_purifier": {"en": "air purifier", "hi": "एयर प्यूरीफायर", "kn": "ಏರ್ ಪ್ಯೂರಿಫೈಯರ್"},
+    "water_heater": {"en": "water heater", "hi": "वॉटर हीटर", "kn": "ವಾಟರ್ ಹೀಟರ್"},
+    "water_pump": {"en": "water pump", "hi": "वॉटर पंप", "kn": "ವಾಟರ್ ಪಂಪ್"},
+    "refrigerator": {"en": "refrigerator", "hi": "फ्रिज", "kn": "ಫ್ರಿಜ್"},
+    "climate_sensor": {"en": "climate sensor", "hi": "क्लाइमेट सेंसर", "kn": "ಹವಾಮಾನ ಸೆನ್ಸರ್"},
+}
+_ROUTINE_LABELS: dict[str, dict[LanguageCode, str]] = {
+    "morning": {"en": "morning", "hi": "सुबह", "kn": "ಬೆಳಗಿನ"},
+    "night": {"en": "night", "hi": "रात", "kn": "ರಾತ್ರಿ"},
+    "study": {"en": "study", "hi": "स्टडी", "kn": "ಅಧ್ಯಯನ"},
+    "away": {"en": "away", "hi": "अवे", "kn": "ಹೊರಗಿನ"},
+}
+
+
+def _localized_device_name(row: SmartHomeDevice, language: LanguageCode) -> str:
+    room = _ROOM_LABELS.get(row.room, {}).get(language, row.room.replace("_", " "))
+    dev = _DEVICE_LABELS.get(row.device_type, {}).get(language, row.device_type.replace("_", " "))
+    if language == "hi":
+        return f"{room} का {dev}"
+    if language == "kn":
+        return f"{room} {dev}"
+    return f"{room} {dev}"
+
+
+def _format_device_status(row: SmartHomeDevice, language: LanguageCode) -> str:
+    label = _localized_device_name(row, language)
+    state = row.state or {}
+
+    if row.device_type == "climate_sensor":
+        temp = state.get("temperature")
+        hum = state.get("humidity")
+        if language == "hi":
+            return f"{label} का तापमान {temp}°C और नमी {hum}% है।"
+        if language == "kn":
+            return f"{label}: ತಾಪಮಾನ {temp}°C ಮತ್ತು ಆರ್ದ್ರತೆ {hum}% ಇದೆ."
+        return f"The {label} reports temperature {temp}°C and humidity {hum}%."
+
+    if row.device_type == "refrigerator":
+        temp = state.get("temperature")
+        door = bool(state.get("door_open"))
+        if language == "hi":
+            door_txt = "खुला है" if door else "बंद है"
+            return f"{label} {temp}°C पर है और दरवाज़ा {door_txt}।"
+        if language == "kn":
+            door_txt = "ತೆರೆದಿದೆ" if door else "ಮುಚ್ಚಿದೆ"
+            return f"{label} {temp}°C ನಲ್ಲಿದೆ ಮತ್ತು ಬಾಗಿಲು {door_txt}."
+        door_txt = "open" if door else "closed"
+        return f"The {label} is at {temp}°C with the door {door_txt}."
+
+    if row.device_type == "curtain":
+        pos = int(state.get("position", 0))
+        if language == "hi":
+            if pos >= 90:
+                return f"{label} खुला है ({pos}%)।"
+            if pos <= 10:
+                return f"{label} बंद है ({pos}%)।"
+            return f"{label} {pos}% खुला है।"
+        if language == "kn":
+            if pos >= 90:
+                return f"{label} ತೆರೆದಿದೆ ({pos}%)."
+            if pos <= 10:
+                return f"{label} ಮುಚ್ಚಿದೆ ({pos}%)."
+            return f"{label} {pos}% ತೆರೆದಿದೆ."
+        if pos >= 90:
+            return f"The {label} is open ({pos}%)."
+        if pos <= 10:
+            return f"The {label} is closed ({pos}%)."
+        return f"The {label} is at {pos}%."
+
+    if row.device_type in {"washing_machine", "robot_vacuum"}:
+        act = str(state.get("activity", "idle"))
+        rem = int(state.get("remaining_seconds", 0) or 0)
+        rem_txt = format_duration_spoken(rem, language) if rem > 0 else ""
+        if language == "hi":
+            act_map = {
+                "idle": "बंद है",
+                "running": "चल रहा है",
+                "cleaning": "सफ़ाई कर रहा है",
+                "paused": "रुका हुआ है",
+                "completed": "पूरा हो गया है",
+                "docked": "चार्जिंग पर डॉक है",
+            }
+            desc = act_map.get(act, act)
+            return f"{label} {desc} ({rem_txt} बाकी)।" if rem_txt else f"{label} {desc}।"
+        if language == "kn":
+            act_map = {
+                "idle": "ನಿಂತಿದೆ",
+                "running": "ನಡೆಯುತ್ತಿದೆ",
+                "cleaning": "ಸ್ವಚ್ಛಗೊಳಿಸುತ್ತಿದೆ",
+                "paused": "ವಿರಾಮದಲ್ಲಿದೆ",
+                "completed": "ಪೂರ್ಣಗೊಂಡಿದೆ",
+                "docked": "ಡಾಕ್ ಆಗಿದೆ",
+            }
+            desc = act_map.get(act, act)
+            return f"{label} {desc} ({rem_txt} ಬಾಕಿ)." if rem_txt else f"{label} {desc}."
+        return f"The {label} is {act} with {rem_txt} remaining." if rem_txt else f"The {label} is {act}."
+
+    power = state.get("power")
+    if isinstance(power, bool):
+        details: list[str] = []
+        if "brightness" in state:
+            if language == "hi":
+                details.append(f"रोशनी {state['brightness']}%")
+            elif language == "kn":
+                details.append(f"ಪ್ರಕಾಶ {state['brightness']}%")
+            else:
+                details.append(f"brightness {state['brightness']}%")
+        if "speed" in state:
+            if language == "hi":
+                details.append(f"स्पीड {state['speed']}")
+            elif language == "kn":
+                details.append(f"ವೇಗ {state['speed']}")
+            else:
+                details.append(f"speed {state['speed']}")
+        if "temperature" in state:
+            if language == "hi":
+                details.append(f"तापमान {state['temperature']}°C")
+            elif language == "kn":
+                details.append(f"ತಾಪಮಾನ {state['temperature']}°C")
+            else:
+                details.append(f"temperature {state['temperature']}°C")
+        if "volume" in state:
+            if language == "hi":
+                details.append(f"वॉल्यूम {state['volume']}")
+            elif language == "kn":
+                details.append(f"ವಾಲ್ಯೂಮ್ {state['volume']}")
+            else:
+                details.append(f"volume {state['volume']}")
+        detail_str = f" ({', '.join(details)})" if details and power else ""
+        if language == "hi":
+            return f"{label} {'चालू' if power else 'बंद'} है{detail_str}।"
+        if language == "kn":
+            return f"{label} {'ಆನ್ ಆಗಿದೆ' if power else 'ಆಫ್ ಆಗಿದೆ'}{detail_str}."
+        return f"The {label} is {'on' if power else 'off'}{detail_str}."
+
+    return f"{label}."
+
+
+def _log_simulation_task_done(task: asyncio.Task[None]) -> None:
+    if task.cancelled():
+        return
+    exc = task.exception()
+    if exc is not None:
+        logger.error("SmartHome simulation background task failed: %s", exc, exc_info=exc)
 
 
 def _seed_rows() -> list[dict[str, Any]]:
@@ -74,6 +238,7 @@ class SmartHomeService:
             return {"devices_seeded": 0, "routines_seeded": 0}
         if self._simulation_task is None or self._simulation_task.done():
             self._simulation_task = asyncio.create_task(self._simulation_loop())
+            self._simulation_task.add_done_callback(_log_simulation_task_done)
         return {"devices_seeded": devices, "routines_seeded": routines}
 
     async def shutdown(self) -> None:
@@ -145,6 +310,32 @@ class SmartHomeService:
         source: str,
         language: LanguageCode,
     ) -> VerifiedActionResult:
+        if slots.get("action") == "routine" and slots.get("routine_id"):
+            routine_id = str(slots["routine_id"])
+            try:
+                res = await self.run_routine(routine_id, source=source)
+            except (LookupError, RuntimeError) as exc:
+                return VerifiedActionResult(
+                    success=False,
+                    action="RoutineControl",
+                    status="failed",
+                    message=str(exc),
+                    error=str(exc),
+                )
+            r_label = _ROUTINE_LABELS.get(routine_id, {}).get(language, routine_id)
+            msg = {
+                "en": f"Activated the {r_label} routine.",
+                "hi": f"{r_label} रूटीन शुरू कर दिया गया है।",
+                "kn": f"{r_label} ದಿನಚರಿಯನ್ನು ಪ್ರಾರಂಭಿಸಲಾಗಿದೆ.",
+            }[language]
+            return VerifiedActionResult(
+                success=True,
+                action="RoutineControl",
+                status="verified",
+                message=msg,
+                data=res,
+            )
+
         candidates = [
             row for row in self.list_devices(slots.get("room"))
             if row.device_type == slots.get("device_type")
@@ -165,8 +356,11 @@ class SmartHomeService:
         action = str(slots["action"])
         if action == "status":
             return VerifiedActionResult(
-                success=True, action="DeviceStatus", status="verified",
-                message=f"{row.name}: {row.state}", data={"device": self.to_dict(row)},
+                success=True,
+                action="DeviceStatus",
+                status="verified",
+                message=_format_device_status(row, language),
+                data={"device": self.to_dict(row)},
             )
         try:
             changed = await self.command(row.id, action, slots.get("value"), source=source)
@@ -175,9 +369,14 @@ class SmartHomeService:
                 success=False, action="DeviceControl", status="failed",
                 message=str(exc), error=str(exc),
             )
+        label = _localized_device_name(changed, language)
         return VerifiedActionResult(
             success=True, action="DeviceControl", status="verified",
-            message={"en": f"Updated {changed.name}.", "hi": f"{changed.name} अपडेट हो गया।", "kn": f"{changed.name} ನವೀಕರಿಸಲಾಗಿದೆ."}[language],
+            message={
+                "en": f"Updated {label}.",
+                "hi": f"{label} अपडेट हो गया।",
+                "kn": f"{label} ನವೀಕರಿಸಲಾಗಿದೆ.",
+            }[language],
             data={"device": self.to_dict(changed)},
         )
 
@@ -281,23 +480,28 @@ class SmartHomeService:
     async def _simulation_loop(self) -> None:
         while True:
             await asyncio.sleep(1.0)
-            completed: list[str] = []
-            with Session(self.engine) as session:
-                rows = list(session.scalars(select(SmartHomeDevice).where(SmartHomeDevice.device_type.in_(("washing_machine", "robot_vacuum")))).all())
-                for row in rows:
-                    state = copy.deepcopy(row.state)
-                    if state.get("activity") not in {"running", "cleaning"}:
-                        continue
-                    state["remaining_seconds"] = max(0, int(state.get("remaining_seconds", 0)) - 1)
-                    if state["remaining_seconds"] == 0:
-                        state["activity"] = "completed" if row.device_type == "washing_machine" else "docked"
-                        completed.append(row.id)
-                    row.state = state; row.updated_at_utc = datetime.now(UTC)
-                session.commit()
-            for device_id in completed:
-                row = self.get_device(device_id)
-                if row:
-                    await self.ws_hub.broadcast("activity_completed", {"device": self.to_dict(row)})
+            try:
+                completed: list[str] = []
+                with Session(self.engine) as session:
+                    rows = list(session.scalars(select(SmartHomeDevice).where(SmartHomeDevice.device_type.in_(("washing_machine", "robot_vacuum")))).all())
+                    for row in rows:
+                        state = copy.deepcopy(row.state)
+                        if state.get("activity") not in {"running", "cleaning"}:
+                            continue
+                        state["remaining_seconds"] = max(0, int(state.get("remaining_seconds", 0)) - 1)
+                        if state["remaining_seconds"] == 0:
+                            state["activity"] = "completed" if row.device_type == "washing_machine" else "docked"
+                            completed.append(row.id)
+                        row.state = state; row.updated_at_utc = datetime.now(UTC)
+                    session.commit()
+                for device_id in completed:
+                    row = self.get_device(device_id)
+                    if row:
+                        await self.ws_hub.broadcast("activity_completed", {"device": self.to_dict(row)})
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("SmartHome simulation loop error")
 
     async def command(self, device_id: str, action: str, value: Any, *, source: str, context_id: str | None = None) -> SmartHomeDevice:
         context_id = context_id or str(uuid.uuid4())
