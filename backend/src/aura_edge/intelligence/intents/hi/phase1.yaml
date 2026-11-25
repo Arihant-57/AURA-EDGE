@@ -3,7 +3,7 @@ intents:
   GetTime:
     data:
       - sentences:
-          - "[अभी] (क्या समय|कितने बजे|कितना टाइम|टाइम क्या) [हुआ] [है]"
+          - "[अभी] (क्या समय|कितने बजे|कितना टाइम|टाइम क्या) [हुआ|हुए] [है|हैं]"
           - "[अभी] समय [क्या है|बताओ|बताइए]"
           - "(abhi|ab) (kitne baje|kya samay|kya time|time kya) [hua] [hai]"
           - "samay batao"
@@ -25,6 +25,7 @@ intents:
     data:
       - sentences:
           - "[सभी|मेरे] [सक्रिय|चलते हुए] टाइमर (दिखाओ|बताओ|लिस्ट करो|क्या हैं)"
+          - "कितने टाइमर (चल रहे हैं|चल रहे है|हैं|दिखाओ)"
           - "(mere|saare|sabhi) timer (dikhao|batao)"
   GetTimerRemaining:
     data:

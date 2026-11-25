@@ -25,7 +25,7 @@ intents:
     data:
       - sentences:
           - "[ಎಲ್ಲಾ|ನನ್ನ] [ಸಕ್ರಿಯ] ಟೈಮರ್‌ಗಳನ್ನು (ತೋರಿಸು|ಹೇಳು)"
-          - "[ಎಲ್ಲಾ] ಟೈಮರ್ (ತೋರಿಸು|ಪಟ್ಟಿ ಮಾಡು)"
+          - "[ಎಲ್ಲಾ] ಟೈಮರ್ [ಪಟ್ಟಿ] (ತೋರಿಸು|ಪಟ್ಟಿ ಮಾಡು)"
           - "(ella|nanna) timer (torisu|helu)"
   GetTimerRemaining:
     data:
@@ -51,7 +51,7 @@ intents:
   CancelAllTimers:
     data:
       - sentences:
-          - "(ಎಲ್ಲಾ|ಸರ್ವ) ಟೈಮರ್‌ಗಳನ್ನು (ರದ್ದು ಮಾಡು|ರದ್ದುಗೊಳಿಸು|ತೆಗೆದುಹಾಕು)"
+          - "(ಎಲ್ಲಾ|ಎಲ್ಲ|ಸರ್ವ) (ಟೈಮರ್‌ಗಳನ್ನು|ಟೈಮರ್) (ರದ್ದು ಮಾಡು|ರದ್ದುಗೊಳಿಸು|ತೆಗೆದುಹಾಕು)"
           - "(ella|all) timers (raddu maadu|cancel maadu)"
   Help:
     data:

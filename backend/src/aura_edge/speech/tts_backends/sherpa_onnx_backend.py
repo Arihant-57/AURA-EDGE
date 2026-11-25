@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import threading
 import time
 from dataclasses import dataclass
@@ -84,7 +85,7 @@ class SherpaOnnxBackend:
 
     name = "sherpa_onnx"
 
-    def __init__(self, models_dir: Path, *, num_threads: int = 4) -> None:
+    def __init__(self, models_dir: Path, *, num_threads: int = 8) -> None:
         self.models_dir = models_dir
         self.num_threads = num_threads
         self._specs = discover_sherpa_voices(models_dir)
@@ -143,6 +144,9 @@ class SherpaOnnxBackend:
         speed: float = 1.0,
     ) -> SynthesizedAudio:
         clean = text.strip()
+        if language == "kn":
+            clean = re.sub(r"[^\u0C80-\u0CFF0-9\s'\-_]+", " ", clean)
+            clean = re.sub(r"\s+", " ", clean).strip()
         if not clean:
             return SynthesizedAudio(
                 samples=np.zeros(0, dtype=np.float32),

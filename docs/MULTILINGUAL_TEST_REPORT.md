@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-25  
 **Fixture Suite:** `backend/tests/fixtures/multilingual_utterances.json` (`96` utterances: `32` English, `32` Hindi, `32` Kannada)  
-**Test Suite:** `backend/tests/test_phase1_multilingual_router.py` (`99` test cases) + Audio/VAD/STT/TTS/FSM/DB/API suites (`128` total tests passed, `0` failed, `0` skipped)
+**Test Suite:** `backend/tests/test_phase1_multilingual_router.py` (`99` test cases) + `test_phase1_voice_conversations.py` (`3`) + Audio/VAD/STT/TTS/FSM/DB/API suites (**`131` total tests passed, `0` failed, `0` skipped**)
 
 ---
 
@@ -30,12 +30,14 @@
 
 ## 2. Recorded Speech & Live Microphone Verification
 
-1. **Recorded Multilingual Speech Evaluation (`phase1a_tts_{en,hi,kn}.wav`):**
-   - Verified offline end-to-end STT -> Router -> Tool -> TTS across both CPU (`int8`) and GPU CUDA (`int8_float16`) using `faster-whisper-small`.
-   - **Limitation Observed on Kannada STT:** `faster-whisper-small` transcribed English verbatim and Hindi cleanly in Devanagari, whereas synthetic `vits-mms-kan` Kannada audio produced high WER in Whisper (`"ಇರೆಂತ್ಲಿ..."` / `"ಕಾರ್ತುಗಳಿಲ್ನಿ..."`). Native Kannada script input (`text` / edited transcript / Phase 2 user corrections) works at `100%` accuracy; real human Kannada microphone evaluation should be checked prior to live stage demo if spoken Kannada commands rely on Whisper auto-STT rather than text or fixed triggers.
-2. **Live Microphone Hardware Verification (`AudioCapture`):**
-   - Executed `AudioCapture.start_ptt_capture(open_hardware_stream=True)` against real Windows microphone hardware (`Microphone Array (Realtek(R) Audio)`, `16000 Hz`, `mono`).
-   - Recorded `1536` non-blocking PCM samples (`0.096s`) inside the zero-inference ring-buffer callback and closed stream cleanly (`reason=manual_stop`).
+1. **Live Multi-Turn Spoken Conversations (`backend/scripts/verify_voice_conversations.py`, `models/eval_audio/phase1_voice_conversations.json`):**
+   - Verified `15 / 15` end-to-end spoken WAV upload turns (`POST /api/v1/voice/transcribe` -> `POST /api/v1/voice/synthesize`) against a live server started via `scripts/start-aura-voice.ps1 -NoCli`:
+     - **English (`5/5` passed, STT `174.25–570.62 ms`):** `GetTime` -> `SetTimer("tea", 120s)` -> `GetTimerRemaining("tea")` -> `CancelTimer("tea")` -> `Unsupported` refusal.
+     - **Hindi (`5/5` passed, STT `329.95–400.67 ms`):** `GetTime` (`"अभी दोपहर के 4 बजकर 50 मिनट हुए हैं।"`) -> `SetTimer("चाय", 120s)` -> `ListTimers` -> `CancelAllTimers` -> `Unsupported` refusal.
+     - **Kannada (`5/5` passed via `indic-conformer-kn`, STT `170.58–420.57 ms`):** `GetTime` (`"ಈಗ ಮಧ್ಯಾಹ್ನ 4 ಗಂಟೆ 50 ನಿಮಿಷ ಆಗಿದೆ."`) -> `SetTimer` -> `ListTimers` -> `CancelAllTimers` -> `Unsupported` refusal.
+2. **Live Microphone Hardware Verification (`AudioCapture` & Live API PTT):**
+   - Executed `POST /api/v1/voice/ptt/start` -> `0.4s` host capture -> `POST /api/v1/voice/ptt/stop` (`started=true`, `stop_state="IDLE"`), confirming real Windows hardware mic (`Microphone Array (Realtek(R) Audio)`) operation through the live FastAPI backend.
+   - Standalone `AudioCapture.start_ptt_capture(open_hardware_stream=True)` recorded `1536` non-blocking PCM samples (`0.096s`) inside the zero-inference ring-buffer callback and closed cleanly (`reason=manual_stop`).
 
 ---
 

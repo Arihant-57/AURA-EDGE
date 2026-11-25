@@ -205,11 +205,13 @@ class VoiceOrchestrator:
         except ModelNotFoundError:
             stt_ready = False
 
+        kn_dir = self.stt.resolve_kannada_specialist_dir()
         return {
             "active_state": self.fsm.state.value,
             "active_turn_id": self.fsm.active_turn.turn_id if self.fsm.active_turn else None,
             "stt_engine": "faster-whisper",
             "stt_model": self.settings.stt_model_size,
+            "stt_kannada_specialist": "indic-conformer-kn" if kn_dir is not None else None,
             "stt_ready": stt_ready,
             "stt_device": placement.stt_device,
             "stt_compute_type": placement.stt_compute_type,

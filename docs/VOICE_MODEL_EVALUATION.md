@@ -50,12 +50,16 @@ Tested offline against real WAV speech (`phase1a_tts_{en,hi,kn}.wav`) using `loc
 | `faster-whisper-small` | CPU (`int8`) | `en` (`0.9869`), `4801.55 ms` (`2476.43 ms` locked) | `hi` (`0.9875`), `4295.22 ms` | `kn` (`0.7528`), `36641.63 ms` (looped) | Accurate English + Devanagari Hindi (`पाज मिनद का ताईमर...`); default Whisper decoded Kannada into token repetition loops before anti-loop flags. |
 | `faster-whisper-small` | GPU CUDA (`int8_float16`) | `en` (`0.9897`), `311.36 ms` (`212.32 ms` locked) | `hi` (`0.9873`), `473.94 ms` | `kn` (`0.7856`), `8411.76 ms` (looped) | Accurate English + Devanagari Hindi (`पाज मिनद का ताईमर लगाओ और अभी क्या समय हुए है बताओ`). |
 
-### Post-Tuning Selection (`faster-whisper-small` with `repetition_penalty=1.2, no_repeat_ngram_size=3, vad_filter=True, condition_on_previous_text=False`)
+### Post-Tuning Selection (`faster-whisper-small` EN/HI + `indic-conformer-kn` Kannada Specialist)
 
-From `models/eval_audio/phase1_benchmarks.json` (3 warm trials):
-- **English (`small`, warm median):** CPU `2483.19 ms` (`int8`) -> GPU `259.59 ms` (`int8_float16`), verbatim exact transcription.
-- **Hindi (`small`, warm median):** CPU `3560.80 ms` (`int8`) -> GPU `687.72 ms` (`int8_float16`), readable Devanagari transcription routed cleanly by Unicode-safe normalizer + router.
-- **Kannada (`small`, warm median on `vits-mms-kan` synthetic audio):** CPU `20401.98 ms` -> GPU `3680.22 ms`. Anti-repetition decoding eliminated infinite loops, **but word-level accuracy on synthetic `vits-mms-kan` audio remains noisy** (`"ಕಾರ್ತುಗಳಿಲ್ನಿ ಬಂದಿ..."`), whereas direct Unicode Kannada text input (`32/32` utterances) routes with `100%` deterministic accuracy. For noisy/low-accuracy Kannada STT transcripts, UI/manual language selection + hybrid clarification fallback prevents false action execution.
+From `models/eval_audio/phase1_benchmarks.json` (3 warm trials) and `models/eval_audio/phase1_voice_conversations.json`:
+- **English (`faster-whisper-small` w/ domain `initial_prompt`, warm median):** CPU `2686.00 ms` (`int8`) -> GPU `260.81 ms` (`int8_float16`), `5/5` live spoken conversation accuracy (`174–570 ms` per turn).
+- **Hindi (`faster-whisper-small` w/ domain `initial_prompt`, warm median):** CPU `3398.28 ms` (`int8`) -> GPU `641.29 ms` (`int8_float16`), readable Devanagari transcription (`5/5` live spoken conversation pass at `329–400 ms` per turn with `_normalize_hindi_asr_variants`).
+- **Kannada (`indic-conformer-kn` ONNX INT8 CPU specialist via `sherpa_onnx.OfflineRecognizer.from_nemo_ctc`):**
+  - Replaced Whisper `small` on Kannada (`language="kn"` directly, or `language="auto"` upgrade when Whisper detects `"kn"`).
+  - Reduced warm STT latency from **`20401.98 ms` (CPU) / `3680.22 ms` (GPU)** down to **`637.35 ms` (CPU bench) / `671.25 ms` (GPU bench co-resident) / `170.58–420.57 ms` (live HTTP conversation)** and **`57.3–138.45 ms`** in isolated CPU probes.
+  - Eliminated gibberish/repetition loops: produced clean Kannada script (`"ಐದು ನಿಮಿಷದ ತೈಮರಿಿಡು ಮತ್ತು ಈಗ ಎಷ್ಟು ಗಂಟೆ ಆಗಿದೆ ಹೇಳು"`) and passed `5/5` live Kannada spoken conversation turns end-to-end.
+  - Also updated `SherpaOnnxBackend` default `num_threads` from `4` -> `8` (`787–967 ms` warm median `907.43 ms` on 4-second phrase) and sanitized unsupported Latin characters before `vits-mms-kan` (zero `Skip unknown character` warnings).
 
 **Missing Model Error Handling Verified:** Instantiating/transcribing with a nonexistent `models_dir` raised `ModelNotFoundError` cleanly with setup instructions (`prepare_models.py`) rather than attempting network download.
 

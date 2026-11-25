@@ -68,7 +68,12 @@ def _download_and_extract_tar_bz2(url: str, target_dir: Path, expected_subdir: s
     return final_dir
 
 
-def prepare_stt(models_dir: Path, *, include_small: bool = True) -> dict[str, str]:
+def prepare_stt(
+    models_dir: Path,
+    *,
+    include_small: bool = True,
+    include_kn_whisper: bool = False,
+) -> dict[str, str]:
     out: dict[str, str] = {}
     targets = [("base", "Systran/faster-whisper-base")]
     if include_small:
@@ -78,6 +83,28 @@ def prepare_stt(models_dir: Path, *, include_small: bool = True) -> dict[str, st
         dest.mkdir(parents=True, exist_ok=True)
         snapshot_download(repo_id=repo_id, local_dir=str(dest))
         out[size] = str(dest)
+
+    # Dedicated Kannada ASR specialist (non-gated Apache-2.0 / AI4Bharat MIT)
+    indic_kn_dir = models_dir / "stt" / "indic-conformer-kn"
+    indic_kn_dir.mkdir(parents=True, exist_ok=True)
+    for remote_name, local_name in [
+        ("kn/model.int8.onnx", "model.int8.onnx"),
+        ("tokens.txt", "tokens.txt"),
+    ]:
+        target_file = indic_kn_dir / local_name
+        if not target_file.exists() or target_file.stat().st_size == 0:
+            cached = hf_hub_download(
+                repo_id="NiranjanYadavIN/indicconformer-sherpa-onnx",
+                filename=remote_name,
+            )
+            shutil.copyfile(cached, target_file)
+    out["indic_conformer_kn"] = str(indic_kn_dir)
+
+    if include_kn_whisper:
+        ct2_kn_dir = models_dir / "stt" / "whisper-kannada-ct2"
+        ct2_kn_dir.mkdir(parents=True, exist_ok=True)
+        snapshot_download(repo_id="ukta-app/whisper-kannada-ct2", local_dir=str(ct2_kn_dir))
+        out["whisper_kannada_ct2"] = str(ct2_kn_dir)
     return out
 
 
@@ -132,9 +159,14 @@ def main() -> int:
     parser.add_argument("--models-dir", type=Path, default=MODELS_DIR)
     parser.add_argument("--skip-small-stt", action="store_true")
     parser.add_argument("--skip-piper-kn-eval", action="store_true")
+    parser.add_argument("--include-kn-whisper", action="store_true")
     args = parser.parse_args()
 
-    stt_paths = prepare_stt(args.models_dir, include_small=not args.skip_small_stt)
+    stt_paths = prepare_stt(
+        args.models_dir,
+        include_small=not args.skip_small_stt,
+        include_kn_whisper=args.include_kn_whisper,
+    )
     vad_path = prepare_vad(args.models_dir)
     tts_paths = prepare_tts(args.models_dir, include_piper_kn_eval=not args.skip_piper_kn_eval)
 

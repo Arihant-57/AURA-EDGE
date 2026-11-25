@@ -19,6 +19,11 @@ if ($WithDb) {
     Push-Location $RepoRoot
     try {
         docker compose up -d postgres
+        for ($i = 0; $i -lt 30; $i++) {
+            $health = docker inspect -f "{{.State.Health.Status}}" aura-edge-postgres 2>$null
+            if ($health -eq "healthy") { break }
+            Start-Sleep -Seconds 1
+        }
         & $PythonExe -m alembic -c (Join-Path $RepoRoot "backend\alembic.ini") upgrade head
     } finally {
         Pop-Location
@@ -28,6 +33,8 @@ if ($WithDb) {
 New-Item -ItemType Directory -Path $RuntimeDir -Force | Out-Null
 
 $env:PYTHONPATH = Join-Path $RepoRoot "backend\src"
+$env:HF_HUB_OFFLINE = "1"
+$env:TRANSFORMERS_OFFLINE = "1"
 $BackendArgs = @("-m", "uvicorn", "aura_edge.main:app", "--host", "127.0.0.1", "--port", "8000")
 
 if ($Foreground) {

@@ -33,7 +33,7 @@ _AMBIGUOUS_PATTERNS = [
 
 # Compound clause separator that avoids splitting "1 minute and 30 seconds"
 _COMPOUND_SPLIT_RE = re.compile(
-    r"\s*(?:;|,\s*and\s+|\s+and\s+then\s+|\s+aur\s+phir\s+|\s+और\s+फिर\s+|\s+ಮತ್ತು\s+ನಂತರ\s+)\s*",
+    r"\s*(?:;|,\s*and\s+|\s+and\s+then\s+|\s+and\s+|\s+aur\s+phir\s+|\s+और\s+फिर\s+|\s+और\s+|\s+ಮತ್ತು\s+ನಂತರ\s+|\s+ಮತ್ತು\s+)\s*",
     flags=re.IGNORECASE | re.UNICODE,
 )
 
@@ -70,14 +70,17 @@ _LABEL_STOPWORDS = {
     "ಟೈಮರ್",
 }
 
+_U_B_START = r"(?<![\w\u0900-\u097F\u0C80-\u0CFF])"
+_U_B_END = r"(?![\w\u0900-\u097F\u0C80-\u0CFF])"
+
 _TIMER_ACTION_KEYWORDS = {
-    "set": re.compile(r"\b(?:set|start|create|add|remind|लगाओ|लगा|सेट|शुरू|रखो|lagao|ಇಡು|ಹಾಕು|ಸೆಟ್|idu|haaku)\b", re.IGNORECASE | re.UNICODE),
-    "cancel_all": re.compile(r"\b(?:all|सभी|सारे|sabhi|saare|ಎಲ್ಲಾ|ಸರ್ವ|ella)\b", re.IGNORECASE | re.UNICODE),
-    "cancel": re.compile(r"\b(?:cancel|stop|delete|remove|clear|रद्द|हटाओ|हटा|कैंसिल|बंद|band|hatao|radd|ರದ್ದು|ತೆಗೆದುಹಾಕು|raddu)\b", re.IGNORECASE | re.UNICODE),
-    "pause": re.compile(r"\b(?:pause|hold|रोको|रोक|पॉज़|roko|ನಿಲ್ಲಿಸು|ಪಾಸ್|nillisu)\b", re.IGNORECASE | re.UNICODE),
-    "resume": re.compile(r"\b(?:resume|unpause|continue|restart|रिज़्यूम|चलाओ|ಮತ್ತೆ\s+ಪ್ರಾರಂಭಿಸು|ಮುಂದುವರಿಸು)\b", re.IGNORECASE | re.UNICODE),
-    "remaining": re.compile(r"\b(?:left|remaining|status|बाकी|बचा|baki|baaki|ಬಾಕಿ|ಎಷ್ಟು\s+ಸಮಯ)\b", re.IGNORECASE | re.UNICODE),
-    "list": re.compile(r"\b(?:list|show|check|दिखाओ|लिस्ट|बताओ|dikhao|ತೋರಿಸು|ಪಟ್ಟಿ|torisu)\b", re.IGNORECASE | re.UNICODE),
+    "set": re.compile(rf"{_U_B_START}(?:set|start|create|add|remind|लगाओ|लगा|सेट|शुरू|रखो|lagao|ಇಡು|ಹಾಕು|ಸೆಟ್|idu|haaku){_U_B_END}", re.IGNORECASE | re.UNICODE),
+    "cancel_all": re.compile(rf"{_U_B_START}(?:all|सभी|सारे|sabhi|saare|ಎಲ್ಲಾ|ಎಲ್ಲ|ಸರ್ವ|ella){_U_B_END}", re.IGNORECASE | re.UNICODE),
+    "cancel": re.compile(rf"{_U_B_START}(?:cancell?ed|cancel|stop|delete|remove|clear|रद्द|हटाओ|हटा|कैंसिल|बंद|band|hatao|radd|ರದ್ದು|ರದ್ದುಗೊಳಿಸು|ತೆಗೆದುಹಾಕು|raddu){_U_B_END}", re.IGNORECASE | re.UNICODE),
+    "pause": re.compile(rf"{_U_B_START}(?:pause|hold|रोको|रोक|पॉज़|roko|ನಿಲ್ಲಿಸು|ಪಾಸ್|nillisu){_U_B_END}", re.IGNORECASE | re.UNICODE),
+    "resume": re.compile(rf"{_U_B_START}(?:resume|unpause|continue|restart|रिज़्यूम|चलाओ|ಮತ್ತೆ\s+ಪ್ರಾರಂಭಿಸು|ಮುಂದುವರಿಸು){_U_B_END}", re.IGNORECASE | re.UNICODE),
+    "remaining": re.compile(rf"{_U_B_START}(?:left|remaining|status|बाकी|बचा|baki|baaki|ಬಾಕಿ|ಎಷ್ಟು\s+ಸಮಯ){_U_B_END}", re.IGNORECASE | re.UNICODE),
+    "list": re.compile(rf"{_U_B_START}(?:list|show|check|दिखाओ|लिस्ट|बताओ|dikhao|ತೋರಿಸು|ಪಟ್ಟಿ|torisu){_U_B_END}", re.IGNORECASE | re.UNICODE),
 }
 
 _INTENT_MAP: dict[str, IntentName] = {
@@ -208,7 +211,7 @@ class MultilingualFastRouter:
 
         # Time / Date quick catches
         if re.search(
-            r"(?:\bwhat(?:'s|\s+is)?\s+(?:the\s+)?time\b|\bcurrent\s+time\b|समय\s+(?:क्या|बता)|कितने\s+बजे|kitne\s+baje|samay\s+batao|ಎಷ್ಟು\s+ಗಂಟೆ|ಸಮಯ\s+ಎಷ್ಟು|eshtu\s+gante)",
+            r"(?:\bwhat(?:'s|\s+is)?\s+(?:the\s+)?time\b|\bcurrent\s+time\b|(?:क्या\s+)?समय\s*(?:क्या|हुआ|हुए|बता)|कितने\s+बजे|kitne\s+baje|samay\s+batao|ಎಷ್ಟು\s+ಗಂಟೆ|ಸಮಯ\s+ಎಷ್ಟು|eshtu\s+gante)",
             low,
             flags=re.UNICODE,
         ):

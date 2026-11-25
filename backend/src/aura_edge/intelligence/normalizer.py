@@ -329,6 +329,34 @@ def extract_duration_seconds(text: str) -> int | None:
     return total if found else None
 
 
+def _normalize_kannada_asr_variants(text: str) -> str:
+    """Normalize known IndicConformer Kannada CTC character slips on timer/time commands."""
+    out = re.sub(r"(?:ತೈಮರಿ+|ಟೈಮರಿ+)ಡು", "ಟೈಮರ್ ಇಡು", text)
+    out = re.sub(r"(?:ತ?ತೈಮರ್?|ಟೈಮ(?!ರ್)|ತೈಮ(?![\w\u0C80-\u0CFF]))", "ಟೈಮರ್", out)
+    out = re.sub(r"ಗಂತೆ(?![\w\u0C80-\u0CFF])", "ಗಂಟೆ", out)
+    out = re.sub(r"ನಿಮಿಸ(?![\w\u0C80-\u0CFF])", "ನಿಮಿಷ", out)
+    out = re.sub(r"ಗದ್ದು(?=\s+(?:ಮಾಡು|ಗೊಳಿಸು))", "ರದ್ದು", out)
+    return re.sub(r"\s+", " ", out).strip()
+
+
+def _normalize_hindi_asr_variants(text: str) -> str:
+    """Normalize known Whisper Hindi Devanagari phonetic variations on timer/clock commands."""
+    out = re.sub(r"(?:टाईमर|ताईमर|ताम्यर|टामर|तामर)", "टाइमर", text)
+    out = re.sub(r"(?:मिन्त|मिनत|मिंट)", "मिनट", out)
+    out = re.sub(r"(?:समें|समे|समै)(?![\w\u0900-\u097F])", "समय", out)
+    out = re.sub(r"लगा[ोूॉँ]+", "लगाओ", out)
+    out = re.sub(r"बता[ोूॉँ]+", "बताओ", out)
+    out = re.sub(r"रत्द", "रद्द", out)
+    out = re.sub(r"(?<![\w\u0900-\u097F])सबी(?![\w\u0900-\u097F])", "सभी", out)
+    out = re.sub(r"(?<![\w\u0900-\u097F])आभी(?![\w\u0900-\u097F])", "अभी", out)
+    out = re.sub(
+        r"(?<![\w\u0900-\u097F])तो(?=\s+(?:मिनट|सेकंड|घंटे|घंटा))",
+        "दो",
+        out,
+    )
+    return re.sub(r"\s+", " ", out).strip()
+
+
 def normalize_utterance(
     text: str,
     *,
@@ -349,6 +377,13 @@ def normalize_utterance(
         requested=requested_language,
         fallback_language=fallback_language,
     )
+    if lang == "kn" or script == "kannada":
+        cleaned = _normalize_kannada_asr_variants(cleaned)
+    elif lang == "hi" or script == "devanagari":
+        cleaned = _normalize_hindi_asr_variants(cleaned)
+    elif lang == "en":
+        cleaned = re.sub(r"\btiner\b", "timer", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\b(?:teat|T)(?=\s+timer\b)", "tea", cleaned)
     with_nums = _replace_number_words(cleaned, language=lang)
     return NormalizedText(
         raw=text,

@@ -67,10 +67,10 @@ class DateTimeTool:
 
         if lang == "hi":
             period = "सुबह" if now.hour < 12 else ("दोपहर" if now.hour < 17 else "शाम")
-            msg = f"अभी {period} के {hour_12} बजकर {minute} मिनट हुए हैं ({tz_name})।"
+            msg = f"अभी {period} के {hour_12} बजकर {minute} मिनट हुए हैं।"
         elif lang == "kn":
             period = "ಬೆಳಿಗ್ಗೆ" if now.hour < 12 else ("ಮಧ್ಯಾಹ್ನ" if now.hour < 17 else "ಸಂಜೆ")
-            msg = f"ಈಗ {period} {hour_12} ಗಂಟೆ {minute} ನಿಮಿಷ ಆಗಿದೆ ({tz_name})."
+            msg = f"ಈಗ {period} {hour_12} ಗಂಟೆ {minute} ನಿಮಿಷ ಆಗಿದೆ."
         else:
             msg = f"The time is {hour_12}:{minute} {ampm} ({tz_name})."
 

@@ -39,6 +39,7 @@
 | Model / Voice | Source | Weight / Dataset License | Usage Constraint / Note |
 |---|---|---|---|
 | `Systran/faster-whisper-base` & `small` | Hugging Face (`Systran`) | **MIT** | Pre-cached locally in `models/stt/`; `local_files_only=True` enforced at runtime. |
+| `NiranjanYadavIN/indicconformer-sherpa-onnx` (`kn/model.int8.onnx`) | HF Hub / AI4Bharat IndicConformer | **MIT** (AI4Bharat source) / **Apache-2.0** (ONNX export card) | Pre-cached locally in `models/stt/indic-conformer-kn/`; CPU-only Kannada ASR specialist via Sherpa-ONNX NeMo CTC (`int8`). |
 | `snakers4/silero-vad` (`silero_vad.onnx`) | GitHub (`snakers4`) | **MIT** | CPU-only VAD in `models/vad/silero_vad.onnx`. |
 | `vits-piper-en_US-lessac-medium` | `k2-fsa/sherpa-onnx` release / `rhasspy/piper-voices` | Mixed (Piper MIT / Lessac Blizzard-2013 research-only base) | Review Blizzard-2013 non-commercial clause if redistributing commercially. |
 | `vits-piper-hi_IN-rohan-medium` | `k2-fsa/sherpa-onnx` release / `rhasspy/piper-voices` | IIT Madras IndicTTS Hindi dataset license + Lessac base | Verify IITM academic/non-commercial terms before commercial release. |

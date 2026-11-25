@@ -20,7 +20,7 @@ This note notifies the frontend developer (`feat/frontend-experience`) of all ne
 
 | Feature | Method & Endpoint | Notes for Frontend |
 |---|---|---|
-| Voice & Hardware Status | `GET /api/v1/voice/status` | Poll on load for `mic_detected`, `speaker_detected`, `stt_ready`, `vad_ready`, `tts_summary`, `compute`, `session_language`, `active_state`. |
+| Voice & Hardware Status | `GET /api/v1/voice/status` | Poll on load for `mic_detected`, `speaker_detected`, `stt_ready`, `stt_kannada_specialist`, `vad_ready`, `tts_summary`, `compute`, `session_language`, `active_state`. |
 | Push-to-Talk Start | `POST /api/v1/voice/mic/start` | Optional `{"language": "auto"\|"en"\|"hi"\|"kn"}`. Returns `503` if no mic is connected. |
 | Push-to-Talk Stop | `POST /api/v1/voice/mic/stop` | Stops capture, runs STT -> Router/LLM -> Tool -> optional TTS (`{"speak": true}`). Returns `ProcessTurnOutput`. |
 | Upload WAV Audio | `POST /api/v1/voice/transcribe` | `multipart/form-data` (`file`, `language`, `speak`, `allow_llm_fallback`). Useful for browser MediaRecorder WAV testing. |
@@ -86,3 +86,16 @@ export interface ProcessTurnOutput {
   transcript: string | null;
 }
 ```
+
+---
+
+## 4. How the Frontend Developer (`feat/frontend-experience`) Pulls This Contract
+
+The updated API contract is published on GitHub on `origin/feat/backend-intelligence` without modifying `frontend/` or `main`:
+
+```powershell
+git fetch origin feat/backend-intelligence
+git checkout origin/feat/backend-intelligence -- docs/API_CONTRACT.md docs/FRONTEND_INTEGRATION_HANDOVER.md
+```
+
+Or review directly in [`docs/API_CONTRACT.md`](./API_CONTRACT.md) on branch `feat/backend-intelligence`.

@@ -38,6 +38,13 @@ def normalize_for_pronunciation(text: str, language: LanguageCode) -> str:
     # Normalize 12h clock colons (e.g., 10:05 AM -> 10 05 AM) for VITS prosody
     out = re.sub(r"\b(\d{1,2}):00\b", r"\1", out)
     out = re.sub(r"\b(\d{1,2}):(\d{2})\b", r"\1 \2", out)
+
+    if language == "kn":
+        # vits-mms-kan tokens.txt covers Kannada (\u0C80-\u0CFF), 0-9, space, hyphen, apostrophe, and underscore;
+        # stripping unsupported ASCII Latin/punctuation avoids C++ stderr warnings and wasted blank frames.
+        out = re.sub(r"[^\u0C80-\u0CFF0-9\s'\-_]+", " ", out)
+        out = re.sub(r"\s+", " ", out)
+
     return out.strip()
 
 

@@ -36,6 +36,7 @@
     "active_turn_id": null,
     "stt_engine": "faster-whisper",
     "stt_model": "small",
+    "stt_kannada_specialist": "indic-conformer-kn",
     "stt_ready": true,
     "stt_device": "cuda",
     "stt_compute_type": "int8_float16",
