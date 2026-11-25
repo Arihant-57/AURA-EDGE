@@ -33,6 +33,8 @@ from aura_edge.infrastructure.network_policy import NetworkPolicyEnforcer
 from aura_edge.intelligence.conversation import (
     ConversationSession,
     strip_markdown_for_speech,
+    unverified_action_fallback,
+    validate_no_unverified_action_claim,
     validate_response_language,
 )
 from aura_edge.intelligence.fast_router import MultilingualFastRouter
@@ -140,6 +142,12 @@ class VoiceOrchestrator:
         memory_service: Any | None = None,
         scheduler_service: Any | None = None,
         notification_service: Any | None = None,
+        task_service: Any | None = None,
+        calendar_service: Any | None = None,
+        briefing_service: Any | None = None,
+        grocery_service: Any | None = None,
+        expense_service: Any | None = None,
+        parcel_service: Any | None = None,
         clock: Callable[[], datetime] | None = None,
     ) -> None:
         self.settings = settings
@@ -150,6 +158,12 @@ class VoiceOrchestrator:
         self.memory_service = memory_service
         self.scheduler_service = scheduler_service
         self.notification_service = notification_service
+        self.task_service = task_service
+        self.calendar_service = calendar_service
+        self.briefing_service = briefing_service
+        self.grocery_service = grocery_service
+        self.expense_service = expense_service
+        self.parcel_service = parcel_service
 
         self.compute_manager = ComputeManager(settings)
         self.session_language: RequestedLanguage = settings.default_language
@@ -203,6 +217,12 @@ class VoiceOrchestrator:
             memory_service=memory_service,
             scheduler_service=scheduler_service,
             notification_service=notification_service,
+            task_service=task_service,
+            calendar_service=calendar_service,
+            briefing_service=briefing_service,
+            grocery_service=grocery_service,
+            expense_service=expense_service,
+            parcel_service=parcel_service,
             default_timezone=settings.default_timezone,
             clock=clock,
         )
@@ -1141,8 +1161,9 @@ class VoiceOrchestrator:
             detected_input_language
             or (preferred_reply_language if preferred_reply_language != "auto" else self._last_resolved_language)
         )
+        resolved_text = self.conversation.resolve_anaphora(text)
         typed_intent, router_ms, llm_ms, llm_err = await self.planner.plan(
-            text,
+            resolved_text,
             requested_language=nlu_language,
             fallback_language=fallback_nlu,
             allow_llm_fallback=allow_llm_fallback,
@@ -1273,6 +1294,13 @@ class VoiceOrchestrator:
             first_text_mono = timestamps["tool_completion"]
             if result.success:
                 ctx.record_completed_action(result.action)
+                self.conversation.record_verified_entity(
+                    action=result.action,
+                    slots=typed_intent.slots,
+                    data=result.data,
+                )
+                if result.action == "DeleteMemory":
+                    self.conversation.invalidate_memory_context()
             await self.fsm.transition(ctx.turn_id, AssistantState.VERIFYING)
             await self.ws_hub.broadcast(
                 "action_verified",
@@ -1571,6 +1599,8 @@ class VoiceOrchestrator:
             if not clean_chunk:
                 return
             valid_chunk, reason = validate_response_language(clean_chunk, reply_language)
+            if valid_chunk:
+                valid_chunk, reason = validate_no_unverified_action_claim(clean_chunk, reply_language)
             if not valid_chunk:
                 skipped_invalid_chunk = True
                 logger.info(
@@ -1643,12 +1673,16 @@ class VoiceOrchestrator:
 
         clean_full = strip_markdown_for_speech("".join(raw_parts)) or "..."
         is_valid, reason = validate_response_language(clean_full, reply_language)
+        if is_valid:
+            is_valid, reason = validate_no_unverified_action_claim(clean_full, reply_language)
         if spoken_parts and (skipped_invalid_chunk or not is_valid):
             # Displayed text must strictly match what was validated and spoken
             clean_full = " ".join(spoken_parts)
         elif not is_valid and not ctx.is_cancelled:
             logger.info("Response validation failed (%s); applying safe %s guardrail.", reason, reply_language)
-            if reason == "unsupported_language_claim":
+            if reason == "unverified_action_claim":
+                clean_full = unverified_action_fallback(reply_language)
+            elif reason == "unsupported_language_claim":
                 clean_full = get_phrase("supported_languages", reply_language)
             elif reply_language == "kn":
                 clean_full = "ಕ್ಷಮಿಸಿ, ನನಗೆ ಈ ಪ್ರಶ್ನೆಗೆ ಸ್ಪಷ್ಟ ಕನ್ನಡದಲ್ಲಿ ಉತ್ತರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ."

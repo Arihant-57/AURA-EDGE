@@ -67,6 +67,23 @@ class IntentName(str, Enum):
     DELETE_ROUTINE = "DeleteRoutine"
     RUN_ROUTINE = "RunRoutine"
 
+    # Phase 4 Personal Secretary
+    CREATE_TASK = "CreateTask"
+    LIST_TASKS = "ListTasks"
+    COMPLETE_TASK = "CompleteTask"
+    DELETE_TASK = "DeleteTask"
+    CREATE_CALENDAR_EVENT = "CreateCalendarEvent"
+    LIST_CALENDAR_EVENTS = "ListCalendarEvents"
+    DAILY_BRIEFING = "DailyBriefing"
+    ADD_GROCERY_ITEM = "AddGroceryItem"
+    LIST_GROCERY_LIST = "ListGroceryList"
+    CHECK_INVENTORY = "CheckInventory"
+    SUGGEST_RECIPES = "SuggestRecipes"
+    ADD_EXPENSE = "AddExpense"
+    EXPENSE_SUMMARY = "ExpenseSummary"
+    LIST_PARCELS = "ListParcels"
+    ADD_PARCEL = "AddParcel"
+
 
 class TypedAction(BaseModel):
     """Validated atomic sub-action inside a single or compound user request."""

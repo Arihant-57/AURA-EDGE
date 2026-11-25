@@ -30,6 +30,7 @@ async def test_live_postgres_timers_crud_ambiguity_restart_and_dedup() -> None:
         assert readiness.alembic_revision in {
             "0003_phase2_smart_home",
             "0004_phase3_memory_events",
+            "0005_phase4_personal_assistant",
         }
 
         events: list[tuple[str, str]] = []

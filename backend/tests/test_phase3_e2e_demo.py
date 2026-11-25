@@ -69,7 +69,7 @@ def _offline_settings() -> Settings:
         connectivity_mode=ConnectivityMode.STRICT_OFFLINE,
         compute_mode=ComputeMode.CPU,
         audio_post_playback_cooldown_sec=0.0,
-        scheduler_poll_interval_sec=60.0,
+        scheduler_poll_interval_sec=3600.0,
     )
 
 

@@ -781,6 +781,13 @@ class WhisperTranscriber:
             # Selective IndicConformer Kannada specialist invocation
             has_kn_script = any(_is_kannada_char(ch) for ch in text)
             has_hi_script = any(_is_devanagari_char(ch) for ch in text)
+            has_latin_alpha = any(("A" <= ch <= "Z") or ("a" <= ch <= "z") for ch in text)
+            clean_mixed_kn = (
+                has_kn_script
+                and has_latin_alpha
+                and (avg_lp is not None and avg_lp > -0.75)
+                and (no_sp is None or no_sp < 0.5)
+            )
             whisper_flagged_non_speech = (
                 not seg_list
                 and (
@@ -797,6 +804,7 @@ class WhisperTranscriber:
             should_try_kn = (
                 size != "base"
                 and not whisper_flagged_non_speech
+                and not clean_mixed_kn
                 and (raw_lang == "kn" or has_kn_script or dravidian_ambiguous)
             )
             if should_try_kn:
@@ -863,9 +871,11 @@ class WhisperTranscriber:
                         )
 
         resolved_lang: LanguageCode
-        if any(_is_kannada_char(ch) for ch in text):
+        kn_chars = sum(1 for ch in text if _is_kannada_char(ch))
+        hi_chars = sum(1 for ch in text if _is_devanagari_char(ch))
+        if kn_chars > 0 and kn_chars >= hi_chars:
             resolved_lang = "kn"
-        elif any(_is_devanagari_char(ch) for ch in text):
+        elif hi_chars > 0:
             resolved_lang = "hi"
         elif raw_lang in _SUPPORTED_WHISPER_LANGS:
             resolved_lang = raw_lang  # type: ignore[assignment]

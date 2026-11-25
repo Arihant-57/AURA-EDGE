@@ -1,5 +1,17 @@
 # AURA EDGE — Project Progress Log
 
+## Part A & Phase 4 — Shared Multilingual Grounding & Personal Secretary (`feat/backend-intelligence`)
+
+**Status:** Core Automated Verification **COMPLETE** (`ruff check .\backend` 0 errors; **`191 passed, 0 failed, 0 skipped`** in `426.72s` against live PostgreSQL `0005_phase4_personal_assistant`). `frontend/` and `main` remain untouched.
+
+### Verified Part A & Phase 4 Deliverables
+- [x] **Part A — Code-Switched Multilingual Intelligence & Grounding**: Expanded EN/HI/KN/Hinglish/Kanglish normalization (`normalizer.py`), preserved clean mixed-script KN+EN Whisper transcripts (`stt.py`), prioritized Kannada script counts over stray Devanagari, added SOV memory deletion precedence and code-switched delay/reminder parsing (`fast_router.py`), added verified-entity anaphora + post-delete memory scrubbing + `validate_no_unverified_action_claim()` (`conversation.py`, `voice_orchestrator.py`), and enforced operational grounding + boolean `power` coercion (`planner.py`).
+- [x] **Database Migration `0005_phase4_personal_assistant`**: Added `tasks`, `calendar_events`, `grocery_items`, `shopping_list_items`, `local_recipes`, `expense_imports`, `expense_transactions` (`BIGINT amount_paise`), and `parcels`; verified reversible `upgrade -> downgrade 0004 -> upgrade` round-trip on disposable `aura_edge_mig_test`.
+- [x] **Phase 4 Personal Secretary Modules (`application/personal/*`, `api/routes_personal.py`, `ToolRegistry`)**: `TaskService`, `CalendarService` (conflict detection + daily/weekly recurrence + `SchedulerService` reminders), `BriefingService` (strictly grounded PostgreSQL daily summaries), `GroceryService` (inventory + shopping list + 8 seeded offline recipes), `ExpenseService` (exact integer paise SQL `SUM()` + SHA-256 CSV dedup), `ParcelService` (honest offline provenance + delivery reminder), REST routes, WS events (`task_updated`, `calendar_updated`, `grocery_updated`, `expense_updated`, `parcel_updated`), and EN/HI/KN voice intents.
+- [ ] **Deferred Optional Scope**: Local document `pgvector` RAG & allowlisted desktop/file launcher omitted before competition freeze to prioritize reliability of core personal secretary & voice grounding.
+
+---
+
 ## Phase 3 — Persistent Memory, Scheduling, Routines & Proactive Notifications (`feat/backend-intelligence`)
 
 **Status:** Automated & empirical verification **COMPLETE** (`ruff check .\backend` 0 errors; **`183 passed, 0 failed, 0 skipped`** in `411.41s` against live PostgreSQL `0004_phase3_memory_events`). `frontend/` and `main` remain untouched.

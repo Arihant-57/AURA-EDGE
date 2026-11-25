@@ -33,11 +33,29 @@ _TOOL_CLASSIFIER_HINT_RE = re.compile(
     r"time|date|clock|day\s+today|light|lights|lamp|fan|fans|ac|air\s+conditioner|tv|television|"
     r"curtain|curtains|washer|washing\s+machine|vacuum|purifier|heater|geyser|pump|fridge|refrigerator|"
     r"bedroom|living\s+room|hall|kitchen|study|utility|brightness|speed|temperature|humidity|volume|"
-    r"status|routine|sensor|climate)\b|"
+    r"status|routine|sensor|climate|"
+    r"task|tasks|todo|to-do|calendar|event|meeting|appointment|briefing|grocery|groceries|shopping\s+list|"
+    r"pantry|inventory|recipe|recipes|expense|expenses|spent|spend|budget|parcel|package|delivery)\b|"
     r"(?:टाइमर|ताइमर|अलार्म|रिमाइंडर|शेड्यूल|याद|पसंदीदा|भूल|रद्द|रोको|दरवाजा|खोलो|बंद\s+करो|समय|तारीख|डेट|बजे|"
-    r"लाइट|बत्ती|पंखा|फैन|एसी|टीवी|पर्दा|पर्दे|मशीन|वैक्यूम|गीजर|फ्रिज|बेडरूम|बैठक|रसोई|किचन|रूटीन|तापमान|स्थिति)|"
+    r"लाइट|बत्ती|पंखा|फैन|एसी|टीवी|पर्दा|पर्दे|मशीन|वैक्यूम|गीजर|फ्रिज|बेडरूम|बैठक|रसोई|किचन|रूटीन|तापमान|स्थिति|"
+    r"कार्य|टास्क|कैलेंडर|मीटिंग|ब्रीफिंग|राशन|किराना|रेसिपी|खर्च|पार्सल)|"
     r"(?:ಟೈಮರ್|ಅಲಾರಾಂ|ರಿಮೈಂಡರ್|ಜ್ಞಾಪನೆ|ವೇಳಾಪಟ್ಟಿ|ನೆನಪಿ|ಇಷ್ಟದ|ಮರೆತು|ರದ್ದು|ನಿಲ್ಲಿಸು|ಬಾಗಿಲು|ತೆಗೆ|ಸಮಯ|ದಿನಾಂಕ|ತಾರೀಖು|ಡೇಟ್|ಗಂಟೆ|"
-    r"ಲೈಟ್|ದೀಪ|ಫ್ಯಾನ್|ಏಸಿ|ಟಿವಿ|ಪರದೆ|ಮೆಷಿನ್|ವ್ಯಾಕ್ಯೂಮ್|ಗೀಸರ್|ಫ್ರಿಜ್|ಬೆಡ್‌ರೂಮ್|ಬೆಡ್ರೂಮ್|ಹಾಲ್|ಅಡುಗೆಮನೆ|ಕಿಚನ್|ದಿನಚರಿ|ತಾಪಮಾನ|ಸ್ಥಿತಿ))",
+    r"ಲೈಟ್|ದೀಪ|ಫ್ಯಾನ್|ಏಸಿ|ಟಿವಿ|ಪರದೆ|ಮೆಷಿನ್|ವ್ಯಾಕ್ಯೂಮ್|ಗೀಸರ್|ಫ್ರಿಜ್|ಬೆಡ್‌ರೂಮ್|ಬೆಡ್ರೂಮ್|ಹಾಲ್|ಅಡುಗೆಮನೆ|ಕಿಚನ್|ದಿನಚರಿ|ತಾಪಮಾನ|ಸ್ಥಿತಿ|"
+    r"ಕೆಲಸ|ಟಾಸ್ಕ್|ಕ್ಯಾಲೆಂಡರ್|ಮೀಟಿಂಗ್|ಬ್ರೀಫಿಂಗ್|ಕಿರಾಣಿ|ಪಟ್ಟಿ|ಅಡುಗೆ|ಖರ್ಚು|ಪಾರ್ಸೆಲ್))",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+
+# Operational commands that MUST never silently fall through to free-form chat claiming execution.
+_OPERATIONAL_GROUNDING_RE = re.compile(
+    r"(?:\b(?:turn\s+(?:on|off)|switch\s+(?:on|off)|set\s+(?:the\s+|a\s+|my\s+)?|dim|brighten|"
+    r"pause\s+(?:the\s+)?(?:timer|washer|vacuum)|resume\s+(?:the\s+)?(?:timer|washer|vacuum)|"
+    r"cancel\s+(?:the\s+|that\s+|my\s+)?(?:timer|reminder|schedule|task|event|alarm)|"
+    r"delete\s+(?:my\s+|that\s+)?(?:memory|preference|reminder|task|event|schedule|expense)|"
+    r"forget\s+(?:my\s+|that\s+)?|remind\s+me|schedule\s+(?:the\s+|my\s+)?|"
+    r"add\s+(?:a\s+|to\s+)?(?:task|event|meeting|reminder|grocery|groceries|expense|parcel)|"
+    r"complete\s+(?:the\s+|that\s+)?task|mark\s+.*\s+(?:done|completed|purchased))\b|"
+    r"(?:बंद\s+करो|चालू\s+करो|सेट\s+करो|भूल\s+जाओ|याद\s+दिलाओ|हटा\s+दो|रद्द\s+करो|ऑन\s+करो|ऑफ\s+करो|"
+    r"ಆನ್\s+ಮಾಡು|ಆನ್\s+ಮಾಡಿ|ಆಫ್\s+ಮಾಡು|ಆಫ್\s+ಮಾಡಿ|ಸೆಟ್\s+ಮಾಡು|ಸೆಟ್\s+ಮಾಡಿ|ಮರೆತುಬಿಡು|ನೆನಪಿಸು|ರದ್ದು\s+ಮಾಡು|ಅಳಿಸು))",
     flags=re.IGNORECASE | re.UNICODE,
 )
 
@@ -72,7 +90,7 @@ _ALLOWED_ROUTINES = {"morning", "night", "study", "away"}
 _SYSTEM_PROMPT = """You are the strict tool-intent classifier for AURA EDGE, an offline multilingual voice assistant.
 Analyze the user utterance (English, Hindi, Kannada, or Hinglish/Kanglish) and return ONLY a JSON object matching this exact schema:
 {
-  "intent_name": "GetTime" | "GetDate" | "SetTimer" | "ListTimers" | "GetTimerRemaining" | "PauseTimer" | "ResumeTimer" | "CancelTimer" | "CancelAllTimers" | "DeviceControl" | "SaveMemory" | "RetrieveMemory" | "UpdateMemory" | "DeleteMemory" | "ListMemories" | "CreateReminder" | "ListReminders" | "CancelReminder" | "ScheduleDeviceAction" | "ScheduleRoutine" | "ListSchedules" | "CancelSchedule" | "RunRoutine" | "Help" | "StopAssistant" | "Conversation" | "Clarify" | "Unsupported",
+  "intent_name": "GetTime" | "GetDate" | "SetTimer" | "ListTimers" | "GetTimerRemaining" | "PauseTimer" | "ResumeTimer" | "CancelTimer" | "CancelAllTimers" | "DeviceControl" | "SaveMemory" | "RetrieveMemory" | "UpdateMemory" | "DeleteMemory" | "ListMemories" | "CreateReminder" | "ListReminders" | "CancelReminder" | "ScheduleDeviceAction" | "ScheduleRoutine" | "ListSchedules" | "CancelSchedule" | "RunRoutine" | "CreateTask" | "ListTasks" | "CompleteTask" | "CreateCalendarEvent" | "ListCalendarEvents" | "DailyBriefing" | "AddGroceryItem" | "ListGroceryList" | "CheckInventory" | "SuggestRecipes" | "AddExpense" | "ExpenseSummary" | "ListParcels" | "AddParcel" | "Help" | "StopAssistant" | "Conversation" | "Clarify" | "Unsupported",
   "duration_seconds": integer or null,
   "delay_seconds": integer or null,
   "label": string or null,
@@ -85,6 +103,10 @@ Analyze the user utterance (English, Hindi, Kannada, or Hinglish/Kanglish) and r
   "value": boolean | integer | string | null,
   "use_preferred": boolean,
   "routine_id": string or null,
+  "title": string or null,
+  "item_name": string or null,
+  "amount": string or number or null,
+  "category": string or null,
   "clarification_needed": boolean
 }
 Rules:
@@ -133,6 +155,22 @@ class HybridPlanner:
         )
 
         if not allow_llm_fallback or self.ollama_client is None:
+            if _OPERATIONAL_GROUNDING_RE.search(norm.normalized):
+                return (
+                    TypedIntent(
+                        intent_name=IntentName.CLARIFY,
+                        confidence=0.8,
+                        source="clarification",
+                        route_category="clarification",
+                        language=norm.language,
+                        input_script=norm.script,
+                        clarification_question=get_phrase("ambiguous_request", norm.language),
+                        raw_text=text,
+                    ),
+                    router_ms,
+                    None,
+                    None,
+                )
             return (
                 TypedIntent(
                     intent_name=IntentName.UNSUPPORTED,
@@ -151,7 +189,10 @@ class HybridPlanner:
         target_lang = extract_requested_target_language(text)
 
         # Direct streaming conversational fast-path (avoids wasted double-LLM latency)
-        if not _TOOL_CLASSIFIER_HINT_RE.search(norm.normalized):
+        if (
+            not _TOOL_CLASSIFIER_HINT_RE.search(norm.normalized)
+            and not _OPERATIONAL_GROUNDING_RE.search(norm.normalized)
+        ):
             return (
                 TypedIntent(
                     intent_name=IntentName.CONVERSATION,
@@ -214,6 +255,17 @@ class HybridPlanner:
         raw_text: str,
     ) -> TypedIntent:
         if not isinstance(data, dict):
+            if _OPERATIONAL_GROUNDING_RE.search(raw_text):
+                return TypedIntent(
+                    intent_name=IntentName.CLARIFY,
+                    confidence=0.5,
+                    source="clarification",
+                    route_category="clarification",
+                    language=language,
+                    input_script=script,
+                    clarification_question=get_phrase("ambiguous_request", language),
+                    raw_text=raw_text,
+                )
             return TypedIntent(
                 intent_name=IntentName.UNSUPPORTED,
                 confidence=0.0,
@@ -251,6 +303,17 @@ class HybridPlanner:
             )
 
         if intent_enum == IntentName.CONVERSATION:
+            if _OPERATIONAL_GROUNDING_RE.search(raw_text):
+                return TypedIntent(
+                    intent_name=IntentName.CLARIFY,
+                    confidence=0.65,
+                    source="clarification",
+                    route_category="clarification",
+                    language=language,
+                    input_script=script,
+                    clarification_question=get_phrase("ambiguous_request", language),
+                    raw_text=raw_text,
+                )
             return TypedIntent(
                 intent_name=IntentName.CONVERSATION,
                 confidence=0.85,
@@ -348,6 +411,12 @@ class HybridPlanner:
                 use_pref = bool(data.get("use_preferred"))
                 val = data.get("value")
                 if not use_pref:
+                    if act == "power" and isinstance(val, str):
+                        v_low = val.strip().lower()
+                        if v_low in {"on", "true", "yes", "1"}:
+                            val = True
+                        elif v_low in {"off", "false", "no", "0"}:
+                            val = False
                     if act == "power" and not isinstance(val, bool):
                         return TypedIntent(
                             intent_name=IntentName.CLARIFY,
@@ -470,6 +539,75 @@ class HybridPlanner:
                 slots["delay_seconds"] = delay
         elif intent_enum in (IntentName.CANCEL_REMINDER, IntentName.CANCEL_SCHEDULE):
             slots = {"query": str(data.get("query") or raw_text).strip()}
+        elif intent_enum == IntentName.CREATE_TASK:
+            t_title = str(data.get("title") or "").strip()
+            if not t_title:
+                return TypedIntent(
+                    intent_name=IntentName.CLARIFY,
+                    confidence=0.5,
+                    source="clarification",
+                    route_category="clarification",
+                    language=language,
+                    input_script=script,
+                    clarification_question=get_phrase("ambiguous_request", language),
+                    raw_text=raw_text,
+                )
+            slots = {"title": t_title, "category": str(data.get("category") or "general")}
+        elif intent_enum == IntentName.COMPLETE_TASK:
+            slots = {"query": str(data.get("query") or data.get("title") or "").strip()}
+        elif intent_enum == IntentName.ADD_GROCERY_ITEM:
+            item_n = str(data.get("item_name") or "").strip()
+            if not item_n:
+                return TypedIntent(
+                    intent_name=IntentName.CLARIFY,
+                    confidence=0.5,
+                    source="clarification",
+                    route_category="clarification",
+                    language=language,
+                    input_script=script,
+                    clarification_question=get_phrase("ambiguous_request", language),
+                    raw_text=raw_text,
+                )
+            slots = {"item_name": item_n, "quantity": 1, "unit": "unit"}
+        elif intent_enum == IntentName.ADD_EXPENSE:
+            amt = data.get("amount")
+            if amt is None:
+                return TypedIntent(
+                    intent_name=IntentName.CLARIFY,
+                    confidence=0.5,
+                    source="clarification",
+                    route_category="clarification",
+                    language=language,
+                    input_script=script,
+                    clarification_question=get_phrase("ambiguous_request", language),
+                    raw_text=raw_text,
+                )
+            slots = {"amount": str(amt), "category": str(data.get("category") or "general")}
+        elif intent_enum == IntentName.ADD_PARCEL:
+            o_name = str(data.get("title") or data.get("item_name") or "").strip()
+            if not o_name:
+                return TypedIntent(
+                    intent_name=IntentName.CLARIFY,
+                    confidence=0.5,
+                    source="clarification",
+                    route_category="clarification",
+                    language=language,
+                    input_script=script,
+                    clarification_question=get_phrase("ambiguous_request", language),
+                    raw_text=raw_text,
+                )
+            slots = {"order_name": o_name}
+        elif intent_enum in (
+            IntentName.LIST_TASKS,
+            IntentName.LIST_CALENDAR_EVENTS,
+            IntentName.DAILY_BRIEFING,
+            IntentName.LIST_GROCERY_LIST,
+            IntentName.CHECK_INVENTORY,
+            IntentName.SUGGEST_RECIPES,
+            IntentName.EXPENSE_SUMMARY,
+            IntentName.LIST_PARCELS,
+        ):
+            slots = {"query": str(data.get("query") or "").strip()}
 
         action = TypedAction(intent_name=intent_enum, slots=slots, confidence=0.82)
         return TypedIntent(

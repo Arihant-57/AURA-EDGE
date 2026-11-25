@@ -66,6 +66,31 @@ _ROUTINE_INTENTS = {
     IntentName.RUN_ROUTINE,
 }
 
+_PHASE4_TASK_INTENTS = {
+    IntentName.CREATE_TASK,
+    IntentName.LIST_TASKS,
+    IntentName.COMPLETE_TASK,
+    IntentName.DELETE_TASK,
+}
+_PHASE4_CALENDAR_INTENTS = {
+    IntentName.CREATE_CALENDAR_EVENT,
+    IntentName.LIST_CALENDAR_EVENTS,
+}
+_PHASE4_GROCERY_INTENTS = {
+    IntentName.ADD_GROCERY_ITEM,
+    IntentName.LIST_GROCERY_LIST,
+    IntentName.CHECK_INVENTORY,
+    IntentName.SUGGEST_RECIPES,
+}
+_PHASE4_EXPENSE_INTENTS = {
+    IntentName.ADD_EXPENSE,
+    IntentName.EXPENSE_SUMMARY,
+}
+_PHASE4_PARCEL_INTENTS = {
+    IntentName.LIST_PARCELS,
+    IntentName.ADD_PARCEL,
+}
+
 
 def _resolve_schedule_timing(
     slots: dict[str, Any],
@@ -126,6 +151,12 @@ class ToolRegistry:
         memory_service: Any | None = None,
         scheduler_service: Any | None = None,
         notification_service: Any | None = None,
+        task_service: Any | None = None,
+        calendar_service: Any | None = None,
+        briefing_service: Any | None = None,
+        grocery_service: Any | None = None,
+        expense_service: Any | None = None,
+        parcel_service: Any | None = None,
         default_timezone: str = "Asia/Kolkata",
         clock: Callable[[], datetime] | None = None,
     ) -> None:
@@ -135,6 +166,12 @@ class ToolRegistry:
         self.memory_service = memory_service
         self.scheduler_service = scheduler_service
         self.notification_service = notification_service
+        self.task_service = task_service
+        self.calendar_service = calendar_service
+        self.briefing_service = briefing_service
+        self.grocery_service = grocery_service
+        self.expense_service = expense_service
+        self.parcel_service = parcel_service
         self.default_timezone = default_timezone
         self._clock = clock or (lambda: datetime.now(UTC))
         self._phase2_hooks: dict[str, Any] = {}
@@ -147,6 +184,7 @@ class ToolRegistry:
         has_home = self.smart_home is not None
         has_mem = self.memory_service is not None
         has_sched = self.scheduler_service is not None
+        has_p4 = self.task_service is not None or self.calendar_service is not None
         if language == "hi":
             parts = ["पंजीकृत स्थानीय टूल्स: समय व तारीख (DateTimeTool), और स्थायी टाइमर (TimerManager)।"]
             if has_home:
@@ -157,6 +195,8 @@ class ToolRegistry:
                 parts.append("स्थायी व्यक्तिगत मेमोरी (MemoryService) और वरीयताएँ सक्रिय हैं।")
             if has_sched:
                 parts.append("स्थायी रिमाइंडर, शेड्यूल्ड कार्य और नोटिफिकेशन सक्रिय हैं।")
+            if has_p4:
+                parts.append("व्यक्तिगत सहायक टूल्स (टास्क, कैलेंडर, दैनिक ब्रीफिंग, किराना, खर्च और पार्सल) सक्रिय हैं।")
             return " ".join(parts)
         if language == "kn":
             parts = ["ನೋಂದಾಯಿತ ಸ್ಥಳೀಯ ಟೂಲ್‌ಗಳು: ಸಮಯ ಮತ್ತು ದಿನಾಂಕ (DateTimeTool), ಮತ್ತು ಟೈಮರ್‌ಗಳು (TimerManager)."]
@@ -168,6 +208,8 @@ class ToolRegistry:
                 parts.append("ಶಾಶ್ವತ ವೈಯಕ್ತಿಕ ನೆನಪು ಮತ್ತು ಆದ್ಯತೆಗಳು (MemoryService) ಸಕ್ರಿಯವಾಗಿವೆ.")
             if has_sched:
                 parts.append("ಶಾಶ್ವತ ಜ್ಞಾಪನೆಗಳು, ವೇಳಾಪಟ್ಟಿಗಳು ಮತ್ತು ಅಧಿಸೂಚನೆಗಳು ಸಕ್ರಿಯವಾಗಿವೆ.")
+            if has_p4:
+                parts.append("ವೈಯಕ್ತಿಕ ಸಹಾಯಕ ಟೂಲ್‌ಗಳು (ಟಾಸ್ಕ್‌ಗಳು, ಕ್ಯಾಲೆಂಡರ್, ದೈನಂದಿನ ಬ್ರೀಫಿಂಗ್, ದಿನಸಿ, ಖರ್ಚು ಮತ್ತು ಪಾರ್ಸೆಲ್) ಸಕ್ರಿಯವಾಗಿವೆ.")
             return " ".join(parts)
         parts = ["Registered local tools: current time and date (DateTimeTool), and persistent timers (TimerManager)."]
         if has_home:
@@ -179,6 +221,8 @@ class ToolRegistry:
             parts.append("Persistent personal memory and appliance preferences (MemoryService) are active.")
         if has_sched:
             parts.append("Persistent reminders, scheduled appliance actions, and proactive notifications (SchedulerService) are active.")
+        if has_p4:
+            parts.append("Offline personal secretary (tasks, local calendar, daily briefing, grocery inventory & recipes, expense totals, cached parcels) is active.")
         return " ".join(parts)
 
     def validate_intent(self, intent: TypedIntent) -> tuple[bool, str | None]:
@@ -200,6 +244,18 @@ class ToolRegistry:
             if action.intent_name in _SCHEDULER_INTENTS and self.scheduler_service is not None:
                 continue
             if action.intent_name in _ROUTINE_INTENTS and self.smart_home is not None:
+                continue
+            if action.intent_name in _PHASE4_TASK_INTENTS and self.task_service is not None:
+                continue
+            if action.intent_name in _PHASE4_CALENDAR_INTENTS and self.calendar_service is not None:
+                continue
+            if action.intent_name == IntentName.DAILY_BRIEFING and self.briefing_service is not None:
+                continue
+            if action.intent_name in _PHASE4_GROCERY_INTENTS and self.grocery_service is not None:
+                continue
+            if action.intent_name in _PHASE4_EXPENSE_INTENTS and self.expense_service is not None:
+                continue
+            if action.intent_name in _PHASE4_PARCEL_INTENTS and self.parcel_service is not None:
                 continue
             if action.intent_name not in _PHASE1_EXECUTABLE_INTENTS:
                 return False, f"Intent '{action.intent_name.value}' is not enabled."
@@ -852,6 +908,342 @@ class ToolRegistry:
             message=get_phrase("unsupported", lang),
         )
 
+    async def _execute_phase4_intent(
+        self, action: TypedAction, *, lang: LanguageCode
+    ) -> VerifiedActionResult:
+        slots = action.slots
+        name = action.intent_name
+        now_utc = self._clock()
+        if now_utc.tzinfo is None:
+            now_utc = now_utc.replace(tzinfo=UTC)
+
+        if name == IntentName.CREATE_TASK and self.task_service is not None:
+            title = str(slots.get("title") or "").strip()
+            task = await self.task_service.create_task(
+                title=title,
+                category=str(slots.get("category") or "general"),
+                language=lang,
+            )
+            return VerifiedActionResult(
+                success=True,
+                action="CreateTask",
+                status="verified",
+                data={"task": task},
+                message={
+                    "en": f"Added task: {task['title']}.",
+                    "hi": f"टास्क जोड़ा गया: {task['title']}।",
+                    "kn": f"ಟಾಸ್ಕ್ ಸೇರಿಸಲಾಗಿದೆ: {task['title']}.",
+                }[lang],
+            )
+
+        if name == IntentName.LIST_TASKS and self.task_service is not None:
+            tasks = self.task_service.list_tasks(status=slots.get("status") or "pending", limit=20)
+            if not tasks:
+                msg = {
+                    "en": "You have no pending tasks.",
+                    "hi": "आपका कोई लंबित टास्क नहीं है।",
+                    "kn": "ನಿಮ್ಮಲ್ಲಿ ಯಾವುದೇ ಬಾಕಿ ಟಾಸ್ಕ್‌ಗಳಿಲ್ಲ.",
+                }[lang]
+            else:
+                titles = "; ".join(t["title"] for t in tasks[:5])
+                msg = {
+                    "en": f"Pending tasks ({len(tasks)}): {titles}.",
+                    "hi": f"लंबित टास्क ({len(tasks)}): {titles}।",
+                    "kn": f"ಬಾಕಿ ಟಾಸ್ಕ್‌ಗಳು ({len(tasks)}): {titles}.",
+                }[lang]
+            return VerifiedActionResult(
+                success=True,
+                action="ListTasks",
+                status="verified",
+                data={"items": tasks, "count": len(tasks)},
+                message=msg,
+            )
+
+        if name == IntentName.COMPLETE_TASK and self.task_service is not None:
+            done = await self.task_service.complete_matching_task(slots.get("query"))
+            if done is None:
+                return VerifiedActionResult(
+                    success=False,
+                    action="CompleteTask",
+                    status="failed",
+                    message={
+                        "en": "No pending task found to complete.",
+                        "hi": "पूरा करने के लिए कोई लंबित टास्क नहीं मिला।",
+                        "kn": "ಪೂರ್ಣಗೊಳಿಸಲು ಯಾವುದೇ ಬಾಕಿ ಟಾಸ್ಕ್ ಕಂಡುಬಂದಿಲ್ಲ.",
+                    }[lang],
+                    error="No matching pending task.",
+                )
+            return VerifiedActionResult(
+                success=True,
+                action="CompleteTask",
+                status="verified",
+                data={"task": done},
+                message={
+                    "en": f"Completed task: {done['title']}.",
+                    "hi": f"टास्क पूरा किया गया: {done['title']}।",
+                    "kn": f"ಟಾಸ್ಕ್ ಪೂರ್ಣಗೊಳಿಸಲಾಗಿದೆ: {done['title']}.",
+                }[lang],
+            )
+
+        if name == IntentName.CREATE_CALENDAR_EVENT and self.calendar_service is not None:
+            start_at, rec = _resolve_schedule_timing(
+                slots, now_utc=now_utc, tz_name=self.default_timezone
+            )
+            if start_at is None:
+                return VerifiedActionResult(
+                    success=False,
+                    action="CreateCalendarEvent",
+                    status="clarification_required",
+                    message=get_phrase("ambiguous_request", lang),
+                )
+            title = str(slots.get("title") or "Calendar event")
+            ev, conflicts = await self.calendar_service.create_event(
+                title=title,
+                start_at_utc=start_at,
+                recurrence=rec,
+                reminder_minutes_before=15,
+                language=lang,
+            )
+            local_str = start_at.astimezone(ZoneInfo(self.default_timezone)).strftime("%I:%M %p")
+            conflict_note = (
+                f" Note: overlaps with {conflicts[0]['title']}." if conflicts and lang == "en" else ""
+            )
+            return VerifiedActionResult(
+                success=True,
+                action="CreateCalendarEvent",
+                status="verified",
+                data={"event": ev, "conflicts": conflicts},
+                message={
+                    "en": f"Scheduled event '{ev['title']}' at {local_str}.{conflict_note}",
+                    "hi": f"इवेंट '{ev['title']}' {local_str} के लिए शेड्यूल किया गया है।",
+                    "kn": f"'{ev['title']}' ಕಾರ್ಯಕ್ರಮವನ್ನು {local_str} ಕ್ಕೆ ನಿಗದಿಪಡಿಸಲಾಗಿದೆ.",
+                }[lang],
+            )
+
+        if name == IntentName.LIST_CALENDAR_EVENTS and self.calendar_service is not None:
+            rk = str(slots.get("range_kind") or "upcoming")
+            events = self.calendar_service.list_events(range_kind=rk)
+            if not events:
+                msg = {
+                    "en": f"You have no calendar events ({rk}).",
+                    "hi": "आपके पास कोई कैलेंडर इवेंट नहीं है।",
+                    "kn": "ನಿಮ್ಮ ಕ್ಯಾಲೆಂಡರ್‌ನಲ್ಲಿ ಯಾವುದೇ ಕಾರ್ಯಕ್ರಮಗಳಿಲ್ಲ.",
+                }[lang]
+            else:
+                titles = "; ".join(e["title"] for e in events[:5])
+                msg = {
+                    "en": f"Calendar events ({len(events)}): {titles}.",
+                    "hi": f"कैलेंडर इवेंट ({len(events)}): {titles}।",
+                    "kn": f"ಕ್ಯಾಲೆಂಡರ್ ಕಾರ್ಯಕ್ರಮಗಳು ({len(events)}): {titles}.",
+                }[lang]
+            return VerifiedActionResult(
+                success=True,
+                action="ListCalendarEvents",
+                status="verified",
+                data={"items": events, "count": len(events)},
+                message=msg,
+            )
+
+        if name == IntentName.DAILY_BRIEFING and self.briefing_service is not None:
+            briefing = self.briefing_service.build_daily_briefing(language=lang)
+            return VerifiedActionResult(
+                success=True,
+                action="DailyBriefing",
+                status="verified",
+                data={"briefing": briefing},
+                message=briefing["summary_text"],
+            )
+
+        if name == IntentName.ADD_GROCERY_ITEM and self.grocery_service is not None:
+            item = await self.grocery_service.add_to_shopping_list(
+                item_name=str(slots.get("item_name") or ""),
+                quantity=slots.get("quantity") or 1,
+                unit=str(slots.get("unit") or "unit"),
+                added_via="voice",
+            )
+            return VerifiedActionResult(
+                success=True,
+                action="AddGroceryItem",
+                status="verified",
+                data={"item": item},
+                message={
+                    "en": f"Added {item['item_name']} to your grocery list.",
+                    "hi": f"{item['item_name']} को आपकी किराना सूची में जोड़ दिया गया है।",
+                    "kn": f"{item['item_name']} ಅನ್ನು ನಿಮ್ಮ ದಿನಸಿ ಪಟ್ಟಿಗೆ ಸೇರಿಸಲಾಗಿದೆ.",
+                }[lang],
+            )
+
+        if name == IntentName.LIST_GROCERY_LIST and self.grocery_service is not None:
+            items = self.grocery_service.list_shopping(include_purchased=False)
+            if not items:
+                msg = {
+                    "en": "Your grocery list is empty.",
+                    "hi": "आपकी किराना सूची खाली है।",
+                    "kn": "ನಿಮ್ಮ ದಿನಸಿ ಪಟ್ಟಿ ಖಾಲಿಯಾಗಿದೆ.",
+                }[lang]
+            else:
+                names = ", ".join(it["item_name"] for it in items[:8])
+                msg = {
+                    "en": f"Grocery list ({len(items)}): {names}.",
+                    "hi": f"किराना सूची ({len(items)}): {names}।",
+                    "kn": f"ದಿನಸಿ ಪಟ್ಟಿ ({len(items)}): {names}.",
+                }[lang]
+            return VerifiedActionResult(
+                success=True,
+                action="ListGroceryList",
+                status="verified",
+                data={"items": items, "count": len(items)},
+                message=msg,
+            )
+
+        if name == IntentName.CHECK_INVENTORY and self.grocery_service is not None:
+            low = self.grocery_service.list_missing_or_low_stock()
+            inv = self.grocery_service.list_inventory()
+            if low:
+                names = ", ".join(it["display_name"] for it in low[:6])
+                msg = {
+                    "en": f"Low-stock items ({len(low)}): {names}.",
+                    "hi": f"कम स्टॉक वाले सामान ({len(low)}): {names}।",
+                    "kn": f"ಕಡಿಮೆ ಸ್ಟಾಕ್ ಇರುವ ವಸ್ತುಗಳು ({len(low)}): {names}.",
+                }[lang]
+            elif inv:
+                msg = {
+                    "en": f"All {len(inv)} pantry item(s) are adequately stocked.",
+                    "hi": f"पेंट्री के सभी {len(inv)} आइटम पर्याप्त स्टॉक में हैं।",
+                    "kn": f"ಎಲ್ಲಾ {len(inv)} ದಿನಸಿ ವಸ್ತುಗಳು ಸಾಕಷ್ಟು ಸ್ಟಾಕ್‌ನಲ್ಲಿವೆ.",
+                }[lang]
+            else:
+                msg = {
+                    "en": "Your pantry inventory is currently empty.",
+                    "hi": "आपकी पेंट्री इन्वेंटरी अभी खाली है।",
+                    "kn": "ನಿಮ್ಮ ಪ್ಯಾಂಟ್ರಿ ದಾಸ್ತಾನು ಸದ್ಯಕ್ಕೆ ಖಾಲಿಯಾಗಿದೆ.",
+                }[lang]
+            return VerifiedActionResult(
+                success=True,
+                action="CheckInventory",
+                status="verified",
+                data={"low_stock": low, "inventory_count": len(inv)},
+                message=msg,
+            )
+
+        if name == IntentName.SUGGEST_RECIPES and self.grocery_service is not None:
+            recipes = self.grocery_service.suggest_recipes()
+            ready = [r for r in recipes if r["can_make_now"]]
+            if ready:
+                names = ", ".join(r["title"] for r in ready[:4])
+                msg = {
+                    "en": f"You have all ingredients for: {names}.",
+                    "hi": f"आपके पास इनके लिए सभी सामग्री उपलब्ध हैं: {names}।",
+                    "kn": f"ಇವುಗಳಿಗೆ ಬೇಕಾದ ಎಲ್ಲಾ ಪದಾರ್ಥಗಳು ನಿಮ್ಮಲ್ಲಿವೆ: {names}.",
+                }[lang]
+            else:
+                top = recipes[0] if recipes else None
+                msg = (
+                    {
+                        "en": f"Closest recipe: {top['title']} (missing: {', '.join(top['missing_ingredients'])}).",
+                        "hi": f"निकटतम रेसिपी: {top['title']} (कम सामग्री: {', '.join(top['missing_ingredients'])})।",
+                        "kn": f"ಹತ್ತಿರದ ರೆಸಿಪಿ: {top['title']} (ಕೊರತೆಯಿರುವ ಪದಾರ್ಥಗಳು: {', '.join(top['missing_ingredients'])}).",
+                    }[lang]
+                    if top
+                    else "No offline recipes available."
+                )
+            return VerifiedActionResult(
+                success=True,
+                action="SuggestRecipes",
+                status="verified",
+                data={"recipes": recipes},
+                message=msg,
+            )
+
+        if name == IntentName.ADD_EXPENSE and self.expense_service is not None:
+            try:
+                exp = await self.expense_service.add_expense(
+                    amount=str(slots.get("amount") or "0"),
+                    category=str(slots.get("category") or "general"),
+                    source="voice",
+                )
+            except ValueError as exc:
+                return VerifiedActionResult(
+                    success=False,
+                    action="AddExpense",
+                    status="clarification_required",
+                    message=get_phrase("ambiguous_request", lang),
+                    error=str(exc),
+                )
+            return VerifiedActionResult(
+                success=True,
+                action="AddExpense",
+                status="verified",
+                data={"expense": exp},
+                message={
+                    "en": f"Recorded expense of ₹{exp['amount_inr']} under {exp['category']}.",
+                    "hi": f"{exp['category']} में ₹{exp['amount_inr']} का खर्च दर्ज किया गया है।",
+                    "kn": f"{exp['category']} ವಿಭಾಗದಲ್ಲಿ ₹{exp['amount_inr']} ಖರ್ಚನ್ನು ದಾಖಲಿಸಲಾಗಿದೆ.",
+                }[lang],
+            )
+
+        if name == IntentName.EXPENSE_SUMMARY and self.expense_service is not None:
+            period = str(slots.get("period") or "month")
+            summary = self.expense_service.get_summary(period=period)
+            return VerifiedActionResult(
+                success=True,
+                action="ExpenseSummary",
+                status="verified",
+                data={"summary": summary},
+                message={
+                    "en": f"Total expenses ({period}): ₹{summary['total_inr']} across {summary['transaction_count']} transaction(s).",
+                    "hi": f"कुल खर्च ({period}): {summary['transaction_count']} लेनदेन में ₹{summary['total_inr']}।",
+                    "kn": f"ಒಟ್ಟು ಖರ್ಚು ({period}): {summary['transaction_count']} ವಹಿವಾಟುಗಳಲ್ಲಿ ₹{summary['total_inr']}.",
+                }[lang],
+            )
+
+        if name == IntentName.LIST_PARCELS and self.parcel_service is not None:
+            parcels = self.parcel_service.list_parcels(limit=20)
+            if not parcels:
+                msg = {
+                    "en": "You have no saved offline parcel records.",
+                    "hi": "आपके पास कोई सहेजा गया पार्सल रिकॉर्ड नहीं है।",
+                    "kn": "ನಿಮ್ಮ ಬಳಿ ಉಳಿಸಿದ ಪಾರ್ಸೆಲ್ ದಾಖಲೆಗಳಿಲ್ಲ.",
+                }[lang]
+            else:
+                names = "; ".join(f"{p['order_name']} ({p['last_known_status']})" for p in parcels[:5])
+                msg = {
+                    "en": f"Saved parcels ({len(parcels)}, offline cache): {names}.",
+                    "hi": f"सहेजे गए पार्सल ({len(parcels)}): {names}।",
+                    "kn": f"ಉಳಿಸಿದ ಪಾರ್ಸೆಲ್‌ಗಳು ({len(parcels)}): {names}.",
+                }[lang]
+            return VerifiedActionResult(
+                success=True,
+                action="ListParcels",
+                status="verified",
+                data={"items": parcels, "count": len(parcels)},
+                message=msg,
+            )
+
+        if name == IntentName.ADD_PARCEL and self.parcel_service is not None:
+            parcel = await self.parcel_service.create_parcel(
+                order_name=str(slots.get("order_name") or "").strip(),
+                language=lang,
+            )
+            return VerifiedActionResult(
+                success=True,
+                action="AddParcel",
+                status="verified",
+                data={"parcel": parcel},
+                message={
+                    "en": f"Saved local parcel record: {parcel['order_name']}.",
+                    "hi": f"स्थानीय पार्सल रिकॉर्ड सहेजा गया: {parcel['order_name']}।",
+                    "kn": f"ಸ್ಥಳೀಯ ಪಾರ್ಸೆಲ್ ದಾಖಲೆಯನ್ನು ಉಳಿಸಲಾಗಿದೆ: {parcel['order_name']}.",
+                }[lang],
+            )
+
+        return VerifiedActionResult(
+            success=False,
+            action=name.value,
+            status="refused",
+            message=get_phrase("unsupported", lang),
+        )
+
     async def _execute_single(
         self,
         action: TypedAction,
@@ -935,6 +1327,15 @@ class ToolRegistry:
                 source="voice",
                 language=lang,
             )
+        if (
+            name in _PHASE4_TASK_INTENTS
+            or name in _PHASE4_CALENDAR_INTENTS
+            or name == IntentName.DAILY_BRIEFING
+            or name in _PHASE4_GROCERY_INTENTS
+            or name in _PHASE4_EXPENSE_INTENTS
+            or name in _PHASE4_PARCEL_INTENTS
+        ):
+            return await self._execute_phase4_intent(action, lang=lang)
         return VerifiedActionResult(
             success=False,
             action=name.value,

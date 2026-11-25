@@ -30,6 +30,7 @@ def test_live_postgres_pgvector_roundtrip_and_distance_query() -> None:
             "0002_phase1_voice_timers",
             "0003_phase2_smart_home",
             "0004_phase3_memory_events",
+            "0005_phase4_personal_assistant",
         }
 
         token = uuid.uuid4().hex[:12]

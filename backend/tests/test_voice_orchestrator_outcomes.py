@@ -536,9 +536,12 @@ def test_cross_lingual_real_wav_en_and_hi_speech_to_kannada_reply() -> None:
     with TestClient(app) as client:
         orch = app.state.orchestrator
         assert client.put("/api/v1/voice/language", json={"language": "kn"}).status_code == 200
+        assert client.portal is not None
 
         en_audio = _load_wav_16k(cfg.models_dir / "eval_audio" / "phase1a_tts_en.wav")
-        en_out = asyncio.run(orch.process_audio_samples(en_audio, source="audio_upload", speak=False))
+        en_out = client.portal.call(
+            lambda: orch.process_audio_samples(en_audio, source="audio_upload", speak=False)
+        )
         assert en_out.detected_language == "en"
         assert en_out.preferred_reply_language == "kn"
         assert en_out.response_language == "kn"
@@ -547,7 +550,9 @@ def test_cross_lingual_real_wav_en_and_hi_speech_to_kannada_reply() -> None:
         assert any("\u0C80" <= ch <= "\u0CFF" for ch in en_out.response_text)
 
         hi_audio = _load_wav_16k(cfg.models_dir / "eval_audio" / "phase1a_tts_hi.wav")
-        hi_out = asyncio.run(orch.process_audio_samples(hi_audio, source="audio_upload", speak=False))
+        hi_out = client.portal.call(
+            lambda: orch.process_audio_samples(hi_audio, source="audio_upload", speak=False)
+        )
         assert hi_out.detected_language == "hi"
         assert hi_out.preferred_reply_language == "kn"
         assert hi_out.response_language == "kn"

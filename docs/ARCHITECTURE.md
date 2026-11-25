@@ -1,14 +1,14 @@
-# AURA EDGE — System Architecture (Phase 0 – Phase 3)
+# AURA EDGE — System Architecture (Phase 0 – Phase 4)
 
-## Phase 3 Persistent Memory, Scheduling, Custom Routines & Notifications
+## Phase 4 Personal Secretary & Shared Multilingual Grounding
 
-Phase 3 extends the offline modular monolith with PostgreSQL + `pgvector` personal memory, a PostgreSQL-backed persistent scheduler (`FOR UPDATE SKIP LOCKED` + unique occurrence deduplication), custom conditional/event-triggered smart-home routines, and persistent proactive notifications with bounded serialized audio playback.
+Part A & Phase 4 extend the offline modular monolith with unified code-switched EN/HI/KN/Hinglish/Kanglish normalization and execution grounding alongside PostgreSQL-backed personal tasks, offline calendar (with conflict detection & recurrence), daily briefings, household groceries/recipes, exact-paise expense tracking, and cached parcel records (`0005_phase4_personal_assistant`).
 
 ## 1. Architectural Pattern
 
 AURA EDGE uses a **layered modular monolith** combined with an **event-driven automation & voice pipeline**. One deployable core FastAPI application houses bounded modules backed by local supporting processes (PostgreSQL 16 + `pgvector`, local Ollama, and offline ONNX/CTranslate2 speech runtimes).
 
-> **Scope Status:** **Phase 0 (Foundation), Phase 1 (Voice/Timers), Phase 1.5 (Natural Conversation/Streaming), Phase 2 (Smart-Home Simulator), and Phase 3 (Persistent Memory, Scheduling, Routines, Notifications)** are implemented on `feat/backend-intelligence`. Phase 4+ personal productivity domains (tasks/groceries/expenses/parcels/RAG) and Phase 6 external connectors remain deferred.
+> **Scope Status:** **Phases 0, 1, 1.5, 2, 3, and Phase 4 core Personal Secretary modules** (tasks, offline calendar, daily briefing, groceries/recipes, expenses/CSV import, and cached parcels + Part A multilingual grounding) are implemented on `feat/backend-intelligence`. Optional local document RAG/desktop launcher and Phase 6 external online connectors remain deferred.
 
 ## 2. Module Layout (`backend/src/aura_edge/`)
 
@@ -16,12 +16,12 @@ AURA EDGE uses a **layered modular monolith** combined with an **event-driven au
 |---|---|---|
 | **Configuration** | `config.py` | Loads `AURA_EDGE_*` settings; defaults to `strict_offline` and `Asia/Kolkata` timezone; configures `nomic-embed-text:latest` (`dim=768`), scheduler poll/grace intervals, and notification audio queue capacity; rejects SQLite/non-PostgreSQL URLs. |
 | **Infrastructure** | `infrastructure/network_policy.py`, `hardware.py`, `compute.py` | Fail-closed `NetworkPolicyEnforcer`, host CPU/RAM/GPU telemetry, `ComputeManager` (`auto` \| `cpu` \| `gpu`), Windows CUDA DLL handle caching. |
-| **Speech** | `speech/audio_capture.py`, `vad.py`, `stt.py`, `playback.py`, `tts_router.py` | 16 kHz PortAudio capture with half-duplex suspension & sticky user mute, CPU Silero VAD (`onset_frames=2`), decoupled multilingual STT (`faster-whisper` + selective `indic-conformer-kn`), R4 noise/silence gate, lock-free SPSC PCM playback & `sherpa-onnx` EN/HI/KN TTS. |
-| **Intelligence** | `intelligence/normalizer.py`, `fast_router.py`, `planner.py`, `conversation.py`, `embedder.py`, `response_catalog.py` | EN/HI/KN normalizer, deterministic `MultilingualFastRouter` (clock, timers, smart-home, memory, reminders, schedules), `HybridPlanner` (Qwen 3.5 4B tool JSON fallback), bounded `ConversationSession`, and CPU-only loopback `LocalEmbedder` (`nomic-embed-text:latest`, fallback to keyword search). |
-| **Application** | `application/smart_home.py`, `memory_service.py`, `scheduler_service.py`, `notification_service.py`, `voice_orchestrator.py` | Capability-validated `SmartHomeService` + custom/conditional routines + simulator event triggers; `MemoryService` (safety filter, structured appliance preferences, 3-tier exact/keyword/`pgvector` retrieval); `SchedulerService` (`Asia/Kolkata` recurrence, missed-job & crash recovery); `NotificationService` (DB-first persist, dedup, quiet hours, bounded audio queue); `VoiceOrchestrator`. |
-| **Execution** | `execution/state_machine.py`, `tool_registry.py`, `tools/` | 10-state `AssistantStateMachine`, `ToolRegistry` enforcing schema/capability validation and verified state post-checks across Phase 1–3 intents, `DateTimeTool`, and `TimerManager`. |
-| **Data** | `data/models.py`, `database.py`, `repositories/{timer,memory,scheduler,notification}_repo.py` | SQLAlchemy 2.0 ORM and Alembic revisions `0001`–`0004` (`memory_items`, `memory_settings`, `conversation_history_items`, `scheduled_jobs`, `job_executions`, `notifications`, `notification_preferences`, extended `smart_home_routines`). |
-| **API** | `api/routes_{health,voice,timers,smart_home,memory,scheduler,notifications}.py`, `ws_events.py`, `main.py` | REST endpoints and `/api/v1/ws/live` WebSocket hub with ordered startup/shutdown lifespan. |
+| **Speech** | `speech/audio_capture.py`, `vad.py`, `stt.py`, `playback.py`, `tts_router.py` | 16 kHz PortAudio capture with half-duplex suspension & sticky user mute, CPU Silero VAD (`onset_frames=2`), decoupled multilingual STT (`faster-whisper` + mixed-script preservation + selective `indic-conformer-kn`), R4 noise/silence gate, lock-free SPSC PCM playback & `sherpa-onnx` EN/HI/KN TTS. |
+| **Intelligence** | `intelligence/normalizer.py`, `fast_router.py`, `planner.py`, `conversation.py`, `embedder.py`, `response_catalog.py` | Code-switched EN/HI/KN/Hinglish/Kanglish normalizer (transliterated English numbers/units + script-count language precedence), deterministic `MultilingualFastRouter` (Phase 1–4 tools), `HybridPlanner` (operational grounding gate & boolean coercion), `ConversationSession` (verified-entity anaphora + post-delete memory scrubbing + `validate_no_unverified_action_claim`), and CPU-only loopback `LocalEmbedder`. |
+| **Application** | `application/smart_home.py`, `memory_service.py`, `scheduler_service.py`, `notification_service.py`, `personal/*`, `voice_orchestrator.py` | Capability-validated `SmartHomeService`; `MemoryService`; `SchedulerService`; `NotificationService`; Phase 4 `TaskService`, `CalendarService`, `BriefingService`, `GroceryService`, `ExpenseService`, and `ParcelService`; and `VoiceOrchestrator`. |
+| **Execution** | `execution/state_machine.py`, `tool_registry.py`, `tools/` | 10-state `AssistantStateMachine`, `ToolRegistry` enforcing schema/capability validation and verified state post-checks across Phase 1–4 intents, `DateTimeTool`, and `TimerManager`. |
+| **Data** | `data/models.py`, `database.py`, `repositories/{timer,memory,scheduler,notification,personal}_repo...` | SQLAlchemy 2.0 ORM and Alembic revisions `0001`–`0005` (`tasks`, `calendar_events`, `grocery_items`, `shopping_list_items`, `local_recipes`, `expense_imports`, `expense_transactions`, `parcels`). |
+| **API** | `api/routes_{health,voice,timers,smart_home,memory,scheduler,notifications,personal}.py`, `ws_events.py`, `main.py` | REST endpoints and `/api/v1/ws/live` WebSocket hub with ordered startup/shutdown lifespan and offline recipe seeding. |
 
 ## 3. 10-State Voice Turn Lifecycle
 

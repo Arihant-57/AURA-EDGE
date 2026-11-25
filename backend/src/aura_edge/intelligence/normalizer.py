@@ -29,6 +29,7 @@ _POLITE_SUFFIX_RE = re.compile(
 
 # Spoken number words -> digits separated by English vs Indic/Romanized Indic
 _EN_NUMBER_WORDS: dict[str, int] = {
+    "zero": 0,
     "one": 1,
     "two": 2,
     "three": 3,
@@ -41,16 +42,41 @@ _EN_NUMBER_WORDS: dict[str, int] = {
     "ten": 10,
     "eleven": 11,
     "twelve": 12,
+    "thirteen": 13,
+    "fourteen": 14,
     "fifteen": 15,
+    "sixteen": 16,
+    "seventeen": 17,
+    "eighteen": 18,
+    "nineteen": 19,
     "twenty": 20,
+    "twenty one": 21,
+    "twenty-one": 21,
+    "twenty two": 22,
+    "twenty-two": 22,
+    "twenty three": 23,
+    "twenty-three": 23,
+    "twenty four": 24,
+    "twenty-four": 24,
     "twenty five": 25,
     "twenty-five": 25,
+    "twenty six": 26,
+    "twenty-six": 26,
+    "twenty seven": 27,
+    "twenty-seven": 27,
+    "twenty eight": 28,
+    "twenty-eight": 28,
+    "twenty nine": 29,
+    "twenty-nine": 29,
     "thirty": 30,
+    "thirty five": 35,
+    "thirty-five": 35,
     "forty": 40,
     "forty five": 45,
     "forty-five": 45,
     "fifty": 50,
     "sixty": 60,
+    "ninety": 90,
 }
 
 _INDIC_SCRIPT_NUMBER_WORDS: dict[str, int] = {
@@ -68,10 +94,34 @@ _INDIC_SCRIPT_NUMBER_WORDS: dict[str, int] = {
     "दस": 10,
     "पंद्रह": 15,
     "बीस": 20,
+    "चौबीस": 24,
     "पच्चीस": 25,
     "तीस": 30,
     "पैंतालीस": 45,
     "साठ": 60,
+    # Devanagari transliterations of English numbers
+    "वन": 1,
+    "टू": 2,
+    "थ्री": 3,
+    "फोर": 4,
+    "फाइव": 5,
+    "सिक्स": 6,
+    "सेवन": 7,
+    "एट": 8,
+    "नाइन": 9,
+    "टेन": 10,
+    "ट्वेंटी": 20,
+    "ट्वेंटी वन": 21,
+    "ट्वेंटी टू": 22,
+    "ट्वेंटी थ्री": 23,
+    "ट्वेंटी फोर": 24,
+    "ट्वेंटी फाइव": 25,
+    "थर्टी": 30,
+    "फोर्टी": 40,
+    "फोर्टी फाइव": 45,
+    "फिफ्टी": 50,
+    "सिक्स्टी": 60,
+    # Kannada native numbers
     "ಒಂದು": 1,
     "ಎರಡು": 2,
     "ಮೂರು": 3,
@@ -84,8 +134,48 @@ _INDIC_SCRIPT_NUMBER_WORDS: dict[str, int] = {
     "ಹತ್ತು": 10,
     "ಹದಿನೈದು": 15,
     "ಇಪ್ಪತ್ತು": 20,
+    "ಇಪ್ಪತ್ತನಾಲ್ಕು": 24,
+    "ಇಪ್ಪತ್ತೈದು": 25,
     "ಮೂವತ್ತು": 30,
+    # Kannada transliterations of English numbers
+    "ಒನ್": 1,
+    "ಟೂ": 2,
+    "ಥ್ರೀ": 3,
+    "ಫೋರ್": 4,
+    "ಫೈವ್": 5,
+    "ಸಿಕ್ಸ್": 6,
+    "ಸೆವೆನ್": 7,
+    "ಏಟ್": 8,
+    "ನೈನ್": 9,
+    "ಟೆನ್": 10,
+    "ಟ್ವೆಂಟಿ": 20,
+    "ಟ್ವೆಂಟಿ ಒನ್": 21,
+    "ಟ್ವೆಂಟಿ ಟೂ": 22,
+    "ಟ್ವೆಂಟಿ ಥ್ರೀ": 23,
+    "ಟ್ವೆಂಟಿ ಫೋರ್": 24,
+    "ಟ್ವೆಂಟಿ ಫೈವ್": 25,
+    "ಥರ್ಟಿ": 30,
+    "ಫೋರ್ಟಿ": 40,
+    "ಫೋರ್ಟಿ ಫೈವ್": 45,
+    "ಫಿಫ್ಟಿ": 50,
+    "ಸಿಕ್ಸ್ಟಿ": 60,
 }
+
+# English loanword units/actions written in Devanagari/Kannada -> canonical ASCII tokens
+_CODE_SWITCHED_LOANWORDS: tuple[tuple[str, str], ...] = (
+    ("सेकंड्स", "seconds"),
+    ("सेकण्ड्स", "seconds"),
+    ("मिनट्स", "minutes"),
+    ("डिग्रीज", "degrees"),
+    ("डिग्रीज़", "degrees"),
+    ("सेट", "set"),
+    ("ಸೆಕೆಂಡ್ಸ್", "seconds"),
+    ("ಸೆಕೆಂಡುಗಳು", "seconds"),
+    ("ಮಿನಿಟ್ಸ್", "minutes"),
+    ("ಮಿನಿಟ್", "minute"),
+    ("ಡಿಗ್ರೀಸ್", "degrees"),
+    ("ಸೆಟ್", "set"),
+)
 
 _ROMAN_INDIC_NUMBER_WORDS: dict[str, int] = {
     "ek": 1,
@@ -139,8 +229,11 @@ _UNIT_MULT = {
     "seconds": 1,
     "सेकंड": 1,
     "सेकण्ड": 1,
+    "सेकंड्स": 1,
+    "सेकण्ड्स": 1,
     "ಸೆಕೆಂಡ್": 1,
     "ಸೆಕೆಂಡು": 1,
+    "ಸೆಕೆಂಡ್ಸ್": 1,
     "ಸೆಕೆಂಡ್‌ಗಳು": 1,
     "ಸೆಕೆಂಡುಗಳು": 1,
     "m": 60,
@@ -150,10 +243,13 @@ _UNIT_MULT = {
     "minutes": 60,
     "मिनट": 60,
     "मिनटों": 60,
+    "मिनट्स": 60,
     "minat": 60,
     "ನಿಮಿಷ": 60,
     "ನಿಮಿಷಗಳು": 60,
     "ನಿಮಿಷದ": 60,
+    "ಮಿನಿಟ್": 60,
+    "ಮಿನಿಟ್ಸ್": 60,
     "nimisha": 60,
     "h": 3600,
     "hr": 3600,
@@ -172,8 +268,8 @@ _UNIT_MULT = {
 
 _DURATION_CHUNK_RE = re.compile(
     r"(\d+)\s*(hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s|"
-    r"घंट[ाेों]|मिनट(?:ों)?|सेक[ंडण्ड]+|ghant[ae]|minat|"
-    r"ಗಂಟೆ(?:ಗಳು)?|ನಿಮಿಷ(?:ಗಳು|ದ)?|ಸೆಕೆಂಡ್(?:‌ಗಳು|ಗಳು)?|ಸೆಕೆಂಡು(?:ಗಳು)?|"
+    r"घंट[ाेों]|मिनट(?:ों|्स)?|सेक[ंडण्ड]+(?:्स)?|ghant[ae]|minat|"
+    r"ಗಂಟೆ(?:ಗಳು)?|ನಿಮಿಷ(?:ಗಳು|ದ)?|ಮಿನಿಟ್(?:ಸ್)?|ಸೆಕೆಂಡ್(?:‌ಗಳು|ಗಳು|ಸ್)?|ಸೆಕೆಂಡು(?:ಗಳು)?|"
     r"gante|nimisha)",
     flags=re.IGNORECASE | re.UNICODE,
 )
@@ -205,6 +301,15 @@ _HINGLISH_HINTS = {
     "baki",
     "karo",
     "dijiye",
+    "baad",
+    "bhool",
+    "jao",
+    "dena",
+    "mera",
+    "meri",
+    "mujhe",
+    "paani",
+    "peene",
 }
 
 _KANGLISH_HINTS = {
@@ -227,7 +332,13 @@ _KANGLISH_HINTS = {
     "aagide",
     "baaki",
     "kodu",
+    "kodi",
     "torisu",
+    "aadmele",
+    "nantara",
+    "maretubidu",
+    "nanna",
+    "nanage",
 }
 
 
@@ -267,10 +378,12 @@ def detect_language(
 ) -> LanguageCode:
     if requested != "auto":
         return requested
-    if _DEVANAGARI_RE.search(text):
-        return "hi"
-    if _KANNADA_RE.search(text):
+    dev_count = len(_DEVANAGARI_RE.findall(text))
+    kan_count = len(_KANNADA_RE.findall(text))
+    if kan_count > 0 and kan_count >= dev_count:
         return "kn"
+    if dev_count > 0:
+        return "hi"
     tokens = {t.lower() for t in unicode_tokens(text)}
     if tokens & _HINGLISH_HINTS:
         return "hi"
@@ -281,12 +394,28 @@ def detect_language(
     return fallback_language
 
 
-_UNIT_FOLLOWUP_RE = r"(?=\s+(?:seconds?|secs?|sec|minutes?|mins?|min|minat|nimisha|hours?|hrs?|hr|ghant[ae]|gante)\b)"
+_UNIT_FOLLOWUP_RE = (
+    r"(?=\s+(?:seconds?|secs?|sec|minutes?|mins?|min|minat|nimisha|hours?|hrs?|hr|ghant[ae]|gante|"
+    r"सेक[ंडण्ड]+(?:्स)?|मिनट(?:ों|्स)?|घंट[ाेों]|ಸೆಕೆಂಡ್(?:‌ಗಳು|ಗಳು|ಸ್)?|ನಿಮಿಷ(?:ಗಳು|ದ)?|ಮಿನಿಟ್(?:ಸ್)?|ಗಂಟೆ(?:ಗಳು)?)(?![\w\u0900-\u097F\u0C80-\u0CFF]))"
+)
+
+
+def _replace_code_switched_loanwords(text: str) -> str:
+    out = text
+    for indic_word, ascii_word in _CODE_SWITCHED_LOANWORDS:
+        out = re.sub(
+            rf"(?<![\w\u0900-\u097F\u0C80-\u0CFF]){re.escape(indic_word)}(?![\w\u0900-\u097F\u0C80-\u0CFF])",
+            ascii_word,
+            out,
+            flags=re.UNICODE,
+        )
+    return out
 
 
 def _replace_number_words(text: str, *, language: LanguageCode = "en") -> str:
     out = _HALF_HOUR_RE.sub("30 minutes", text)
     out = _ARTICLE_TIME_UNIT_RE.sub(r"1 \1", out)
+    out = _replace_code_switched_loanwords(out)
 
     active_maps: list[tuple[dict[str, int], bool]] = [
         (_INDIC_SCRIPT_NUMBER_WORDS, False),
@@ -307,7 +436,7 @@ def _replace_number_words(text: str, *, language: LanguageCode = "en") -> str:
 
 
 def extract_duration_seconds(text: str) -> int | None:
-    """Extract total duration in seconds from EN/HI/KN text, or None if absent."""
+    """Extract positive total duration in seconds from EN/HI/KN text, or None if absent."""
     prepared = _replace_number_words(text.translate(_DIGIT_TRANSLATION))
     total = 0
     found = False
@@ -319,14 +448,14 @@ def extract_duration_seconds(text: str) -> int | None:
             # Handle Devanagari/Kannada suffix inflections cleanly
             if unit.startswith(("घंट", "ghant", "ಗಂಟೆ", "gant")):
                 mult = 3600
-            elif unit.startswith(("मिनट", "minat", "ನಿಮಿಷ", "nimish")):
+            elif unit.startswith(("मिनट", "minat", "ನಿಮಿಷ", "ಮಿನಿಟ್", "nimish")):
                 mult = 60
             elif unit.startswith(("सेक", "ಸೆಕೆಂಡ")):
                 mult = 1
         if mult is not None:
             total += num * mult
             found = True
-    return total if found else None
+    return total if (found and total > 0) else None
 
 
 def _normalize_kannada_asr_variants(text: str) -> str:

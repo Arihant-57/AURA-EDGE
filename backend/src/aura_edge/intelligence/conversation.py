@@ -37,6 +37,35 @@ _UNSUPPORTED_LANG_CLAIM_RE = re.compile(
     r"\b(?:tagalog|spanish|french|german|japanese|chinese|mandarin|arabic|korean|tamil|telugu|malayalam|bengali|marathi|portuguese|russian)\b",
     flags=re.IGNORECASE,
 )
+_UNVERIFIED_ACTION_CLAIM_RE = re.compile(
+    r"(?:\b(?:i(?:'ve|\s+have)?|done[.,!]?\s+i(?:'ve|\s+have)?)\s+"
+    r"(?:turned\s+(?:on|off)|switched\s+(?:on|off)|set\s+(?:the\s+|your\s+)?(?:ac|air\s+conditioner|fan|light|tv|temperature|timer|reminder)|"
+    r"created|added|deleted|removed|forgot(?:ten)?|cancelled|canceled|updated|completed|scheduled|saved)\b|"
+    r"\b(?:has|have)\s+been\s+(?:turned\s+(?:on|off)|set|created|deleted|removed|cancelled|canceled|scheduled|completed|saved)\b|"
+    r"(?:मैंने\s+.*(?:कर\s+दिया|बंद\s+कर\s+दिया|चालू\s+कर\s+दिया|सेट\s+कर\s+दिया|हटा\s+दिया|रद्द\s+कर\s+दिया|सहेज\s+लिया|जोड़\s+दिया))|"
+    r"(?:आन\s+कर\s+दिया|ऑफ\s+कर\s+दिया|बंद\s+कर\s+दिया\s+है|सेट\s+कर\s+दिया\s+है|हटा\s+दिया\s+है|रद्द\s+कर\s+दिया\s+है)|"
+    r"(?:ಆನ್\s+ಮಾಡಲಾಗಿದೆ|ಆಫ್\s+ಮಾಡಲಾಗಿದೆ|ಸೆಟ್\s+ಮಾಡಲಾಗಿದೆ|ಅಳಿಸಲಾಗಿದೆ|ರದ್ದುಗೊಳಿಸಲಾಗಿದೆ|ಉಳಿಸಲಾಗಿದೆ|ಸೇರಿಸಲಾಗಿದೆ))",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+
+
+def validate_no_unverified_action_claim(
+    text: str,
+    target_language: LanguageCode,
+) -> tuple[bool, str]:
+    """Ensure free-form conversation never claims a tool mutation executed without verification."""
+    cleaned = (text or "").strip()
+    if cleaned and _UNVERIFIED_ACTION_CLAIM_RE.search(cleaned):
+        return False, "unverified_action_claim"
+    return True, "ok"
+
+
+def unverified_action_fallback(language: LanguageCode) -> str:
+    return {
+        "en": "I did not run that action yet. Could you state the exact device, reminder, or item you want me to change?",
+        "hi": "मैंने अभी कोई कार्रवाई नहीं की है। कृपया ठीक-ठीक बताएं कि आप किस उपकरण, रिमाइंडर या आइटम को बदलना चाहते हैं?",
+        "kn": "ನಾನು ಆ ಕ್ರಿಯೆಯನ್ನು ಇನ್ನೂ ಮಾಡಿಲ್ಲ. ದಯವಿಟ್ಟು ಯಾವ ಸಾಧನ, ಜ್ಞಾಪನೆ ಅಥವಾ ವಿವರವನ್ನು ಬದಲಾಯಿಸಬೇಕೆಂದು ಸ್ಪಷ್ಟವಾಗಿ ತಿಳಿಸಿ?",
+    }[language]
 
 
 def validate_response_language(
@@ -102,8 +131,31 @@ class ConversationMessage(BaseModel):
     timestamp_utc: str
 
 
+_DEVICE_TYPE_WORDS: dict[str, str] = {
+    "air_conditioner": "air conditioner",
+    "light": "light",
+    "fan": "fan",
+    "television": "tv",
+    "curtain": "curtain",
+    "washing_machine": "washing machine",
+    "robot_vacuum": "robot vacuum",
+    "air_purifier": "air purifier",
+    "water_heater": "water heater",
+    "water_pump": "water pump",
+    "refrigerator": "refrigerator",
+    "climate_sensor": "climate sensor",
+}
+_ROOM_WORDS: dict[str, str] = {
+    "living_room": "living room",
+    "bedroom": "bedroom",
+    "kitchen": "kitchen",
+    "study": "study",
+    "utility_room": "utility room",
+}
+
+
 class ConversationSession:
-    """Thread-safe, bounded short-term session history (atomic turn commits)."""
+    """Thread-safe, bounded short-term session history and verified-entity context."""
 
     def __init__(self, *, max_turns: int = 12, idle_timeout_sec: float = 1800.0) -> None:
         self._max_messages = max(2, int(max_turns) * 2)
@@ -111,10 +163,140 @@ class ConversationSession:
         self._messages: deque[ConversationMessage] = deque(maxlen=self._max_messages)
         self._last_activity_mono: float = time.monotonic()
         self._lock = threading.Lock()
+        self.last_room: str | None = None
+        self.last_device_type: str | None = None
+        self.last_device_id: str | None = None
+        self.last_action: str | None = None
+        self.last_reminder_id: str | None = None
+        self.last_reminder_title: str | None = None
+        self.last_task_id: str | None = None
+        self.last_memory_key: str | None = None
 
     def _expire_if_idle_locked(self) -> None:
         if self._messages and (time.monotonic() - self._last_activity_mono) > self._idle_timeout_sec:
             self._messages.clear()
+            self._clear_entities_locked()
+
+    def _clear_entities_locked(self) -> None:
+        self.last_room = None
+        self.last_device_type = None
+        self.last_device_id = None
+        self.last_action = None
+        self.last_reminder_id = None
+        self.last_reminder_title = None
+        self.last_task_id = None
+        self.last_memory_key = None
+
+    def record_verified_entity(
+        self,
+        *,
+        action: str,
+        slots: dict[str, object] | None = None,
+        data: dict[str, object] | None = None,
+    ) -> None:
+        """Update short-term entity references ONLY from verified tool execution."""
+        payload = data or {}
+        sl = slots or {}
+        with self._lock:
+            if action in ("DeviceControl", "ScheduleDeviceAction"):
+                dev = payload.get("device") if isinstance(payload.get("device"), dict) else {}
+                sched = payload.get("schedule") if isinstance(payload.get("schedule"), dict) else {}
+                sched_p = sched.get("payload_json") if isinstance(sched.get("payload_json"), dict) else {}
+                dev_id = dev.get("id") or sched_p.get("device_id")
+                room = dev.get("room") or sl.get("room")
+                dev_type = dev.get("device_type") or sl.get("device_type")
+                if isinstance(dev_id, str) and "." in dev_id and not dev_type:
+                    room = room or dev_id.split(".", 1)[0]
+                if isinstance(room, str):
+                    self.last_room = room
+                if isinstance(dev_type, str):
+                    self.last_device_type = dev_type
+                if isinstance(dev_id, str):
+                    self.last_device_id = dev_id
+                self.last_action = str(sl.get("action") or action)
+            elif action == "CreateReminder":
+                rem = payload.get("reminder") if isinstance(payload.get("reminder"), dict) else {}
+                if rem.get("id"):
+                    self.last_reminder_id = str(rem["id"])
+                if rem.get("title"):
+                    self.last_reminder_title = str(rem["title"])
+            elif action in ("CancelReminder",):
+                self.last_reminder_id = None
+                self.last_reminder_title = None
+            elif action in ("SaveMemory", "UpdateMemory", "RetrieveMemory"):
+                mem = payload.get("memory") if isinstance(payload.get("memory"), dict) else {}
+                if not mem and isinstance(payload.get("items"), list) and payload["items"]:
+                    first = payload["items"][0]
+                    if isinstance(first, dict):
+                        mem = first
+                if mem.get("canonical_key"):
+                    self.last_memory_key = str(mem["canonical_key"])
+                sv = mem.get("structured_value") if isinstance(mem.get("structured_value"), dict) else {}
+                if isinstance(sv.get("room"), str):
+                    self.last_room = sv["room"]
+                if isinstance(sv.get("device_type"), str):
+                    self.last_device_type = sv["device_type"]
+                if isinstance(sv.get("device_id"), str):
+                    self.last_device_id = sv["device_id"]
+            elif action == "DeleteMemory":
+                self.last_memory_key = None
+            elif action in ("CreateTask", "CompleteTask"):
+                task = payload.get("task") if isinstance(payload.get("task"), dict) else {}
+                if task.get("id"):
+                    self.last_task_id = str(task["id"])
+
+    def invalidate_memory_context(self) -> None:
+        """Scrub stale memory answers from chat history after DeleteMemory so deleted facts cannot leak."""
+        with self._lock:
+            self.last_memory_key = None
+            kept = deque(
+                (
+                    msg
+                    for msg in self._messages
+                    if msg.intent not in ("SaveMemory", "UpdateMemory", "RetrieveMemory", "ListMemories")
+                ),
+                maxlen=self._max_messages,
+            )
+            self._messages = kept
+
+    def resolve_anaphora(self, text: str) -> str:
+        """Resolve unambiguous entity pronouns ('it', 'that reminder') from verified context."""
+        cleaned = (text or "").strip()
+        if not cleaned:
+            return cleaned
+        low = cleaned.lower()
+        with self._lock:
+            room = self.last_room
+            dev_type = self.last_device_type
+            rem_title = self.last_reminder_title
+
+        if dev_type is not None:
+            room_txt = f"{_ROOM_WORDS.get(room, '')} " if room else ""
+            dev_txt = _DEVICE_TYPE_WORDS.get(dev_type, dev_type.replace("_", " "))
+            target = f"{room_txt}{dev_txt}".strip()
+
+            if re.match(r"^(?:please\s+)?(?:turn|switch)\s+it\s+off[.!?]*$", low):
+                return f"turn off the {target}"
+            if re.match(r"^(?:please\s+)?(?:turn|switch)\s+it\s+on[.!?]*$", low):
+                return f"turn on the {target}"
+            if re.match(
+                r"^(?:please\s+)?set\s+it\s+to\s+(?:my\s+)?(?:preferred|favorite|usual)\s+(\w+)[.!?]*$",
+                low,
+            ):
+                m_prop = re.search(r"(?:preferred|favorite|usual)\s+(\w+)", low)
+                prop = m_prop.group(1) if m_prop else "temperature"
+                return f"set the {target} to my preferred {prop}"
+            m_val = re.match(
+                r"^(?:please\s+)?(?:make|set|change)\s+it\s+(?:to\s+)?(\d{1,3})(?:\s*(?:degrees?|%|percent))?(?:\s+instead)?[.!?]*$",
+                low,
+            )
+            if m_val:
+                return f"set the {target} to {m_val.group(1)}"
+
+        if rem_title and re.match(r"^(?:please\s+)?(?:cancel|delete|remove)\s+that\s+reminder[.!?]*$", low):
+            return f"cancel reminder {rem_title}"
+
+        return cleaned
 
     def record_turn(
         self,
@@ -167,6 +349,7 @@ class ConversationSession:
         with self._lock:
             count = len(self._messages)
             self._messages.clear()
+            self._clear_entities_locked()
             self._last_activity_mono = time.monotonic()
             return count
 

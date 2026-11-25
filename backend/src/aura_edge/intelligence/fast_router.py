@@ -273,17 +273,17 @@ def _try_smart_home_action(text: str) -> TypedAction | None:
     ):
         slots.update(action="status", value=None)
     elif re.search(
-        r"\b(?:turn|switch)\s+on\b|\bon\s+(?:karo|maad[iu])\b|"
-        r"\bon\s+(?:करो|ಮಾಡು|ಮಾಡಿ)(?![\w\u0900-\u097F\u0C80-\u0CFF])|"
-        r"चालू\s*(?:करो|कर\s+दो)|ಆನ್\s+ಮಾಡು|ಆನ್\s+ಮಾಡಿ|"
+        r"\b(?:turn|switch)\s+on\b|\bon\s+(?:karo|kijiye|maad[iu])\b|"
+        r"\bon\s+(?:करो|कर\s+दो|कीजिए|ಮಾಡು|ಮಾಡಿ)(?![\w\u0900-\u097F\u0C80-\u0CFF])|"
+        r"चालू\s*(?:करो|कर\s+दो|कीजिए)|ಚಾಲು\s*(?:ಮಾಡು|ಮಾಡಿ)|ಆನ್\s+ಮಾಡು|ಆನ್\s+ಮಾಡಿ|"
         r"(?<![\w\u0C80-\u0CFF])ಆನ್(?![\w\u0C80-\u0CFF])",
         low,
     ):
         slots.update(action="power", value=True)
     elif re.search(
-        r"\b(?:turn|switch)\s+off\b|\boff\s+(?:karo|maad[iu])\b|"
-        r"\boff\s+(?:करो|ಮಾಡು|ಮಾಡಿ)(?![\w\u0900-\u097F\u0C80-\u0CFF])|"
-        r"बंद\s*(?:करो|कर\s+दो)|ಆಫ್\s+ಮಾಡು|ಆಫ್\s+ಮಾಡಿ|"
+        r"\b(?:turn|switch)\s+off\b|\boff\s+(?:karo|kijiye|maad[iu])\b|"
+        r"\boff\s+(?:करो|कर\s+दो|कीजिए|ಮಾಡು|ಮಾಡಿ)(?![\w\u0900-\u097F\u0C80-\u0CFF])|"
+        r"बंद\s*(?:करो|कर\s+दो|कीजिए)|ಬಂದ್\s*(?:ಮಾಡು|ಮಾಡಿ)|ಆಫ್\s+ಮಾಡು|ಆಫ್\s+ಮಾಡಿ|"
         r"(?<![\w\u0C80-\u0CFF])ಆಫ್(?![\w\u0C80-\u0CFF])",
         low,
     ):
@@ -463,6 +463,12 @@ _DELETE_MEMORY_RE = re.compile(
     r"(?:ದಯವಿಟ್ಟು\s+)?ಮರೆತುಬಿಡು(?:\s+ಅಂತ)?)\s+(.+)$",
     flags=re.IGNORECASE | re.UNICODE,
 )
+_DELETE_MEMORY_SUFFIX_RE = re.compile(
+    r"^(?:please\s+|कृपया\s+|ದಯವಿಟ್ಟು\s+)?(?:my\s+|मेरा\s+|मेरी\s+|मेरे\s+|ನನ್ನ\s+)?(.+?)"
+    r"(?:\s+(?:को|की|का|ಅನ್ನು|ಗೆ))?\s*(?:forget(?:\s+karo|\s+maad[iu])?|भूल\s+जाओ|हटा\s+दो|हटाओ|डिलीट\s+करो|"
+    r"ಮರೆತುಬಿಡು|ಮರೆತುಬಿಡಿ|ಅಳಿಸು|ಅಳಿಸಿ)$",
+    flags=re.IGNORECASE | re.UNICODE,
+)
 
 _WEEKDAY_MAP: dict[str, int] = {
     "monday": 0, "mon": 0, "सोमवार": 0, "ಸೋಮವಾರ": 0,
@@ -474,13 +480,21 @@ _WEEKDAY_MAP: dict[str, int] = {
     "sunday": 6, "sun": 6, "रविवार": 6, "ರವಿವಾರ": 6,
 }
 
+_DELAY_UNIT_GROUP = (
+    r"(?:hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s|"
+    r"घंट[ाेों]|मिनट(?:ों|्स)?|सेक[ंडण्ड]+(?:्स)?|ghant[ae]|minat|"
+    r"ಗಂಟೆ(?:ಗಳು)?|ನಿಮಿಷ(?:ಗಳು|ದ)?|ಮಿನಿಟ್(?:ಸ್)?|ಸೆಕೆಂಡ್(?:‌ಗಳು|ಗಳು|ಸ್)?|ಸೆಕೆಂಡು(?:ಗಳು)?|gante|nimisha)"
+)
+
 
 def _extract_delay_from_phrase(text: str) -> tuple[int | None, str]:
-    """Match 'in 10 minutes' / '10 मिनट में' / '10 ನಿಮಿಷದಲ್ಲಿ' and return (seconds, remainder)."""
+    """Match relative delays across EN/HI/KN and code-switched phrases."""
     patterns = (
-        r"\b(?:in|after)\s+(\d+\s*(?:hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s)(?:\s+(?:and\s+)?\d+\s*(?:minutes?|mins?|min|seconds?|secs?|sec))?)\b",
-        r"(\d+\s*(?:घंट[ाेों]|मिनट(?:ों)?|सेक[ंडण्ड]+|ghant[ae]|minat))\s*(?:में|के\s+बाद|baad|mein)",
-        r"(\d+\s*(?:ಗಂಟೆ(?:ಗಳು)?|ನಿಮಿಷ(?:ಗಳು|ದ)?|ಸೆಕೆಂಡ್(?:‌ಗಳು|ಗಳು)?|gante|nimisha))\s*(?:ದಲ್ಲಿ|ನಂತರ|ಒಳಗೆ)",
+        rf"\b(?:in|after)\s+(\d+\s*{_DELAY_UNIT_GROUP}(?:\s+(?:and\s+)?\d+\s*{_DELAY_UNIT_GROUP})?)\b",
+        (
+            rf"(\d+\s*{_DELAY_UNIT_GROUP}(?:\s+(?:and\s+|और\s+|ಮತ್ತು\s+)?\d+\s*{_DELAY_UNIT_GROUP})?)\s*"
+            r"(?:में|के\s+बाद|बाद|baad|mein|ದಲ್ಲಿ|ನಂತರ|ಆದ್ಮೇಲೆ|ಆದ\s*ಮೇಲೆ|ಒಳಗೆ)(?![\w\u0900-\u097F\u0C80-\u0CFF])"
+        ),
     )
     for pat in patterns:
         m = re.search(pat, text, flags=re.IGNORECASE | re.UNICODE)
@@ -607,6 +621,32 @@ def _try_memory_action(norm: NormalizedText) -> TypedIntent | None:
             raw_text=norm.raw,
         )
 
+    if not re.search(
+        r"\b(?:timer|timers|reminder|reminders|schedule|schedules|task|tasks|event|events|alarm)\b|"
+        r"टाइमर|रिमाइंडर|शेड्यूल|टास्क|ಟೈಮರ್|ರಿಮೈಂಡರ್|ಜ್ಞಾಪನೆ|ವೇಳಾಪಟ್ಟಿ|ಟಾಸ್ಕ್",
+        text.lower(),
+        flags=re.UNICODE,
+    ):
+        m_del_sfx = _DELETE_MEMORY_SUFFIX_RE.match(text)
+        if m_del_sfx:
+            query = re.sub(
+                r"^(?:my|मेरा|मेरी|मेरे|ನನ್ನ)\s+",
+                "",
+                m_del_sfx.group(1).strip().rstrip("."),
+                flags=re.IGNORECASE | re.UNICODE,
+            ).strip()
+            if query:
+                return TypedIntent(
+                    intent_name=IntentName.DELETE_MEMORY,
+                    confidence=0.95,
+                    source="hassil_fast",
+                    route_category="tool",
+                    language=norm.language,
+                    input_script=norm.script,
+                    slots={"query": query},
+                    raw_text=norm.raw,
+                )
+
     if _LIST_MEMORY_RE.match(text.lower()):
         return TypedIntent(
             intent_name=IntentName.LIST_MEMORIES,
@@ -723,7 +763,8 @@ def _try_schedule_or_reminder_action(norm: NormalizedText) -> TypedIntent | None
     # A. Explicit reminder intent
     is_reminder = bool(
         re.search(
-            r"\bremind\s+me\b|\bset\s+(?:a\s+)?reminder\b|याद\s+दिलाओ|रिमाइंडर|ನೆನಪಿಸು|ರಿಮೈಂಡರ್",
+            r"\bremind\s+me\b|\bset\s+(?:a\s+)?reminder\b|\breminders?\b|"
+            r"याद\s+दिला(?:ओ|ना)|रिमाइंडर|ನೆನಪಿಸು|ರಿಮೈಂಡರ್|ಜ್ಞಾಪನೆ",
             low,
             flags=re.UNICODE,
         )
@@ -769,28 +810,38 @@ def _try_schedule_or_reminder_action(norm: NormalizedText) -> TypedIntent | None
             flags=re.IGNORECASE,
         )
         body = re.sub(
-            r"(?:मुझे\s+|ನನಗೆ\s+|को\s+|अंत\s+|ಗೆ\s+|ನ್ನು\s+)",
+            r"(?:\b(?:a|an)\s+)?\breminders?\b\s*(?:देना|दो|दीजिए|दे|लगाओ|रखो|ಕೊಡಿ|ಕೊಡು|ಹಾಕು|ಇಡು|ಮಾಡು|ಮಾಡಿ)?|"
+            r"(?:रिमाइंडर|ರಿಮೈಂಡರ್|ಜ್ಞಾಪನೆ)\s*(?:देना|दो|दीजिए|दे|लगाओ|रखो|ಕೊಡಿ|ಕೊಡು|ಹಾಕು|ಇಡು|ಮಾಡು|ಮಾಡಿ)?",
+            " ",
+            body,
+            flags=re.IGNORECASE | re.UNICODE,
+        )
+        body = re.sub(
+            r"(?:मुझे\s+|ನನಗೆ\s+|\s+(?:का|की|के|को|ಗೆ|ಕ್ಕೆ|ನ್ನು|ಅನ್ನು)\s+|\s+(?:का|की|के|को)$)",
             " ",
             body,
             flags=re.UNICODE,
         )
         body = re.sub(r"\s+", " ", body).strip(" ,.-")
         if len(body) < 2:
-            q_msg = {
-                "en": "What should I remind you about?",
-                "hi": "मैं आपको किस बारे में याद दिलाऊँ?",
-                "kn": "ನಾನು ನಿಮಗೆ ಯಾವುದರ ಬಗ್ಗೆ ನೆನಪಿಸಲಿ?",
-            }[norm.language]
-            return TypedIntent(
-                intent_name=IntentName.CLARIFY,
-                confidence=0.92,
-                source="clarification",
-                route_category="clarification",
-                language=norm.language,
-                input_script=norm.script,
-                clarification_question=q_msg,
-                raw_text=norm.raw,
-            )
+            if delay_sec is not None:
+                body = {"en": "Reminder", "hi": "रिमाइंडर", "kn": "ಜ್ಞಾಪನೆ"}[norm.language]
+            else:
+                q_msg = {
+                    "en": "What should I remind you about?",
+                    "hi": "मैं आपको किस बारे में याद दिलाऊँ?",
+                    "kn": "ನಾನು ನಿಮಗೆ ಯಾವುದರ ಬಗ್ಗೆ ನೆನಪಿಸಲಿ?",
+                }[norm.language]
+                return TypedIntent(
+                    intent_name=IntentName.CLARIFY,
+                    confidence=0.92,
+                    source="clarification",
+                    route_category="clarification",
+                    language=norm.language,
+                    input_script=norm.script,
+                    clarification_question=q_msg,
+                    raw_text=norm.raw,
+                )
         return TypedIntent(
             intent_name=IntentName.CREATE_REMINDER,
             confidence=0.95,
@@ -883,6 +934,198 @@ def _try_schedule_or_reminder_action(norm: NormalizedText) -> TypedIntent | None
         },
         raw_text=norm.raw,
     )
+
+
+def _try_phase4_action(norm: NormalizedText) -> TypedIntent | None:
+    """Deterministic EN/HI/KN/code-switched routing for Phase 4 Personal Secretary intents."""
+    text = norm.normalized.strip()
+    low = text.lower()
+    if not text:
+        return None
+
+    def _intent(name: IntentName, slots: dict[str, Any] | None = None, conf: float = 0.93) -> TypedIntent:
+        return TypedIntent(
+            intent_name=name,
+            confidence=conf,
+            source="hassil_fast",
+            route_category="tool",
+            language=norm.language,
+            input_script=norm.script,
+            slots=slots or {},
+            raw_text=norm.raw,
+        )
+
+    # 1. Daily briefing
+    if re.search(
+        r"\b(?:daily|morning)\s+briefing\b|\bbrief\s+me\b|\b(?:what(?:'s|\s+is)|give\s+me)\s+my\s+(?:day|daily\s+summary)\b|"
+        r"आज\s+की\s+ब्रीफिंग|दैनिक\s+सारांश|ಇಂದಿನ\s+ಬ್ರೀಫಿಂಗ್|ದೈನಂದಿನ\s+ಸಾರಾಂಶ",
+        low,
+        flags=re.UNICODE,
+    ):
+        return _intent(IntentName.DAILY_BRIEFING)
+
+    # 2. Groceries, pantry & offline recipes
+    if re.search(
+        r"\b(?:suggest|show|find)\s+recipes?\b|\bwhat\s+can\s+i\s+cook\b|\brecipe\s+ideas?\b|"
+        r"क्या\s+(?:बना|पका)\s*सकते\s+हैं|रेसिपी\s+(?:बताओ|सुझाओ)|"
+        r"ಏನು\s+ಅಡುಗೆ\s+ಮಾಡಬಹುದು|ರೆಸಿಪಿ\s*(?:ತಿಳಿಸು|ಹೇಳು)",
+        low,
+        flags=re.UNICODE,
+    ):
+        return _intent(IntentName.SUGGEST_RECIPES, {"query": text})
+
+    if re.search(
+        r"\b(?:check|show|list|what(?:'s|\s+is)\s+in)\s+(?:the\s+|my\s+)?(?:pantry|inventory)\b|"
+        r"\b(?:low[\s\-]stock|missing\s+grocer(?:y|ies))\b|"
+        r"राशन\s+स्टॉक|कम\s+सामान|ದಿನಸಿ\s+ಸ್ಟಾಕ್|ಕಡಿಮೆ\s+ವಸ್ತು",
+        low,
+        flags=re.UNICODE,
+    ):
+        return _intent(IntentName.CHECK_INVENTORY)
+
+    if re.search(
+        r"\b(?:list|show|what(?:'s|\s+is)\s+on)\s+(?:my\s+|the\s+)?(?:grocery|shopping)\s+list\b|"
+        r"(?:राशन|किराना|शॉपिंग)\s+(?:लिस्ट|सूची)\s*(?:दिखाओ|बताओ)|"
+        r"(?:ಕಿರಾಣಿ|ದಿನಸಿ|ಶಾಪಿಂಗ್)\s+ಪಟ್ಟಿ\s*(?:ತೋರಿಸು|ಹೇಳು)",
+        low,
+        flags=re.UNICODE,
+    ):
+        return _intent(IntentName.LIST_GROCERY_LIST)
+
+    m_groc_add = re.search(
+        r"(?:add|put)\s+(.+?)\s+to\s+(?:my\s+|the\s+)?(?:grocery|shopping)\s+list|"
+        r"(?:राशन|किराना|शॉपिंग)\s+(?:लिस्ट|सूची)\s+में\s+(.+?)\s+(?:जोड़ो|डालो)|"
+        r"(?:ಕಿರಾಣಿ|ದಿನಸಿ|ಶಾಪಿಂಗ್)\s+ಪಟ್ಟಿಗೆ\s+(.+?)\s+(?:ಸೇರಿಸು|ಸೇರಿಸಿ|ಹಾಕು)",
+        text,
+        flags=re.IGNORECASE | re.UNICODE,
+    )
+    if m_groc_add:
+        item_raw = next((g for g in m_groc_add.groups() if g), "").strip()
+        if item_raw:
+            return _intent(IntentName.ADD_GROCERY_ITEM, {"item_name": item_raw, "quantity": 1, "unit": "unit"})
+
+    # 3. Expenses
+    if re.search(
+        r"\b(?:expense\s+summary|total\s+expenses?|how\s+much\s+did\s+i\s+spend|show\s+(?:my\s+)?(?:daily|monthly)?\s*expenses?)\b|"
+        r"(?:मासिक|दैनिक|कुल)\s+खर्च|ಖರ್ಚು\s*(?:ಸಾರಾಂಶ|ತೋರಿಸು)|ತಿಂಗಳ\s+ಖರ್ಚು",
+        low,
+        flags=re.UNICODE,
+    ):
+        period = "day" if re.search(r"\btoday|daily|आज|दैनिक|ಇಂದು|ದಿನದ\b", low) else "month"
+        return _intent(IntentName.EXPENSE_SUMMARY, {"period": period})
+
+    m_exp = re.search(
+        r"(?:\b(?:log|add|record|spent)\s+(?:an?\s+)?(?:expense\s+(?:of\s+)?)?(?:rs\.?|inr|₹)?\s*(\d+(?:\.\d{1,2})?)\s*(?:rupees?|rs\.?|inr|₹)?(?:\s+(?:on|for)\s+(.+))?$)|"
+        r"(?:(\d+(?:\.\d{1,2})?)\s*(?:रुपये|रु)?\s*(.+?)\s*(?:पर|में)\s+खर्च\s+(?:लिखो|जोड़ो|हुए))|"
+        r"(?:(\d+(?:\.\d{1,2})?)\s*(?:ರೂಪಾಯಿ)?\s*(.+?)\s*(?:ಗೆ|ಮೇಲೆ)\s+ಖರ್ಚು\s+(?:ಸೇರಿಸು|ಸೇರಿಸಿ))",
+        text,
+        flags=re.IGNORECASE | re.UNICODE,
+    )
+    if m_exp:
+        amt = m_exp.group(1) or m_exp.group(3) or m_exp.group(5)
+        cat = (m_exp.group(2) or m_exp.group(4) or m_exp.group(6) or "general").strip(" .")
+        if amt:
+            return _intent(
+                IntentName.ADD_EXPENSE,
+                {"amount": amt, "category": cat or "general"},
+            )
+
+    # 4. Parcels
+    if re.search(
+        r"\b(?:list|show|check|track)\s+(?:my\s+|saved\s+)?parcels?\b|\bmy\s+deliveries\b|"
+        r"पार्सल\s*(?:दिखाओ|लिस्ट|बताओ)|ಪಾರ್ಸೆಲ್\s*(?:ತೋರಿಸು|ಪಟ್ಟಿ|ಹೇಳು)",
+        low,
+        flags=re.UNICODE,
+    ):
+        return _intent(IntentName.LIST_PARCELS)
+
+    m_parcel = re.search(
+        r"(?:add|save)\s+(?:a\s+)?parcel\s+(?:for\s+)?(.+)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if m_parcel and m_parcel.group(1).strip():
+        return _intent(IntentName.ADD_PARCEL, {"order_name": m_parcel.group(1).strip(" .")})
+
+    # 5. Tasks
+    if re.search(
+        r"\b(?:list|show|what\s+are)\s+(?:my\s+)?(?:pending\s+|open\s+)?tasks?\b|\bmy\s+to[\s\-]?do\s+list\b|"
+        r"(?:मेरा|मेरे)\s+टास्क\s*(?:दिखाओ|लिस्ट|बताओ)|ನನ್ನ\s+ಟಾಸ್ಕ್\s*(?:ತೋರಿಸು|ಪಟ್ಟಿ|ಹೇಳು)",
+        low,
+        flags=re.UNICODE,
+    ):
+        return _intent(IntentName.LIST_TASKS, {"status": "pending"})
+
+    m_task_done = re.search(
+        r"(?:complete|finish|mark\s+done)\s+(?:the\s+|my\s+)?task(?:\s+(.+))?|"
+        r"टास्क\s+(?:पूरा|खत्म)\s+करो|ಟಾಸ್ಕ್\s+(?:ಪೂರ್ಣಗೊಳಿಸು|ಮುಗಿಸು)",
+        text,
+        flags=re.IGNORECASE | re.UNICODE,
+    )
+    if m_task_done:
+        return _intent(
+            IntentName.COMPLETE_TASK,
+            {"query": (m_task_done.group(1) or "").strip(" .")},
+        )
+
+    m_task_add = re.search(
+        r"(?:add|create)\s+(?:a\s+)?(?:new\s+)?task(?:\s+to)?\s+(.+)|"
+        r"टास्क\s+(?:जोड़ो|बनाओ)\s*(?::)?\s*(.+)|"
+        r"ಟಾಸ್ಕ್\s+(?:ಸೇರಿಸು|ಸೇರಿಸಿ|ರಚಿಸು)\s*(?::)?\s*(.+)",
+        text,
+        flags=re.IGNORECASE | re.UNICODE,
+    )
+    if m_task_add:
+        title = next((g for g in m_task_add.groups() if g), "").strip(" .")
+        if title:
+            return _intent(IntentName.CREATE_TASK, {"title": title})
+
+    # 6. Calendar events
+    if re.search(
+        r"\b(?:show|list|check|what(?:'s|\s+is)\s+on)\s+(?:my\s+)?(?:calendar|schedule|events?|meetings?)\b|"
+        r"(?:आज|कल)\s+के\s+(?:इवेंट|मीटिंग|कैलेंडर)|(?:ಇಂದಿನ|ನಾಳೆಯ)\s+(?:ಕ್ಯಾಲೆಂಡರ್|ಮೀಟಿಂಗ್)",
+        low,
+        flags=re.UNICODE,
+    ):
+        rk = "tomorrow" if re.search(r"\btomorrow|कल|ನಾಳೆ\b", low) else (
+            "today" if re.search(r"\btoday|आज|ಇಂದು|ಇಂದಿನ\b", low) else "upcoming"
+        )
+        return _intent(IntentName.LIST_CALENDAR_EVENTS, {"range_kind": rk})
+
+    m_cal_add = re.search(
+        r"(?:add|schedule|create)\s+(?:a\s+)?(?:calendar\s+)?(?:event|meeting|appointment)\s+(.+)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if m_cal_add:
+        spec = _parse_clock_and_recurrence(text)
+        if spec is None or spec.get("ambiguous"):
+            return TypedIntent(
+                intent_name=IntentName.CLARIFY,
+                confidence=0.9,
+                source="clarification",
+                route_category="clarification",
+                language=norm.language,
+                input_script=norm.script,
+                clarification_question={
+                    "en": "Please specify the exact time (AM or PM) for this calendar event.",
+                    "hi": "कृपया इस कैलेंडर इवेंट के लिए सुबह या शाम का सही समय बताएं।",
+                    "kn": "ದಯವಿಟ್ಟು ಈ ಕ್ಯಾಲೆಂಡರ್ ಕಾರ್ಯಕ್ರಮಕ್ಕೆ ನಿಖರ ಸಮಯವನ್ನು (ಬೆಳಗ್ಗೆ ಅಥವಾ ಸಂಜೆ) ತಿಳಿಸಿ.",
+                }[norm.language],
+                raw_text=norm.raw,
+            )
+        title = re.sub(
+            r"\b(?:every\s+(?:day|morning|evening|night)|daily|tomorrow|today|at\s+\d{1,2}(?::\d{2})?(?:\s*(?:a\.?m\.?|p\.?m\.?))?)\b",
+            " ",
+            m_cal_add.group(1),
+            flags=re.IGNORECASE,
+        ).strip(" .")
+        return _intent(
+            IntentName.CREATE_CALENDAR_EVENT,
+            {"title": title or "Calendar event", "time_spec": spec},
+        )
+
+    return None
 
 
 class MultilingualFastRouter:
@@ -1105,6 +1348,10 @@ class MultilingualFastRouter:
         sched_intent = _try_schedule_or_reminder_action(norm)
         if sched_intent is not None:
             return sched_intent, round((time.perf_counter() - t0) * 1000.0, 2)
+
+        p4_intent = _try_phase4_action(norm)
+        if p4_intent is not None:
+            return p4_intent, round((time.perf_counter() - t0) * 1000.0, 2)
 
         # Split compound commands safely (preserving "1 minute and 30 seconds")
         clauses = [c.strip() for c in _COMPOUND_SPLIT_RE.split(norm.normalized) if c.strip()]

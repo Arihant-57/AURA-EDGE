@@ -313,3 +313,31 @@ export type AssistantState =
 - `POST /api/v1/notifications/read-all` -> `{"status": "verified", "updated_count": int, "unread_count": int}`.
 - `POST /api/v1/notifications/{notification_id}/dismiss` -> `{"status": "verified", "notification": NotificationView, "unread_count": int}`.
 - `GET /api/v1/notifications/preferences` & `PUT /api/v1/notifications/preferences` — `{"visual_enabled", "spoken_enabled", "quiet_hours_enabled", "quiet_hours_start", "quiet_hours_end", "timezone_name", "updated_at_utc"}`.
+
+---
+
+## 10. Phase 4 Personal Secretary Endpoints (`/api/v1`)
+
+### Tasks
+- `GET /api/v1/tasks?status=...&category=...` -> `{"items": TaskView[], "count": int}`.
+- `POST /api/v1/tasks` (`201`) — Body `{"title", "description"?, "priority"?: "low"|"normal"|"high"|"urgent", "category"?, "due_at_utc"?, "create_reminder"?: true, "language"?: "en"|"hi"|"kn"}` -> `{"task": TaskView}`.
+- `PATCH /api/v1/tasks/{task_id}`, `POST /api/v1/tasks/{task_id}/complete`, `DELETE /api/v1/tasks/{task_id}`.
+
+### Offline Calendar & Daily Briefing
+- `GET /api/v1/calendar/events?range_kind=today|tomorrow|upcoming` -> `{"items": CalendarEventView[], "count": int}`.
+- `POST /api/v1/calendar/events` (`201`) — Body `{"title", "start_at_utc", "end_at_utc"?, "description"?, "location"?, "all_day"?, "timezone_name"?, "recurrence"?, "reminder_minutes_before"?, "language"?}` -> `{"event": CalendarEventView, "conflicts": CalendarEventView[]}`.
+- `PATCH /api/v1/calendar/events/{event_id}`, `DELETE /api/v1/calendar/events/{event_id}`.
+- `GET /api/v1/briefing?language=en|hi|kn` -> Grounded live PostgreSQL snapshot (`events_today`, `pending_tasks`, `upcoming_reminders`, `scheduled_device_actions`, `unread_notifications`, `low_stock_items`, `parcels_due`, `counts`, `summary_text`).
+
+### Groceries, Inventory & Offline Recipes
+- `GET/POST /api/v1/groceries/list`, `PATCH/DELETE /api/v1/groceries/list/{item_id}`.
+- `GET/POST /api/v1/groceries/inventory`, `DELETE /api/v1/groceries/inventory/{item_id}`.
+- `GET /api/v1/groceries/missing` -> Low-stock/empty inventory items.
+- `GET /api/v1/recipes/suggest?q=...` -> Seeded offline recipes (`8` defaults) with `available_ingredients`, `missing_ingredients`, `can_make_now`, `match_ratio`.
+
+### Expenses (Exact Integer Paise) & Cached Parcels
+- `GET/POST /api/v1/expenses`, `DELETE /api/v1/expenses/{expense_id}`.
+- `GET /api/v1/expenses/summary?period=day|month|all` -> SQL `SUM(amount_paise)` total & category breakdown (`total_paise`, `total_inr`, `by_category`).
+- `POST /api/v1/expenses/import-csv` — Body `{"filename", "csv_content"}` with SHA-256 file + row deduplication.
+- `GET/POST /api/v1/parcels`, `PATCH/DELETE /api/v1/parcels/{parcel_id}` — Locally cached/manual records with `source`, `is_sample`, `last_updated_at_utc`, and `offline_provenance`.
+- **Additional `WS /api/v1/ws/live` events:** `task_updated`, `calendar_updated`, `grocery_updated`, `expense_updated`, `parcel_updated`.

@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from decimal import Decimal
 from typing import Any
 
 from pgvector.sqlalchemy import Vector
@@ -11,11 +12,13 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     Float,
     ForeignKey,
     Index,
     Integer,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -527,4 +530,288 @@ class NotificationPreference(Base):
         default=_utc_now,
         server_default=func.now(),
         onupdate=_utc_now,
+    )
+
+
+class TaskRecord(Base):
+    """Persistent personal task / to-do item with optional scheduled reminder."""
+
+    __tablename__ = "tasks"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending', 'in_progress', 'completed', 'cancelled')",
+            name="ck_tasks_status_enum",
+        ),
+        CheckConstraint(
+            "priority IN ('low', 'normal', 'high', 'urgent')",
+            name="ck_tasks_priority_enum",
+        ),
+        Index("ix_tasks_status_due", "status", "due_at_utc"),
+        Index("ix_tasks_category", "category"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="pending")
+    priority: Mapped[str] = mapped_column(String(16), nullable=False, default="normal")
+    category: Mapped[str] = mapped_column(String(64), nullable=False, default="general")
+    due_at_utc: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at_utc: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    reminder_job_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("scheduled_jobs.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    created_at_utc: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utc_now,
+        server_default=func.now(),
+    )
+    updated_at_utc: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utc_now,
+        server_default=func.now(),
+        onupdate=_utc_now,
+    )
+
+
+class CalendarEventRecord(Base):
+    """Offline personal calendar event with recurrence metadata and optional reminder."""
+
+    __tablename__ = "calendar_events"
+    __table_args__ = (
+        CheckConstraint(
+            "end_at_utc >= start_at_utc",
+            name="ck_calendar_events_end_after_start",
+        ),
+        CheckConstraint(
+            "status IN ('scheduled', 'cancelled')",
+            name="ck_calendar_events_status_enum",
+        ),
+        CheckConstraint(
+            "reminder_minutes_before IS NULL OR reminder_minutes_before >= 0",
+            name="ck_calendar_events_reminder_nonneg",
+        ),
+        Index("ix_calendar_events_window", "status", "start_at_utc", "end_at_utc"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    location: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    start_at_utc: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    end_at_utc: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    all_day: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    timezone_name: Mapped[str] = mapped_column(String(64), nullable=False, default="Asia/Kolkata")
+    recurrence_json: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, default=lambda: {"kind": "once"}
+    )
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="scheduled")
+    reminder_minutes_before: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    reminder_job_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("scheduled_jobs.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    created_at_utc: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utc_now,
+        server_default=func.now(),
+    )
+    updated_at_utc: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utc_now,
+        server_default=func.now(),
+        onupdate=_utc_now,
+    )
+
+
+class GroceryInventoryItem(Base):
+    """Household pantry/grocery inventory item with low-stock threshold & optional expiry."""
+
+    __tablename__ = "grocery_items"
+    __table_args__ = (
+        CheckConstraint("quantity >= 0", name="ck_grocery_items_quantity_nonneg"),
+        CheckConstraint("min_threshold >= 0", name="ck_grocery_items_threshold_nonneg"),
+        Index("ix_grocery_items_category", "category"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    canonical_name: Mapped[str] = mapped_column(String(120), nullable=False, unique=True)
+    display_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    aliases_json: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    category: Mapped[str] = mapped_column(String(64), nullable=False, default="pantry")
+    quantity: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=Decimal(0))
+    unit: Mapped[str] = mapped_column(String(32), nullable=False, default="unit")
+    min_threshold: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), nullable=False, default=Decimal(1)
+    )
+    expires_at_utc: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at_utc: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utc_now,
+        server_default=func.now(),
+        onupdate=_utc_now,
+    )
+
+
+class ShoppingListItem(Base):
+    """Persistent household grocery shopping list item."""
+
+    __tablename__ = "shopping_list_items"
+    __table_args__ = (
+        CheckConstraint("quantity > 0", name="ck_shopping_list_items_quantity_pos"),
+        CheckConstraint(
+            "added_via IN ('manual', 'voice', 'low_stock', 'recipe')",
+            name="ck_shopping_list_items_source_enum",
+        ),
+        Index("ix_shopping_list_items_purchased_created", "purchased", "created_at_utc"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    item_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    canonical_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=Decimal(1))
+    unit: Mapped[str] = mapped_column(String(32), nullable=False, default="unit")
+    purchased: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    added_via: Mapped[str] = mapped_column(String(32), nullable=False, default="manual")
+    created_at_utc: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utc_now,
+        server_default=func.now(),
+    )
+    updated_at_utc: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utc_now,
+        server_default=func.now(),
+        onupdate=_utc_now,
+    )
+
+
+class LocalRecipeRecord(Base):
+    """Seeded offline household recipe catalog for ingredient matching."""
+
+    __tablename__ = "local_recipes"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    title: Mapped[str] = mapped_column(String(160), nullable=False)
+    aliases_json: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    cuisine: Mapped[str] = mapped_column(String(64), nullable=False, default="indian")
+    prep_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=20)
+    ingredients_json: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, nullable=False, default=list
+    )
+    steps_json: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    created_at_utc: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utc_now,
+        server_default=func.now(),
+    )
+
+
+class ExpenseImportRecord(Base):
+    """Local CSV expense import log with SHA-256 file deduplication."""
+
+    __tablename__ = "expense_imports"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    filename: Mapped[str] = mapped_column(String(200), nullable=False)
+    file_sha256: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    row_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    imported_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    skipped_duplicates: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    imported_at_utc: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utc_now,
+        server_default=func.now(),
+    )
+
+
+class ExpenseTransactionRecord(Base):
+    """Offline personal expense transaction stored as exact integer minor units (paise)."""
+
+    __tablename__ = "expense_transactions"
+    __table_args__ = (
+        CheckConstraint("amount_paise > 0", name="ck_expense_transactions_amount_pos"),
+        CheckConstraint(
+            "source IN ('manual', 'csv_import', 'voice')",
+            name="ck_expense_transactions_source_enum",
+        ),
+        Index("ix_expense_transactions_occurred", "occurred_at_utc"),
+        Index("ix_expense_transactions_category", "category", "occurred_at_utc"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    amount_paise: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    currency: Mapped[str] = mapped_column(String(8), nullable=False, default="INR")
+    category: Mapped[str] = mapped_column(String(64), nullable=False, default="general")
+    merchant: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    occurred_at_utc: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now
+    )
+    source: Mapped[str] = mapped_column(String(24), nullable=False, default="manual")
+    import_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("expense_imports.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    dedup_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
+    created_at_utc: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utc_now,
+        server_default=func.now(),
+    )
+
+
+class ParcelRecord(Base):
+    """Locally saved/cached parcel record with explicit offline provenance & delivery reminder."""
+
+    __tablename__ = "parcels"
+    __table_args__ = (
+        CheckConstraint(
+            "source IN ('manual', 'imported', 'sample')",
+            name="ck_parcels_source_enum",
+        ),
+        Index("ix_parcels_delivery_date", "expected_delivery_date"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    order_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    carrier: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    tracking_ref: Mapped[str | None] = mapped_column(String(120), nullable=True, unique=True)
+    expected_delivery_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    last_known_status: Mapped[str] = mapped_column(String(160), nullable=False, default="saved")
+    source: Mapped[str] = mapped_column(String(24), nullable=False, default="manual")
+    is_sample: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reminder_job_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("scheduled_jobs.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    last_updated_at_utc: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utc_now,
+        server_default=func.now(),
+    )
+    created_at_utc: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utc_now,
+        server_default=func.now(),
     )
