@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Ask, AssistantView, useVoice, VoiceButtons } from "./Assistant";
+import { Ask, AssistantView, noSpeechMessage, useVoice, VoiceButtons } from "./Assistant";
 import { Automation, Routines } from "./Automation";
 import { Home, Rooms, useHome } from "./Home";
 import { Household, householdTabs } from "./Household";
@@ -59,6 +59,9 @@ export function App() {
       if (notice) setAlert(notice.title ?? notice.message ?? "");
     }
     if (event.type === "desktop_voice_error") setAlert(String(event.payload.message ?? ""));
+    if (page !== "Assistant" && (event.payload.status === "ignored_silence" || event.payload.code === "no_speech_timeout")) {
+      setAlert(noSpeechMessage);
+    }
   });
 
   useEffect(() => {

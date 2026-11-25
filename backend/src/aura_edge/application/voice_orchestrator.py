@@ -50,6 +50,7 @@ from aura_edge.intelligence.schemas import (
 from aura_edge.speech.audio_capture import (
     AudioCapture,
     AudioDeviceUnavailableError,
+    AudioLevelCallback,
     has_input_microphone,
     list_audio_devices,
 )
@@ -415,7 +416,11 @@ class VoiceOrchestrator:
     async def set_mic_mute(self, muted: bool) -> dict[str, Any]:
         """Mute or unmute microphone capture without altering active conversation registration."""
         self.audio_capture.set_user_muted(muted)
-        if muted and self.audio_capture.is_recording:
+        ptt = self._ptt_turn
+        if muted and ptt is not None and self.fsm.active_turn is ptt and self.fsm.state == AssistantState.LISTENING:
+            self._ptt_turn = None
+            await self.cancel_turn(turn_id=ptt.turn_id)
+        elif muted and self.audio_capture.is_recording:
             self.audio_capture.stop_capture(cancel=True)
         await self.ws_hub.broadcast(
             "mic_mute_change",
@@ -638,6 +643,8 @@ class VoiceOrchestrator:
                 )
 
     async def start_ptt(self, *, language: RequestedLanguage | None = None) -> dict[str, Any]:
+        if self.audio_capture.is_muted:
+            return {"started": False, "reason": "The microphone is muted."}
         if language is not None:
             self.set_language(language)
 
@@ -672,13 +679,7 @@ class VoiceOrchestrator:
                 if not ctx.is_cancelled:
                     await self.ws_hub.broadcast("audio_level", {"rms_db": rms_db, "peak": peak})
 
-            self._ptt_task = asyncio.create_task(
-                self.audio_capture.start_ptt_capture(
-                    use_vad_endpointing=True,
-                    on_level=_emit_level,
-                    open_hardware_stream=True,
-                )
-            )
+            self._ptt_task = asyncio.create_task(self._capture_ptt(ctx, _emit_level))
             self._ptt_task.add_done_callback(_log_bg_task_exception)
             return {
                 "started": True,
@@ -687,7 +688,30 @@ class VoiceOrchestrator:
                 "language": self.session_language,
             }
 
+    async def _capture_ptt(self, ctx: TurnContext, on_level: AudioLevelCallback) -> None:
+        try:
+            await self.audio_capture.start_ptt_capture(
+                use_vad_endpointing=True, on_level=on_level, open_hardware_stream=True,
+            )
+        except (AudioDeviceUnavailableError, OSError) as exc:
+            code, message = "mic_unavailable", f"Could not open the microphone: {exc}"
+        else:
+            reason = self.audio_capture.last_capture_reason
+            if reason != "no_speech_timeout":
+                if self._ptt_turn is ctx and not ctx.is_cancelled and reason in ("speech_end", "max_duration"):
+                    await self.ws_hub.broadcast("ptt_capture_ready", {"turn_id": ctx.turn_id, "reason": reason})
+                return
+            code, message = "no_speech_timeout", "No usable speech was heard. Start listening and try again."
+
+        if self._ptt_turn is ctx and not ctx.is_cancelled:
+            self._ptt_turn = None
+            self.audio_capture.stop_capture(cancel=True)
+            await self.fsm.finish_turn(ctx.turn_id)
+            await self.ws_hub.broadcast("error", {"turn_id": ctx.turn_id, "code": code, "message": message})
+
     async def stop_ptt_and_process(self, *, speak: bool = True) -> ProcessTurnOutput:
+        ctx = self._ptt_turn
+        self._ptt_turn = None
         audio_f32, stop_reason = self.audio_capture.stop_capture(cancel=False)
         if self._ptt_task is not None:
             try:
@@ -696,8 +720,6 @@ class VoiceOrchestrator:
                 self._ptt_task.cancel()
             self._ptt_task = None
 
-        ctx = self._ptt_turn
-        self._ptt_turn = None
         async with self._turn_lock:
             if ctx is None:
                 ctx = await self.fsm.start_turn(

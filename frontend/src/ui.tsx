@@ -13,6 +13,7 @@ const glyphs: Record<string, ReactNode> = {
   mic: <><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4m-3 0h6"/></>,
   mute: <path d="m3 3 18 18M9 5a3 3 0 0 1 6 0v5M5 10v1a7 7 0 0 0 11 6m3-7v1m-7 7v4m-3 0h6"/>,
   stop: <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>,
+  send: <path d="m5 12 5 5 9-10"/>,
   bell: <path d="M18 9a6 6 0 0 0-12 0v5l-2 3h16l-2-3Zm-8 11a2 2 0 0 0 4 0"/>,
   calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v5m10-5v5M3 10h18m-13 5h2m4 0h2"/></>,
   search: <><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></>,

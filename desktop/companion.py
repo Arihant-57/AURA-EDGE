@@ -31,6 +31,7 @@ VOICE_LABELS = {
     "VERIFYING": "Verifying", "SPEAKING": "Speaking", "SUCCESS": "Action verified",
     "REMINDER": "New notification", "CLARIFYING": "Clarify command",
     "ERROR": "Assistant error", "CANCELLED": "Cancelled",
+    "NO_SPEECH": "No speech heard", "MIC_ERROR": "Mic unavailable",
 }
 
 
@@ -261,7 +262,12 @@ class Companion(QWidget):
         mood = voice.mood
         root.setProperty("mood", mood)
         root.setProperty("level", voice.levels[-1])
-        text = "No microphone" if mood == "IDLE" and not voice.available else VOICE_LABELS.get(mood, mood.title())
+        if voice.capture_ready:
+            text = "Ready to send"
+        elif mood == "IDLE" and not voice.available:
+            text = "No microphone"
+        else:
+            text = VOICE_LABELS.get(mood, mood.title())
         if text != self.label.text():
             self.label.setText(text)
             color = "#d7e58f" if mood in ("LISTENING", "SPEAKING", "SUCCESS") else "#d0c8b7"
