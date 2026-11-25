@@ -128,6 +128,7 @@ def run(port, read_only, capture_dir=None, exercise_mic=False):
     def verify_pages():
         sections = {
             "Home": (),
+            "Simulator": (),
             "Automation": ("Activities",),
             "Rooms": (),
             "Tasks": ("Calendar", "Reminders"),
@@ -149,7 +150,9 @@ def run(port, read_only, capture_dir=None, exercise_mic=False):
                 wait_for(settled, f"{name} did not load")
                 errors = javascript("[...document.querySelectorAll('main .inline-error')].map(node => node.textContent).join(' | ')")
                 assert not errors, f"{name}: {errors}"
-        print("PASS live data across all eight dashboard pages and their tabs", flush=True)
+                if capture_dir and section == "Simulator":
+                    assert dashboard.grab().save(str(capture_dir / "08-simulator.png"))
+        print("PASS live data across all nine dashboard pages and their tabs", flush=True)
 
     try:
         wait_for(lambda: desktop.voice_model.online and desktop.voice_model.available, "Native voice snapshot unavailable")

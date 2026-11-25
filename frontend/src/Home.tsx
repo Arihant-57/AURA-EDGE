@@ -59,7 +59,7 @@ function DeviceCard({ device, compact, schedule }: { device: Device; compact?: b
   const [details, setDetails] = useState(false);
   const [history, setHistory] = useState(false);
   const [simulator, setSimulator] = useState(false);
-  const audit = useResource<{ action: string; context_id: string; created_at_utc?: string; source?: string }[]>(history ? `/smart-home/history?device_id=${encodeURIComponent(device.id)}&limit=8` : "", homeEvents);
+  const audit = useResource<{ action: string; context_id: string; recorded_at_utc: string; context_source: string }[]>(history ? `/smart-home/history?device_id=${encodeURIComponent(device.id)}&limit=8` : "", homeEvents);
   const sim = `/smart-home/simulator/devices/${encodeURIComponent(device.id)}`;
   const name = deviceName(device);
   const entries = Object.entries(device.capabilities);
@@ -89,7 +89,7 @@ function DeviceCard({ device, compact, schedule }: { device: Device; compact?: b
     </div>}
     {history && <div className="device-controls">
       <Status {...audit} empty={!audit.data?.length ? "No state changes recorded." : undefined}/>
-      {audit.data?.map((item, index) => <small key={`${item.context_id}-${index}`}>{human(item.action)} · {item.source} · {formatDate(item.created_at_utc)}</small>)}
+      {audit.data?.map((item, index) => <small key={`${item.context_id}-${index}`}>{human(item.action)} · {item.context_source} · {formatDate(item.recorded_at_utc)}</small>)}
     </div>}
     {simulator && <div className="device-controls">
       <small>Simulator demonstration</small>
@@ -235,5 +235,55 @@ export function Home({ data, timezone, open, briefingLanguage }: { data: HomeDat
         {energy.data && <div className="energy"><div className="energy-ring" style={{ background: segments.length ? `conic-gradient(${segments.join(", ")}, #64634a 0)` : "#64634a" }}><div><Icon name="bolt"/><strong>{total} W</strong><small>Total</small></div></div><ul>{groups.map((group) => <li key={group.label}><i style={{ backgroundColor: group.color }}/><span>{group.label}</span><b>{group.watts} W</b></li>)}</ul></div>}
       </Card>
     </div>
+  </div>;
+}
+
+interface HistoryEntry {
+  id: number; device_id: string; action: string; context_source: string; recorded_at_utc: string;
+}
+
+function DeviceMarker({ device }: { device: Device }) {
+  const state = device.state;
+  const running = device.available && (state.power === true || ["running", "cleaning"].includes(String(state.activity)));
+  const detail = Object.entries(state).map(([key, value]) =>
+    key === "remaining_seconds" ? remaining(Number(value)) :
+    typeof value === "boolean" ? human(key) + (value ? " on" : " off") : human(key) + " " + value + (units[key] ?? "")
+  ).join(" · ");
+  return <div className="device-marker" data-kind={device.device_type} data-running={running}>
+    <span className="marker-symbol" style={{ animationDuration: device.device_type === "fan" ? 2 / Number(state.speed || 1) + "s" : undefined }}>
+      <Icon name={device.device_type} size={25}/>
+    </span>
+    <div><strong>{deviceName(device)}</strong><small>{device.available ? detail : "Unavailable"}</small>
+      {device.available && device.device_type === "curtain" && <meter aria-label="Curtain position" min={0} max={100} value={Number(state.position)}/>}
+    </div>
+  </div>;
+}
+
+export function Simulator({ data, timezone, schedule }: { data: HomeData; timezone: string; schedule: (id: string) => void }) {
+  const { sorted, room, roomDevices, select } = data;
+  const cycleRunning = roomDevices.some(d => d.available && ["running", "cleaning"].includes(String(d.state.activity)));
+  useEffect(() => {
+    if (!cycleRunning) return;
+    const timer = window.setInterval(() => refreshResources("/smart-home/devices", "/smart-home/activities"), 1000);
+    return () => window.clearInterval(timer);
+  }, [cycleRunning]);
+  const history = useResource<HistoryEntry[]>("/smart-home/history?limit=8", homeEvents);
+  const light = Math.max(0, ...roomDevices.filter(d => d.available && d.device_type === "light" && d.state.power).map(d => Number(d.state.brightness ?? 100)));
+  return <div className="simulator-layout">
+    <Card title="Floor plan"><div className="floor-plan">{sorted.map(r =>
+      <button type="button" key={r.id} aria-pressed={room === r.id} onClick={() => select(r.id)}>
+        <span>{roomName(r.id)}</span><small>{r.device_count} devices</small>
+      </button>)}</div><Status {...data.rooms}/></Card>
+    <section className="simulation-scene" aria-label={roomName(room) + " simulation"}>
+      {sorted.length > 0 && <img src={`./rooms/${roomOrder.includes(room) ? room : "hallway"}.webp`} alt="" style={{ filter: `brightness(${0.58 + light / 180})` }}/>}
+      <header><small>Simulated home</small><h2>{roomName(room)}</h2></header>
+      <div className="marker-grid">{roomDevices.map(d => <DeviceMarker key={d.id} device={d}/>)}</div>
+      <small>Illustrative motion follows device state.</small>
+    </section>
+    <Card title="Appliance controls"><Status {...data.devices}/>{roomDevices.map(d => <DeviceCard key={d.id} device={d} schedule={() => schedule(d.id)}/>)}</Card>
+    <Card title="Recent changes" className="simulation-history"><Status {...history} empty={!history.data?.length ? "No changes recorded." : undefined}/>
+      {history.data?.map(h => <Row key={h.id} name={data.devices.data?.find(d => d.id === h.device_id)?.name ?? h.device_id}
+        detail={human(h.action) + " · " + human(h.context_source)}><small>{formatDate(h.recorded_at_utc, timezone)}</small></Row>)}</Card>
+    <ActivityPanel timezone={timezone} detailed/>
   </div>;
 }

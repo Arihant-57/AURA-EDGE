@@ -57,7 +57,7 @@ export interface Message { role: string; content: string; turn_id: string | null
 export interface LiveEvent { type: string; timestamp_utc: string; payload: Record<string, unknown> }
 
 export function apiPath(path: string) {
-  return `./api/v1${path}`;
+  return window.auraNative || window.auraDesktop ? `./api/v1${path}` : `/api/v1${path}`;
 }
 
 export async function api<T>(path: string, method = "GET", body?: unknown, signal?: AbortSignal): Promise<T> {

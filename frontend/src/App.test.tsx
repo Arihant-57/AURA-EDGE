@@ -26,10 +26,11 @@ describe("Phase 5 dashboard", () => {
       if (url.endsWith("/command")) {
         expect(options?.method).toBe("POST");
         const body = JSON.parse(String(options?.body));
-        expect(body).toEqual({ action: "power", value: true, source: "ui" });
+        expect(body).toEqual({ action: "power", value: !device.state.power, source: "ui" });
         device = { ...device, state: { ...device.state, power: body.value } };
         return response({ status: "verified", device });
       }
+      if (url.includes("/smart-home/history")) return response([]);
       if (url.endsWith("/smart-home/activities")) return response({ running: [], scheduled: [], completed: [] });
       if (url.endsWith("/smart-home/energy")) return response({ total_power_w: 0, by_room_power_w: {}, devices: [] });
       if (url.includes("/briefing?")) return response({ summary_text: "", low_stock_items: [], parcels_due: [], upcoming_reminders: [] });
@@ -48,6 +49,11 @@ describe("Phase 5 dashboard", () => {
     fireEvent.click(power);
     await waitFor(() => expect(power).toHaveAttribute("aria-checked", "true"));
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/light.bedroom_main/command"), expect.any(Object));
+    fireEvent.click(within(screen.getByRole("navigation")).getByRole("button", { name: "Simulator" }));
+    const scene = await screen.findByRole("region", { name: "Bedroom simulation" });
+    expect(within(scene).getByText(/power on/i)).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("switch", { name: "Bedroom Light Power" }));
+    await waitFor(() => expect(within(scene).getByText(/power off/i)).toBeInTheDocument());
   });
 
   it("commits capability values only after verified API success and displays rejection detail", async () => {

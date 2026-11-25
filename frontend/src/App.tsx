@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Ask, AssistantView, noSpeechMessage, useVoice, VoiceButtons } from "./Assistant";
 import { Automation, Routines } from "./Automation";
-import { Home, Rooms, useHome } from "./Home";
+import { Home, Rooms, Simulator, useHome } from "./Home";
 import { Household, householdTabs } from "./Household";
 import { startLive, useConnection, useLive, useResource } from "./live";
 import { Planner, plannerTabs } from "./Planner";
@@ -9,10 +9,10 @@ import { NotificationCenter, Preferences, Settings, settingsTabs, useNotices } f
 import { NoticePrefs } from "./api/desktop";
 import { Icon, IconButton, Tabs } from "./ui";
 
-const pages = ["Home", "Automation", "Rooms", "Tasks", "Routines", "Assistant", "Household", "Settings"] as const;
+const pages = ["Home", "Simulator", "Automation", "Rooms", "Tasks", "Routines", "Assistant", "Household", "Settings"] as const;
 type Page = typeof pages[number];
 const headings: Record<Page, string> = {
-  Home: "Home", Automation: "Automation", Rooms: "Rooms", Tasks: "Tasks & Planner",
+  Home: "Home", Simulator: "Simulator", Automation: "Automation", Rooms: "Rooms", Tasks: "Tasks & Planner",
   Routines: "Routines", Assistant: "Assistant", Household: "Household", Settings: "Settings",
 };
 const subtitles: Partial<Record<Page, string>> = {
@@ -72,7 +72,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if ((import.meta.env.DEV && import.meta.env.MODE !== "test") || bridgeReady) startLive();
+    if ((!window.auraNative && import.meta.env.MODE !== "test") || bridgeReady) startLive();
   }, [bridgeReady]);
 
   useEffect(() => {
@@ -134,6 +134,7 @@ export function App() {
           {!online && <div className="connection-banner" role="status">Local backend disconnected. Reconnecting…</div>}
           {page !== "Home" && <div className="page-heading"><h2>{headings[page]}</h2>{subtitles[page] && <p>{subtitles[page]}</p>}</div>}
           {page === "Home" && <Home data={home} timezone={timezone} open={open} briefingLanguage={voice.state.session_language ?? "auto"}/>}
+          {page === "Simulator" && <Simulator data={home} timezone={timezone} schedule={(id) => open("Automation", id)}/>}
           {page === "Rooms" && <div className="rooms-grid"><Rooms data={home} schedule={(id) => open("Automation", id)}/></div>}
           {page === "Automation" && <><Tabs options={["Schedules", "Activities"]} selected={tab === "Activities" ? "Activities" : "Schedules"} choose={choose}/><Automation key={tab} devices={devices} timezone={timezone} requested={tab}/></>}
           {page === "Routines" && <Routines devices={devices} schedule={(id) => open("Automation", `routine:${id}`)}/>}
