@@ -54,7 +54,7 @@ from aura_edge.speech.audio_capture import (
     has_input_microphone,
     list_audio_devices,
 )
-from aura_edge.speech.playback import AudioPlayback, PlaybackMetrics
+from aura_edge.speech.playback import AudioPlayback
 from aura_edge.speech.stt import ModelNotFoundError, TranscriptionResult, WhisperTranscriber
 from aura_edge.speech.tts_router import SentenceStreamBuffer, TTSRouter
 from aura_edge.speech.vad import SileroVadDetector
@@ -797,6 +797,32 @@ class VoiceOrchestrator:
             pass
         return self.stt.transcribe(audio_f32, **kwargs)
 
+    def _retry_english_clock(
+        self,
+        audio_f32: np.ndarray,
+        primary: TranscriptionResult,
+        *,
+        preferred_reply_language: RequestedLanguage,
+        vad_voiced_ms: float | None,
+        noise_floor_rms: float | None,
+    ) -> TranscriptionResult:
+        primary_intent, _ = self.fast_router.route(primary.text, requested_language="kn")
+        if primary_intent is not None:
+            return primary
+        candidate = self._invoke_stt(
+            audio_f32, stt_language="en", preferred_reply_language=preferred_reply_language,
+            recognition_mode="strict", strict_language=True, fallback_language="en",
+            vad_voiced_ms=vad_voiced_ms, noise_floor_rms=noise_floor_rms,
+        )
+        if candidate.quality_ok and not candidate.is_empty and candidate.avg_logprob is not None and candidate.avg_logprob >= -0.8:
+            intent, _ = self.fast_router.route(candidate.text, requested_language="en")
+            if intent is not None and intent.intent_name in {IntentName.GET_TIME, IntentName.GET_DATE} and len(intent.sub_actions) == 1:
+                return candidate.model_copy(update={
+                    "recognition_mode": "multilingual",
+                    "latency_ms": primary.latency_ms + candidate.latency_ms,
+                })
+        return primary.model_copy(update={"latency_ms": primary.latency_ms + candidate.latency_ms})
+
     async def _process_audio_with_turn(
         self,
         ctx: TurnContext,
@@ -848,6 +874,20 @@ class VoiceOrchestrator:
                     noise_floor_rms=noise_floor_rms,
                 ),
             )
+            if (
+                not ctx.is_cancelled and ctx.source == "voice_ptt" and rec_mode == "multilingual"
+                and stt_res.detected_language == "kn"
+                and stt_res.quality_ok and not stt_res.is_empty
+                and stt_res.language_probability is not None and stt_res.language_probability < 0.85
+                and audio_f32.size <= 4 * self.settings.audio_sample_rate
+            ):
+                stt_res = await loop.run_in_executor(
+                    None,
+                    lambda: self._retry_english_clock(
+                        audio_f32, stt_res, preferred_reply_language=preferred_reply_lang,
+                        vad_voiced_ms=vad_voiced_ms, noise_floor_rms=noise_floor_rms,
+                    ),
+                )
             timestamps["stt_completion"] = time.perf_counter()
 
             if ctx.is_cancelled:
@@ -1562,7 +1602,7 @@ class VoiceOrchestrator:
         bool,
         str,
     ]:
-        """Stream Ollama tokens live, validate every chunk, and drive half-duplex playback."""
+        """Stream answer text while assembling validated speech for continuous playback."""
         empty_speak_res: dict[str, Any] = {
             "tts_ms": None,
             "audio_startup_ms": None,
@@ -1590,32 +1630,11 @@ class VoiceOrchestrator:
             kw in low_u for kw in ("explain", "continue", "detail", "more", "why", "how", "विस्तार", "ವಿವರ")
         )
         token_budget = 220 if want_detail else 120
-        sentence_buf = SentenceStreamBuffer(min_chars=24)
-        sentence_queue: asyncio.Queue[str | None] = asyncio.Queue()
-        speak_task: asyncio.Task[tuple[list[Any], PlaybackMetrics]] | None = None
-        stream_tts_started = False
+        sentence_buf = SentenceStreamBuffer(min_chars=24, split_long_phrases=False)
         spoken_parts: list[str] = []
         skipped_invalid_chunk = False
 
-        async def _ensure_stream_tts_started() -> None:
-            nonlocal speak_task, stream_tts_started
-            if not speak or speak_task is not None or ctx.is_cancelled:
-                return
-            if not self.audio_capture.is_suspended:
-                self.audio_capture.suspend_for_playback()
-            await self.fsm.transition(ctx.turn_id, AssistantState.SPEAKING, language=reply_language)
-            stream_tts_started = True
-            speak_task = asyncio.create_task(
-                self.playback.speak_sentence_stream(
-                    sentence_queue,
-                    language=reply_language,
-                    play_to_speaker=True,
-                    external_cancel=ctx.cancel_event,
-                    turn_start_perf=base_mono,
-                )
-            )
-
-        async def _queue_validated_chunk(chunk_text: str) -> None:
+        def _collect_validated_sentence(chunk_text: str) -> None:
             nonlocal skipped_invalid_chunk
             clean_chunk = strip_markdown_for_speech(chunk_text)
             if not clean_chunk:
@@ -1626,19 +1645,14 @@ class VoiceOrchestrator:
             if not valid_chunk:
                 skipped_invalid_chunk = True
                 logger.info(
-                    "Streaming chunk rejected before TTS (%s, target=%s): %r",
+                    "Conversation sentence rejected before TTS (%s, target=%s)",
                     reason,
                     reply_language,
-                    clean_chunk,
                 )
                 return
-            if speak_task is None:
-                await _ensure_stream_tts_started()
-            if speak_task is not None:
-                if timestamps["first_valid_speech_chunk"] is None:
-                    timestamps["first_valid_speech_chunk"] = time.perf_counter()
-                spoken_parts.append(clean_chunk)
-                await sentence_queue.put(clean_chunk)
+            if timestamps["first_valid_speech_chunk"] is None:
+                timestamps["first_valid_speech_chunk"] = time.perf_counter()
+            spoken_parts.append(clean_chunk)
 
         raw_parts: list[str] = []
         llm_stats: dict[str, Any] = {}
@@ -1665,18 +1679,12 @@ class VoiceOrchestrator:
                     )
                     if speak:
                         for sentence in sentence_buf.push(token):
-                            await _queue_validated_chunk(sentence)
+                            _collect_validated_sentence(sentence)
 
             tail = sentence_buf.flush()
             if speak and tail and not ctx.is_cancelled:
-                await _queue_validated_chunk(tail)
+                _collect_validated_sentence(tail)
         except OllamaUnavailableError as exc:
-            if speak_task is not None:
-                await sentence_queue.put(None)
-                with contextlib.suppress(OSError, RuntimeError, ValueError):
-                    await speak_task
-            if stream_tts_started:
-                await self._resume_mic_after_speaking(did_speak=False)
             msg = get_phrase("ollama_unavailable", reply_language)
             return (
                 VerifiedActionResult(
@@ -1697,10 +1705,16 @@ class VoiceOrchestrator:
         is_valid, reason = validate_response_language(clean_full, reply_language)
         if is_valid:
             is_valid, reason = validate_no_unverified_action_claim(clean_full, reply_language)
-        if spoken_parts and (skipped_invalid_chunk or not is_valid):
-            # Displayed text must strictly match what was validated and spoken
-            clean_full = " ".join(spoken_parts)
-        elif not is_valid and not ctx.is_cancelled:
+        speech = " ".join(spoken_parts)
+        if speech:
+            valid_speech, speech_reason = validate_no_unverified_action_claim(speech, reply_language)
+            if not valid_speech:
+                speech = ""
+                is_valid, reason = False, speech_reason
+            elif skipped_invalid_chunk or not is_valid:
+                clean_full = speech
+                is_valid = True
+        if not is_valid and not ctx.is_cancelled:
             logger.info("Response validation failed (%s); applying safe %s guardrail.", reason, reply_language)
             if reason == "unverified_action_claim":
                 clean_full = unverified_action_fallback(reply_language)
@@ -1717,10 +1731,20 @@ class VoiceOrchestrator:
         already_spoke = False
         spoken_text = ""
 
-        if speak_task is not None:
-            await sentence_queue.put(None)
+        if speech and not ctx.is_cancelled:
+            if not self.audio_capture.is_suspended:
+                self.audio_capture.suspend_for_playback()
+            await self.fsm.transition(ctx.turn_id, AssistantState.SPEAKING, language=reply_language)
+            sentence_queue: asyncio.Queue[str | None] = asyncio.Queue()
+            # Kannada MMS has no punctuation tokens. Keep sentence breaks as audio pauses.
+            for segment in spoken_parts if reply_language == "kn" else (speech,):
+                sentence_queue.put_nowait(segment)
+            sentence_queue.put_nowait(None)
             try:
-                _audios, pm = await speak_task
+                _audios, pm = await self.playback.speak_sentence_stream(
+                    sentence_queue, language=reply_language, play_to_speaker=True,
+                    external_cancel=ctx.cancel_event, turn_start_perf=base_mono,
+                )
                 speak_res["tts_ms"] = pm.tts_synthesis_ms
                 speak_res["audio_startup_ms"] = pm.audio_startup_ms
                 speak_res["playback_ms"] = pm.audio_playback_ms
@@ -1738,8 +1762,8 @@ class VoiceOrchestrator:
                     time.perf_counter() if pm.audio_playback_ms > 0.0 else None
                 )
                 already_spoke = True
-                if not ctx.is_cancelled:
-                    spoken_text = " ".join(spoken_parts)
+                if not ctx.is_cancelled and pm.audio_startup_ms is not None:
+                    spoken_text = speech
             except (OSError, RuntimeError, ValueError) as exc:
                 logger.warning("Streaming TTS playback failed: %s", exc)
             finally:

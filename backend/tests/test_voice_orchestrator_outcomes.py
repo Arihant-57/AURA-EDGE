@@ -16,6 +16,7 @@ from typing import Any
 
 import httpx
 import numpy as np
+import pytest
 from fastapi.testclient import TestClient
 
 from aura_edge.config import ComputeMode, ConnectivityMode, Settings
@@ -36,6 +37,67 @@ def _make_offline_app() -> Any:
         audio_post_playback_cooldown_sec=0.0,
     )
     return create_app(cfg)
+
+
+@pytest.mark.parametrize(
+    ("primary_text", "english_text", "preferred", "expected", "expected_calls", "expected_detected", "expected_reply"),
+    [
+        ("ಅದು ಹೇಗಿದೆ", "What time is it?", "auto", "GetTime", ["auto", "en"], "en", "en"),
+        ("ಅದು ಹೇಗಿದೆ", "What time is it?", "kn", "GetTime", ["auto", "en"], "en", "kn"),
+        ("ಈಗ ಎಷ್ಟು ಗಂಟೆ?", "What time is it?", "auto", "GetTime", ["auto"], "kn", "kn"),
+        ("ಅದು ಹೇಗಿದೆ", "Turn on the bedroom light.", "auto", "Unsupported", ["auto", "en"], "kn", "kn"),
+    ],
+)
+def test_short_misclassified_clock_request_can_retry_in_english(
+    monkeypatch: Any, primary_text: str, english_text: str, preferred: str, expected: str,
+    expected_calls: list[str], expected_detected: str, expected_reply: str,
+) -> None:
+    app = _make_offline_app()
+    with TestClient(app) as client:
+        orch = app.state.orchestrator
+        calls = []
+        client.put("/api/v1/voice/language", json={"language": preferred}).raise_for_status()
+
+        def transcribe(_audio: np.ndarray, **kwargs: Any) -> TranscriptionResult:
+            language = kwargs["language"]
+            calls.append(language)
+            english = language == "en"
+            return TranscriptionResult(
+                text=english_text if english else primary_text,
+                detected_language="en" if english else "kn",
+                model_size="small" if english else "indic-conformer-kn",
+                avg_logprob=-0.45 if english else -1.15,
+                language_probability=None if english else 0.42,
+                device="cpu", compute_type="int8", latency_ms=20,
+            )
+
+        monkeypatch.setattr(orch.stt, "transcribe", transcribe)
+        result = asyncio.run(orch.process_audio_samples(
+            np.ones(16000, dtype=np.float32) * 0.1, source="voice_ptt", speak=False, allow_llm_fallback=False,
+        ))
+        assert calls == expected_calls
+        assert result.intent == expected
+        assert result.detected_language == expected_detected
+        assert result.response_language == expected_reply
+        assert result.action_executed == (expected == "GetTime")
+
+
+def test_ollama_conversation_filters_split_thinking_tags(monkeypatch: Any) -> None:
+    cfg = Settings(_env_file=None)
+    ollama = OllamaClient(cfg, NetworkPolicyEnforcer(cfg), ComputeManager(cfg))
+
+    async def chunks(*_args: Any, **_kwargs: Any):
+        yield {"message": {"thinking": "structured reasoning"}, "done": False}
+        for content in ("<th", "ink>hidden words</th", "ink>", "Here is ", "the answer."):
+            yield {"message": {"content": content}, "done": False}
+        yield {"message": {"content": "<think>unfinished reasoning"}, "done": True}
+
+    monkeypatch.setattr(ollama, "stream_chat", chunks)
+
+    async def collect() -> str:
+        return "".join([token async for token, _ in ollama.stream_conversation([])])
+
+    assert asyncio.run(collect()) == "Here is the answer."
 
 
 def test_r2_decoupled_stt_language_and_capture_metrics_forwarding(monkeypatch: Any) -> None:
@@ -425,6 +487,19 @@ def test_r8_streaming_per_chunk_validation_and_spoken_text_parity(monkeypatch: A
         assert queued_sentences == ["ಆಕಾಶವು ನೀಲಿಯಾಗಿ ಕಾಣುತ್ತದೆ."]
         assert res3["spoken_text"] == "ಆಕಾಶವು ನೀಲಿಯಾಗಿ ಕಾಣುತ್ತದೆ."
         assert res3["response_text"] == res3["spoken_text"]
+
+        async def two_replies(_messages: Any, **_kwargs: Any):
+            yield "The sky looks bright blue today. ", None
+            yield "Sunlight scatters through the atmosphere.", None
+            yield "", {"ttft_ms": 12.0}
+
+        queued_sentences.clear()
+        monkeypatch.setattr(orch.ollama_client, "stream_conversation", two_replies)
+        result = client.post(
+            "/api/v1/intent/process", json={"text": "Tell me about the sky", "language": "en", "speak": True}
+        ).json()
+        assert queued_sentences == ["The sky looks bright blue today. Sunlight scatters through the atmosphere."]
+        assert result["spoken_text"] == result["response_text"] == queued_sentences[0]
 
 
 def test_r7_r8_ollama_cancellation_and_half_duplex_turn_serialization(monkeypatch: Any) -> None:

@@ -41,10 +41,12 @@ class SentenceStreamBuffer:
         min_chars: int = 24,
         clause_chars: int = 64,
         max_chars: int = 110,
+        split_long_phrases: bool = True,
     ) -> None:
         self.min_chars = max(1, int(min_chars))
         self.clause_chars = max(self.min_chars + 8, int(clause_chars))
         self.max_chars = max(self.clause_chars + 16, int(max_chars))
+        self.split_long_phrases = split_long_phrases
         self._buf = ""
 
     def _is_protected_period(self, prefix: str, tail: str) -> bool:
@@ -92,6 +94,9 @@ class SentenceStreamBuffer:
                     emitted.append(candidate)
                 self._buf = self._buf[split_cut:].lstrip()
                 continue
+
+            if not self.split_long_phrases:
+                break
 
             # Clause boundary fallback for long streaming sentences (low TTFA)
             if len(self._buf) >= self.clause_chars:
