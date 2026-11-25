@@ -1,5 +1,9 @@
 # AURA EDGE — Multilingual Test, STT/TTS Evaluation & Failure-Mode Report
 
+## Stabilization update
+
+The latest disposable-database replay passed 37/37 English, 10/10 Hindi, 9/9 Kannada, 5/5 Hinglish and 5/5 Kanglish typed cases. Recorded acceptance was 13/13 for the English group (including two silence/noise probes), 5/9 Hindi, 2/8 Kannada, 1/3 Hinglish and 0/2 Kanglish. English, Hindi and Kannada saved timer recordings all passed. The saved Hindi sample that had failed intermittently also passed five CPU repeats with a Kannada reply preference. These are synthetic fixtures. Background noise, accents and free-form mixed speech require human checking. See the [latest voice accuracy report](VOICE_ACCURACY_REPORT.md) for the current measurements.
+
 **Date:** 2026-11-25  
 **Branch:** `feat/backend-intelligence`  
 **Benchmark Artifact:** `models/eval_audio/phase1_5_stabilization_benchmarks.json` (`backend/scripts/benchmark_stabilization.py`)
