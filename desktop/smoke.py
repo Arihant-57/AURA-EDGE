@@ -225,25 +225,26 @@ def run(port, read_only, capture_dir=None, exercise_mic=False):
             QTest.qWait(240)
             assert dashboard.grab().save(str(capture_dir / "06-bedroom-controls.png"))
             click("Home", "document.querySelector('nav')")
-            verify_pages()
-            desktop.preference("pinned", "true")
-            outside.show()
-            outside.activateWindow()
-            wait_for(outside.isActiveWindow, "Could not focus an outside window")
-            assert desktop.mode == "EXPANDED_DASHBOARD", "Pin did not keep the dashboard open"
-            desktop.preference("pinned", "false")
-            desktop.show_mode("EXPANDED_DASHBOARD")
-            wait_for(dashboard.isActiveWindow, "Could not refocus the dashboard")
-            outside.activateWindow()
-            wait_for(lambda: desktop.mode == "PET_ONLY", "Outside click did not return to the pet")
-            desktop.show_mode("MINI_ISLAND")
-            wait_for(lambda: pet.reveal > .99 and pet.isActiveWindow(), "Mini island did not reopen")
-            outside.activateWindow()
-            wait_for(lambda: desktop.mode == "PET_ONLY" and pet.reveal == 0, "Mini island did not collapse")
-            assert pet.pos() == persisted
-            print("PASS pin, dashboard outside collapse and animated capsule collapse", flush=True)
+        verify_pages()
+        desktop.preference("pinned", "true")
+        outside.show()
+        outside.activateWindow()
+        wait_for(outside.isActiveWindow, "Could not focus an outside window")
+        assert desktop.mode == "EXPANDED_DASHBOARD", "Pin did not keep the dashboard open"
+        desktop.preference("pinned", "false")
+        desktop.show_mode("EXPANDED_DASHBOARD")
+        wait_for(dashboard.isActiveWindow, "Could not refocus the dashboard")
+        outside.activateWindow()
+        wait_for(lambda: desktop.mode == "PET_ONLY", "Outside click did not return to the pet")
+        desktop.show_mode("MINI_ISLAND")
+        wait_for(lambda: pet.reveal > .99 and pet.isActiveWindow(), "Mini island did not reopen")
+        outside.activateWindow()
+        wait_for(lambda: desktop.mode == "PET_ONLY" and pet.reveal == 0, "Mini island did not collapse")
+        assert pet.pos() == persisted
+        print("PASS pin, dashboard outside collapse and animated capsule collapse", flush=True)
 
         if not read_only:
+            desktop.show_mode("EXPANDED_DASHBOARD")
             # The disposable verification profile uses Asia/Kolkata (UTC+05:30).
             began = datetime.now(timezone(timedelta(hours=5, minutes=30)))
             due = (began + timedelta(minutes=1)).replace(second=0, microsecond=0)
