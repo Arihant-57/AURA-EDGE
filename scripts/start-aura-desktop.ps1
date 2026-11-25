@@ -22,6 +22,10 @@ function Read-LocalJson([string]$Url) {
     if ($LASTEXITCODE -eq 0) { ($json -join "`n") | ConvertFrom-Json }
 }
 
+$HindiSpecialist = Join-Path $RepoRoot "models/stt/indic-conformer-hi"
+if (-not $env:AURA_EDGE_HINDI_SPECIALIST_DIR -and (Test-Path -LiteralPath (Join-Path $HindiSpecialist "model.int8.onnx"))) {
+    $env:AURA_EDGE_HINDI_SPECIALIST_DIR = $HindiSpecialist
+}
 $Base = "http://127.0.0.1:$BackendPort"
 $DesktopArgs = @((Join-Path $RepoRoot "desktop\main.py"), "--backend-port", "$BackendPort")
 $Schema = Read-LocalJson "$Base/openapi.json"

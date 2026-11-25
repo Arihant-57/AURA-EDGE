@@ -325,3 +325,36 @@ def test_boolean_power_coercion_and_execution_grounding() -> None:
         assert out.action_executed is False
         assert "I've turned off" not in out.response_text
         assert "did not run that action" in out.response_text
+
+
+def test_unverified_conversation_never_reaches_dashboard_stream(monkeypatch):
+    app = create_app(_offline_settings())
+    orch = app.state.orchestrator
+
+    async def generate(*_args, **_kwargs):
+        yield "I turned your bedroom ", None
+        yield "light off.", None
+        yield "", {"ttft_ms": 2.0, "latency_ms": 5.0}
+
+    monkeypatch.setattr(orch.ollama_client, "stream_conversation", generate)
+    with TestClient(app) as client, client.websocket_connect("/api/v1/ws/live") as ws:
+        result = client.post("/api/v1/intent/process", json={"text": "Why is the sky blue?", "speak": False}).json()
+        displayed = []
+        while True:
+            message = ws.receive_json()
+            if message["payload"].get("turn_id") != result["turn_id"]:
+                continue
+            if message["type"] == "response_text_delta":
+                displayed.append(message["payload"]["token"])
+            if message["type"] == "response_completed":
+                break
+        assert "did not run" in result["response_text"]
+        assert "".join(displayed) == result["response_text"]
+
+
+@pytest.mark.parametrize("answer", [
+    "I set your bedroom AC to 24 degrees.", "Your study fan is now off.",
+    '{"intent_name": "DeviceControl", "device_id": "ac.bedroom"}',
+])
+def test_tool_claims_and_serialized_actions_are_rejected(answer):
+    assert validate_no_unverified_action_claim(answer, "en") == (False, "unverified_action_claim")

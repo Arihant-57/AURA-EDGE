@@ -25,6 +25,7 @@ RouteCategory = Literal[
 class IntentName(str, Enum):
     """Canonical language-independent Phase 1 + Phase 1.5 intents."""
 
+    CALCULATE = "Calculate"
     GET_TIME = "GetTime"
     GET_DATE = "GetDate"
     SET_TIMER = "SetTimer"

@@ -212,3 +212,61 @@ async def test_r5_colloquial_time_date_smart_home_and_planner_device_control() -
     clar_intent, _, _, _ = await p_uncertain.plan("bedroom light something", allow_llm_fallback=True)
     assert clar_intent.intent_name == IntentName.CLARIFY
     assert clar_intent.route_category == "clarification"
+
+def test_joined_kannada_clock_words():
+    intent, _ = MultilingualFastRouter().route("ಈಗ ಎಷ್ಟುಗಂತೆ ಆಗಿದೆ", requested_language="kn")
+    assert intent is not None and intent.intent_name == IntentName.GET_TIME
+
+@pytest.mark.parametrize("amount", ["3 months", "30 milliseconds", "5 sandwiches", "-5 minutes", "2.5 minutes"])
+def test_invalid_timer_quantity_cannot_reach_execution(amount):
+    result, _ = MultilingualFastRouter().route(f"Set a timer for {amount}")
+    assert result is not None and result.intent_name == IntentName.CLARIFY
+
+def test_compound_device_reminder_preserves_both_steps_and_limits_plans():
+    router = MultilingualFastRouter()
+    result, _ = router.route("Set the bedroom AC to 24 degrees and remind me in ten minutes to turn it off.")
+    assert result and [step.intent_name for step in result.sub_actions] == [IntentName.DEVICE_CONTROL, IntentName.CREATE_REMINDER]
+    assert result.sub_actions[0].slots["value"] == 24
+    assert result.sub_actions[1].slots["delay_seconds"] == 600
+    result, _ = router.route("Summarize my day and tell me what tasks are still pending.")
+    assert result and [s.intent_name for s in result.sub_actions] == [IntentName.DAILY_BRIEFING, IntentName.LIST_TASKS]
+    result, _ = router.route("; ".join(["what time is it"] * 5))
+    assert result and result.intent_name == IntentName.CLARIFY
+
+
+@pytest.mark.parametrize(("text", "seconds"), [
+    ("पाज मिन्त कर ताीमर लगाओ, और अभी क्या समें हुए है? बताव!", 300),
+    ("10 सेकंद का तैमर लगाो", 10),
+    ("बीस सेकंद का टायमर लगाओ", 20),
+])
+def test_hindi_recognition_variants_preserve_duration(text, seconds):
+    intent, _ = MultilingualFastRouter().route(text)
+    assert intent and intent.intent_name == IntentName.SET_TIMER
+    assert intent.slots["duration_seconds"] == seconds
+
+
+@pytest.mark.parametrize(("question", "answer"), [
+    ("What is seventeen multiplied by six?", 102), ("calculate 12 minus 17", -5), ("9 + 6", 15),
+])
+async def test_exact_arithmetic_uses_registered_tool(question, answer):
+    from aura_edge.config import Settings
+    from aura_edge.main import create_app
+
+    intent, _ = MultilingualFastRouter().route(question)
+    assert intent and intent.intent_name == IntentName.CALCULATE
+    registry = create_app(Settings(_env_file=None)).state.orchestrator.tool_registry
+    result = await registry.execute_intent(intent)
+    assert result.success and result.data["value"] == answer
+
+
+@pytest.mark.parametrize(("phrase", "expected"), [
+    ("Don't turn on the bedroom light", IntentName.CLARIFY),
+    ("Do not switch off the study fan", IntentName.CLARIFY),
+    ("बेडरूम की लाइट बंद मत करो", IntentName.CLARIFY),
+    ("ಬೆಡ್‌ರೂಮ್ ಲೈಟ್ ಆಫ್ ಮಾಡಬೇಡಿ", IntentName.CLARIFY),
+    ("If I turn on the bedroom AC, what happens?", IntentName.CONVERSATION),
+    ("What happens if I switch off the study fan?", IntentName.CONVERSATION),
+])
+def test_discussion_and_negation_cannot_select_tools(phrase, expected):
+    intent, _ = MultilingualFastRouter().route(phrase)
+    assert intent and intent.intent_name == expected and not intent.sub_actions

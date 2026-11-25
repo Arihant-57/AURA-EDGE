@@ -33,6 +33,16 @@ _AMBIGUOUS_PATTERNS = [
     re.compile(r"^(?:please\s+)?(?:turn|switch)\s+it\s+(?:on|off)\b", re.IGNORECASE),
 ]
 
+_HYPOTHETICAL = re.compile(
+    r"^(?:what (?:would|will|could) happen|what happens|what if|suppose|imagine|if (?:i|we|you)|"
+    r"how (?:would|does)|would it|explain (?:how|what)|अगर|यदि|ಒಂದು ವೇಳೆ)", re.IGNORECASE,
+)
+_NEGATED_REQUEST = re.compile(
+    r"\b(?:do not|don['’]t|never|without|not to|didn['’]t|did not)\b|"
+    r"(?<![\w\u0900-\u097F])(?:मत|नहीं|नही)(?![\w\u0900-\u097F])|ಬೇಡ|ಬೇಡಿ|ಮಾಡಬಾರದು",
+    re.IGNORECASE,
+)
+
 # Compound clause separator that avoids splitting "1 minute and 30 seconds"
 _COMPOUND_SPLIT_RE = re.compile(
     r"\s*(?:;|,\s*and\s+|\s+and\s+then\s+|\s+and\s+|\s+aur\s+phir\s+|\s+और\s+फिर\s+|\s+और\s+|\s+ಮತ್ತು\s+ನಂತರ\s+|\s+ಮತ್ತು\s+)\s*",
@@ -964,7 +974,7 @@ def _try_phase4_action(norm: NormalizedText) -> TypedIntent | None:
 
     # 1. Daily briefing
     if re.search(
-        r"\b(?:daily|morning)\s+briefing\b|\bbrief\s+me\b|\b(?:what(?:'s|\s+is)|give\s+me)\s+my\s+(?:day|daily\s+summary)\b|"
+        r"\bsummari[sz]e my day\b|\b(?:daily|morning)\s+briefing\b|\bbrief\s+me\b|\b(?:what(?:'s|\s+is)|give\s+me)\s+my\s+(?:day|daily\s+summary)\b|"
         r"आज\s+की\s+ब्रीफिंग|दैनिक\s+सारांश|ಇಂದಿನ\s+ಬ್ರೀಫಿಂಗ್|ದೈನಂದಿನ\s+ಸಾರಾಂಶ",
         low,
         flags=re.UNICODE,
@@ -1056,7 +1066,7 @@ def _try_phase4_action(norm: NormalizedText) -> TypedIntent | None:
 
     # 5. Tasks
     if re.search(
-        r"\b(?:list|show|what\s+are)\s+(?:my\s+)?(?:pending\s+|open\s+)?tasks?\b|\bmy\s+to[\s\-]?do\s+list\b|"
+        r"\bwhat tasks are (?:still )?pending\b|\b(?:list|show|what\s+are)\s+(?:my\s+)?(?:pending\s+|open\s+)?tasks?\b|\bmy\s+to[\s\-]?do\s+list\b|"
         r"(?:मेरा|मेरे)\s+टास्क\s*(?:दिखाओ|लिस्ट|बताओ)|ನನ್ನ\s+ಟಾಸ್ಕ್\s*(?:ತೋರಿಸು|ಪಟ್ಟಿ|ಹೇಳು)",
         low,
         flags=re.UNICODE,
@@ -1200,6 +1210,16 @@ class MultilingualFastRouter:
         text = norm.normalized
         low = text.lower()
 
+        arithmetic = re.fullmatch(
+            r"(?:what is |what's |calculate )?(-?\d{1,9})\s*"
+            r"(times|multiplied by|plus|minus|[+*×−-])\s*(-?\d{1,9})", low
+        )
+        if arithmetic:
+            left, operator, right = arithmetic.groups()
+            return TypedAction(intent_name=IntentName.CALCULATE, slots={
+                "left": int(left), "operator": operator, "right": int(right),
+            })
+
         # Time / Date quick catches
         if re.search(
             r"(?:\bwhat(?:'s|\s+is)?\s+(?:the\s+)?time\b|\bwhat\s+time\s+is\s+it\b|\bcurrent\s+time\b|"
@@ -1214,7 +1234,7 @@ class MultilingualFastRouter:
 
         if re.search(
             r"(?:\btoday(?:'s)?\s+date\b|\bdate\s+today\b|\bwhat(?:'s|\s+is)?\s+(?:the\s+|today(?:'s)?\s+)?(?:date|day)\b|"
-            r"(?:तारी[खक]|डेट)\s*(?:क्या|कितनी|बता)|आज\s*(?:की\s+)?(?:तारी[खक]|डेट)\s*(?:क्या|बता)?|आज\s+(?:क्या|कौन\s*सा|कोंसा)\s+दिन|"
+            r"(?:तारी[खक]|डेट)\s*(?:क्या|कितनी|बता)|आज\s*(?:की\s+)?(?:तारी[खक]|डेट)\s*(?:क्या|बता)?|आज\s+(?:क्या|क[ौो]न\s*सा|कोंसा)\s+दिन|"
             r"aaj\s+(?:ki\s+)?(?:kya\s+)?(?:tareekh|tarikh|date)|"
             r"(?:ಇವತ್ತ\w*|ಇಂದು).*?(?:ಡೇಟ್|ದಿನಾಂಕ|ತಾರೀಖು).*?(?:ಏನು|ಎಷ್ಟು)|"
             r"(?:ಡೇಟ್|ದಿನಾಂಕ|ತಾರೀಖು)\s*(?:ಏನು|ಎಷ್ಟು|ಹೇಳು)|ಯಾವ\s*(?:ದಿನ|ತಾರೀಖು)|"
@@ -1309,11 +1329,33 @@ class MultilingualFastRouter:
                 round((time.perf_counter() - t0) * 1000.0, 2),
             )
 
+        if _HYPOTHETICAL.search(norm.normalized):
+            return TypedIntent(intent_name=IntentName.CONVERSATION, confidence=1.0, source="hassil_fast",
+                               route_category="conversation", language=norm.language, input_script=norm.script,
+                               raw_text=raw_text), round((time.perf_counter() - t0) * 1000.0, 2)
+
+        # Split compound commands safely (preserving "1 minute and 30 seconds")
+        clauses = [c.strip() for c in _COMPOUND_SPLIT_RE.split(norm.normalized) if c.strip()]
+        if len(clauses) > 1 and any(_TIME_UNIT_START_RE.match(c) for c in clauses[1:]):
+            clauses = [norm.normalized]
+
+        # Keep free-form reminder messages and shopping item names intact. A leading
+        # device instruction or briefing followed by another instruction is a plan.
+        compound_tool = len(clauses) > 1 and (
+            _try_smart_home_action(clauses[0]) is not None
+            or re.search(r"\b(?:briefing|brief me|summari[sz]e my day)\b", clauses[0], re.IGNORECASE)
+        )
         unsafe_power_timing = _POWER_REQUEST_RE.search(norm.normalized) and (
             _TEMPORARY_POWER_RE.search(norm.normalized)
             or (_AFTER_RE.search(norm.normalized) and _extract_delay_from_phrase(norm.normalized)[0] is None)
         )
-        if unsafe_power_timing or any(pattern.search(norm.normalized) for pattern in _AMBIGUOUS_PATTERNS):
+        invalid_timer = (
+            re.search(r"\b(?:set|start|create)\b.*?\btimer\b", norm.normalized, re.IGNORECASE)
+            and re.search(r"\d", norm.normalized)
+            and extract_duration_seconds(norm.normalized) is None
+        )
+        if (len(clauses) > 4 or unsafe_power_timing or invalid_timer or _NEGATED_REQUEST.search(norm.normalized)
+                or any(pattern.search(norm.normalized) for pattern in _AMBIGUOUS_PATTERNS)):
             return (
                 TypedIntent(
                     intent_name=IntentName.CLARIFY,
@@ -1355,18 +1397,13 @@ class MultilingualFastRouter:
                     round((time.perf_counter() - t0) * 1000.0, 2),
                 )
 
-        sched_intent = _try_schedule_or_reminder_action(norm)
+        sched_intent = None if compound_tool else _try_schedule_or_reminder_action(norm)
         if sched_intent is not None:
             return sched_intent, round((time.perf_counter() - t0) * 1000.0, 2)
 
-        p4_intent = _try_phase4_action(norm)
+        p4_intent = None if compound_tool else _try_phase4_action(norm)
         if p4_intent is not None:
             return p4_intent, round((time.perf_counter() - t0) * 1000.0, 2)
-
-        # Split compound commands safely (preserving "1 minute and 30 seconds")
-        clauses = [c.strip() for c in _COMPOUND_SPLIT_RE.split(norm.normalized) if c.strip()]
-        if len(clauses) > 1 and any(_TIME_UNIT_START_RE.match(c) for c in clauses[1:]):
-            clauses = [norm.normalized]
 
         if len(clauses) > 1:
             sub_actions: list[TypedAction] = []
@@ -1376,8 +1413,12 @@ class MultilingualFastRouter:
                     requested_language=requested_language,
                     fallback_language=norm.language,
                 )
+                structured = _try_schedule_or_reminder_action(sub_norm) or _try_phase4_action(sub_norm)
+                if structured is not None and structured.route_category != "tool":
+                    return structured, round((time.perf_counter() - t0) * 1000.0, 2)
                 act = (
-                    self._try_hassil_single(sub_norm)
+                    (TypedAction(intent_name=structured.intent_name, slots=structured.slots) if structured else None)
+                    or self._try_hassil_single(sub_norm)
                     or self._try_keyword_timer_or_clock(sub_norm)
                     or _try_smart_home_action(sub_norm.normalized)
                 )

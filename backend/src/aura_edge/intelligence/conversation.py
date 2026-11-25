@@ -39,8 +39,10 @@ _UNSUPPORTED_LANG_CLAIM_RE = re.compile(
 )
 _UNVERIFIED_ACTION_CLAIM_RE = re.compile(
     r"(?:\b(?:i(?:'ve|\s+have)?|done[.,!]?\s+i(?:'ve|\s+have)?)\s+"
-    r"(?:turned\s+(?:on|off)|switched\s+(?:on|off)|set\s+(?:the\s+|your\s+)?(?:ac|air\s+conditioner|fan|light|tv|temperature|timer|reminder)|"
+    r"(?:(?:turned|switched)\s+(?:(?:on|off)|(?:[\w-]+\s+){1,6}(?:on|off))|set\s+(?:the\s+|your\s+)?(?:ac|air\s+conditioner|fan|light|tv|temperature|timer|reminder)|"
+    r"set\s+(?:the|your)\s+(?:(?:bedroom|living room|kitchen|study)\s+)?(?:ac|air conditioner|fan|light|tv|temperature|timer|reminder)|"
     r"created|added|deleted|removed|forgot(?:ten)?|cancelled|canceled|updated|completed|scheduled|saved)\b|"
+    r"\b(?:your|the)\s+(?:(?:bedroom|living room|study|kitchen)\s+)?(?:light|fan|ac|tv|timer)\s+is\s+now\s+(?:on|off|set|running)\b|"
     r"\b(?:has|have)\s+been\s+(?:turned\s+(?:on|off)|set|created|deleted|removed|cancelled|canceled|scheduled|completed|saved)\b|"
     r"(?:मैंने\s+.*(?:कर\s+दिया|बंद\s+कर\s+दिया|चालू\s+कर\s+दिया|सेट\s+कर\s+दिया|हटा\s+दिया|रद्द\s+कर\s+दिया|सहेज\s+लिया|जोड़\s+दिया))|"
     r"(?:आन\s+कर\s+दिया|ऑफ\s+कर\s+दिया|बंद\s+कर\s+दिया\s+है|सेट\s+कर\s+दिया\s+है|हटा\s+दिया\s+है|रद्द\s+कर\s+दिया\s+है)|"
@@ -55,7 +57,9 @@ def validate_no_unverified_action_claim(
 ) -> tuple[bool, str]:
     """Ensure free-form conversation never claims a tool mutation executed without verification."""
     cleaned = (text or "").strip()
-    if cleaned and _UNVERIFIED_ACTION_CLAIM_RE.search(cleaned):
+    if re.search(r'["\'](?:intent_name|tool_calls?|function|sub_actions|duration_seconds|device_id)["\']\s*:', cleaned):
+        return False, "unverified_action_claim"
+    if cleaned and _UNVERIFIED_ACTION_CLAIM_RE.search(cleaned.replace("’", "'")):
         return False, "unverified_action_claim"
     return True, "ok"
 

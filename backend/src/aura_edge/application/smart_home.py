@@ -400,6 +400,23 @@ class SmartHomeService:
                     error=str(exc),
                 )
             r_label = _ROUTINE_LABELS.get(routine_id, {}).get(language, routine_id)
+            if res["status"] != "verified":
+                steps = res["results"]
+                done = sum(s["status"] == "verified" for s in steps)
+                if res["status"] == "skipped_condition":
+                    message = {
+                        "en": "The routine conditions were not met. No steps ran.",
+                        "hi": "रूटीन की शर्तें पूरी नहीं हुईं। कोई काम नहीं चला।",
+                        "kn": "ದಿನಚರಿಯ ಷರತ್ತುಗಳು ಈಡೇರಿಲ್ಲ. ಯಾವುದೇ ಕೆಲಸ ನಡೆಯಲಿಲ್ಲ.",
+                    }[language]
+                else:
+                    message = {
+                        "en": f"{done} of {len(steps)} routine steps completed.",
+                        "hi": f"रूटीन के {len(steps)} में से {done} काम पूरे हुए।",
+                        "kn": f"ದಿನಚರಿಯ {len(steps)} ಕೆಲಸಗಳಲ್ಲಿ {done} ಪೂರ್ಣಗೊಂಡಿವೆ.",
+                    }[language]
+                return VerifiedActionResult(success=False, action="RoutineControl", status="failed",
+                                            message=message, data=res)
             msg = {
                 "en": f"Activated the {r_label} routine.",
                 "hi": f"{r_label} रूटीन शुरू कर दिया गया है।",
@@ -857,11 +874,11 @@ class SmartHomeService:
             },
         )
         if source in {"schedule", "event_routine"} or status == "partial":
-            notif_type = "routine_completed" if status == "verified" else "routine_partial"
+            notif_type = {"verified": "routine_completed", "partial": "routine_partial", "failed": "routine_failed"}[status]
             msg = (
                 f"Routine '{routine_name}' completed."
                 if status == "verified"
-                else f"Routine '{routine_name}' completed partially ({ok_count}/{len(results)} actions succeeded)."
+                else f"Routine '{routine_name}': {ok_count} of {len(results)} actions completed."
             )
             await self._emit_notification(
                 notification_type=notif_type,

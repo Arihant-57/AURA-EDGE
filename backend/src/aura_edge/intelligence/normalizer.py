@@ -267,10 +267,10 @@ _UNIT_MULT = {
 }
 
 _DURATION_CHUNK_RE = re.compile(
-    r"(\d+)\s*(?:[-‑–]\s*)?(hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s|"
-    r"घंट[ाेों]|मिनट(?:ों|्स)?|सेक[ंडण्ड]+(?:्स)?|ghant[ae]|minat|"
+    r"(?<![\d.,−-])(\d+)\s*(?:[-‑–]\s*)?(hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s|"
+    r"घंट(?:ों|[ाे])|मिनट(?:ों|्स)?|सेक[ंडण्ड]+(?:्स)?|ghant[ae]|minat|"
     r"ಗಂಟೆ(?:ಗಳು)?|ನಿಮಿಷ(?:ಗಳು|ದ)?|ಮಿನಿಟ್(?:ಸ್)?|ಸೆಕೆಂಡ್(?:‌ಗಳು|ಗಳು|ಸ್)?|ಸೆಕೆಂಡ(?:ಿನ|ು(?:ಗಳು)?)|"
-    r"gante|nimisha)",
+    r"gante|nimisha)(?![A-Za-z\u0900-\u097F\u0C80-\u0CFF])",
     flags=re.IGNORECASE | re.UNICODE,
 )
 
@@ -438,6 +438,8 @@ def _replace_number_words(text: str, *, language: LanguageCode = "en") -> str:
 def extract_duration_seconds(text: str) -> int | None:
     """Extract positive total duration in seconds from EN/HI/KN text, or None if absent."""
     prepared = _replace_number_words(text.translate(_DIGIT_TRANSLATION))
+    if re.search(r"(?:[-−]\s*\d|\d[.,]\d)", prepared):
+        return None
     total = 0
     found = False
     for match in _DURATION_CHUNK_RE.finditer(prepared):
@@ -467,6 +469,7 @@ def _normalize_kannada_asr_variants(text: str) -> str:
         "ಟೈಮರ್",
         out,
     )
+    out = re.sub(r"(?<![\w\u0C80-\u0CFF])ಎಷ್ಟು(?=ಗಂ[ಟತ]ೆ(?![\w\u0C80-\u0CFF]))", "ಎಷ್ಟು ", out)
     out = re.sub(r"ಗಂತೆ(?![\w\u0C80-\u0CFF])", "ಗಂಟೆ", out)
     out = re.sub(r"ನಿಮಿಸ(?![\w\u0C80-\u0CFF])", "ನಿಮಿಷ", out)
     out = re.sub(r"ಗದ್ದು(?=\s+(?:ಮಾಡು|ಗೊಳಿಸು))", "ರದ್ದು", out)
@@ -475,7 +478,8 @@ def _normalize_kannada_asr_variants(text: str) -> str:
 
 def _normalize_hindi_asr_variants(text: str) -> str:
     """Normalize known Whisper Hindi Devanagari phonetic variations on timer/clock commands."""
-    out = re.sub(r"(?:टाईमर|ताईमर|ताम्यर|टामर|तामर)", "टाइमर", text)
+    out = re.sub(r"(?:टाईमर|ताईमर|ताम्यर|टामर|तामर|ताीमर|तैमर|टायमर)", "टाइमर", text)
+    out = re.sub(r"(?<![\w\u0900-\u097F])सेकंद(?![\w\u0900-\u097F])", "सेकंड", out)
     out = re.sub(r"(?:मिन्त|मिनद|मिनत|मिंट)", "मिनट", out)
     out = re.sub(r"(?:समें|समे|समै)(?![\w\u0900-\u097F])", "समय", out)
     out = re.sub(r"लगा[ोूॉँ]+", "लगाओ", out)

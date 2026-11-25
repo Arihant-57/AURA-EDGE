@@ -203,7 +203,7 @@ class WhisperTranscriber:
         self._lock = threading.Lock()
         self._model: Any = None
         self._loaded_key: tuple[str, str, str] | None = None
-        self._kn_recognizer: Any = None
+        self._ctc_recognizers: dict[Path, Any] = {}
         apply_offline_env_guards(settings)
 
     def resolve_kannada_specialist_dir(self) -> Path | None:
@@ -213,25 +213,26 @@ class WhisperTranscriber:
             return kn_dir
         return None
 
-    def _load_kn_recognizer_locked(self, kn_dir: Path) -> Any:
-        if self._kn_recognizer is not None:
-            return self._kn_recognizer
+    def _load_ctc_recognizer_locked(self, directory: Path) -> Any:
+        if directory in self._ctc_recognizers:
+            return self._ctc_recognizers[directory]
         import sherpa_onnx
 
-        self._kn_recognizer = sherpa_onnx.OfflineRecognizer.from_nemo_ctc(
-            model=str(kn_dir / "model.int8.onnx"),
-            tokens=str(kn_dir / "tokens.txt"),
+        recognizer = sherpa_onnx.OfflineRecognizer.from_nemo_ctc(
+            model=str(directory / "model.int8.onnx"),
+            tokens=str(directory / "tokens.txt"),
             num_threads=4,
             provider="cpu",
         )
-        return self._kn_recognizer
+        self._ctc_recognizers[directory] = recognizer
+        return recognizer
 
-    def _transcribe_kn_specialist_locked(
+    def _decode_specialist_locked(
         self,
         samples: np.ndarray,
-        kn_dir: Path,
+        directory: Path,
     ) -> tuple[str, float]:
-        rec = self._load_kn_recognizer_locked(kn_dir)
+        rec = self._load_ctc_recognizer_locked(directory)
         t0 = time.perf_counter()
         stream = rec.create_stream()
         stream.accept_waveform(16000, samples)
@@ -509,6 +510,7 @@ class WhisperTranscriber:
                 samples,
                 language=lang_arg,
                 beam_size=1,
+                temperature=0.0,
                 vad_filter=False,
                 condition_on_previous_text=False,
                 repetition_penalty=1.2,
@@ -530,6 +532,7 @@ class WhisperTranscriber:
                     samples,
                     language=lang_arg,
                     beam_size=1,
+                    temperature=0.0,
                     vad_filter=False,
                     condition_on_previous_text=False,
                     repetition_penalty=1.2,
@@ -651,22 +654,29 @@ class WhisperTranscriber:
 
         # Explicit strict single-language mode (never fabricates language_probability=1.0)
         if eff_mode == "strict" and strict_target != "auto":
-            if strict_target == "kn" and size != "base":
-                kn_dir = self.resolve_kannada_specialist_dir()
-                if kn_dir is not None:
+            if strict_target in {"hi", "kn"} and size != "base":
+                directory = self.resolve_kannada_specialist_dir() if strict_target == "kn" else self._settings.hindi_specialist_dir
+                if directory and (directory / "model.int8.onnx").is_file() and (directory / "tokens.txt").is_file():
                     with self._lock:
-                        kn_text, kn_ms = self._transcribe_kn_specialist_locked(samples, kn_dir)
-                    script_ok, clean_kn, script_reason = _validate_kn_ctc_output(kn_text)
+                        ctc_text, ctc_ms = self._decode_specialist_locked(samples, directory)
+                    if strict_target == "kn":
+                        script_ok, clean_text, script_reason = _validate_kn_ctc_output(ctc_text)
+                    else:
+                        clean_text = ctc_text.strip()
+                        script_ok = any(_is_devanagari_char(ch) for ch in clean_text) and not any(
+                            _is_other_indic_char(ch) or _is_kannada_char(ch) for ch in clean_text
+                        )
+                        script_reason = "invalid_script" if clean_text else "unclear_speech"
                     if not script_ok:
                         return TranscriptionResult(
-                            text=clean_kn if script_reason == "invalid_script" else "",
-                            detected_language="kn",
+                            text=clean_text if script_reason == "invalid_script" else "",
+                            detected_language=strict_target,
                             language_probability=None,
-                            model_size="indic-conformer-kn",
+                            model_size=f"indic-conformer-{strict_target}",
                             device="cpu",
                             compute_type="int8",
-                            latency_ms=kn_ms,
-                            is_empty=(len(clean_kn) == 0 or script_reason is None),
+                            latency_ms=ctc_ms,
+                            is_empty=(len(clean_text) == 0 or script_reason is None),
                             fallback_reason=None,
                             preferred_reply_language=pref_reply_lang,
                             recognition_mode="strict",
@@ -676,8 +686,8 @@ class WhisperTranscriber:
                             rejection_reason=script_reason or ("noise" if flat_noise else "unclear_speech"),
                         )
                     q_ok, final_txt, is_emp, rej = self._evaluate_quality_gate(
-                        text=clean_kn,
-                        model_used="indic-conformer-kn",
+                        text=clean_text,
+                        model_used=f"indic-conformer-{strict_target}",
                         rms=rms,
                         peak=peak,
                         voiced_ms=voiced_ms,
@@ -690,12 +700,12 @@ class WhisperTranscriber:
                     )
                     return TranscriptionResult(
                         text=final_txt,
-                        detected_language="kn",
+                        detected_language=strict_target,
                         language_probability=None,
-                        model_size="indic-conformer-kn",
+                        model_size=f"indic-conformer-{strict_target}",
                         device="cpu",
                         compute_type="int8",
-                        latency_ms=kn_ms,
+                        latency_ms=ctc_ms,
                         is_empty=is_emp,
                         fallback_reason=None,
                         preferred_reply_language=pref_reply_lang,
@@ -810,7 +820,7 @@ class WhisperTranscriber:
             if should_try_kn:
                 kn_dir = self.resolve_kannada_specialist_dir()
                 if kn_dir is not None:
-                    kn_text, kn_ms = self._transcribe_kn_specialist_locked(samples, kn_dir)
+                    kn_text, kn_ms = self._decode_specialist_locked(samples, kn_dir)
                     script_ok, clean_kn, script_reason = _validate_kn_ctc_output(kn_text)
                     if script_ok and clean_kn:
                         q_ok, final_txt, is_emp, rej = self._evaluate_quality_gate(

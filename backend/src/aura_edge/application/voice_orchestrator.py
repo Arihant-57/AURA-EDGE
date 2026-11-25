@@ -70,6 +70,7 @@ def _empty_stage_timestamps() -> dict[str, float | None]:
         "routing_completion": None,
         "tool_completion": None,
         "llm_first_token": None,
+        "validated_response_text": None,
         "first_valid_speech_chunk": None,
         "tts_completion": None,
         "first_non_silent_output_callback": None,
@@ -1331,10 +1332,7 @@ class VoiceOrchestrator:
             ttfa_ms = speak_res["ttfa_ms"]
             tts_cache_hit = speak_res["tts_cache_hit"]
             first_audio_ready_mono = speak_res["first_audio_ready_mono"]
-            if timestamps["llm_first_token"] is not None:
-                first_text_mono = timestamps["llm_first_token"]
-            else:
-                first_text_mono = time.perf_counter()
+            first_text_mono = timestamps["validated_response_text"] or time.perf_counter()
         elif typed_intent.intent_name == IntentName.UNSUPPORTED:
             result = VerifiedActionResult(
                 success=False,
@@ -1354,15 +1352,23 @@ class VoiceOrchestrator:
             )
             timestamps["tool_completion"] = time.perf_counter()
             first_text_mono = timestamps["tool_completion"]
-            if result.success:
+            if result.action == "CompoundAction":
+                for step, completed in zip(typed_intent.sub_actions, result.data["sub_results"]):
+                    if completed["success"]:
+                        ctx.record_completed_action(completed["action"])
+                        self.conversation.record_verified_entity(action=completed["action"], slots=step.slots,
+                                                                data=completed["data"])
+                        if completed["action"] == "DeleteMemory":
+                            self.conversation.invalidate_memory_context()
+            elif result.success:
                 ctx.record_completed_action(result.action)
-                self.conversation.record_verified_entity(
-                    action=result.action,
-                    slots=typed_intent.slots,
-                    data=result.data,
-                )
+                self.conversation.record_verified_entity(action=result.action, slots=typed_intent.slots, data=result.data)
                 if result.action == "DeleteMemory":
                     self.conversation.invalidate_memory_context()
+            elif result.action == "RoutineControl":
+                for step in result.data.get("results", []):
+                    if step["status"] == "verified":
+                        ctx.record_completed_action(step["device_id"])
             await self.fsm.transition(ctx.turn_id, AssistantState.VERIFYING)
             await self.ws_hub.broadcast(
                 "action_verified",
@@ -1448,7 +1454,7 @@ class VoiceOrchestrator:
 
         await self.fsm.finish_turn(ctx.turn_id)
 
-        action_executed = bool(result.success and typed_intent.route_category == "tool")
+        action_executed = bool(typed_intent.route_category == "tool" and (result.success or ctx.completed_actions))
         if result.status == "clarification_required" or typed_intent.intent_name == IntentName.CLARIFY:
             outcome: Literal["success", "clarification", "refusal", "cancelled", "runtime_failure"] = "clarification"
         elif result.status == "refused":
@@ -1669,14 +1675,6 @@ class VoiceOrchestrator:
                     if timestamps["llm_first_token"] is None:
                         timestamps["llm_first_token"] = time.perf_counter()
                     raw_parts.append(token)
-                    await self.ws_hub.broadcast(
-                        "response_text_delta",
-                        {
-                            "turn_id": ctx.turn_id,
-                            "token": token,
-                            "language": reply_language,
-                        },
-                    )
                     if speak:
                         for sentence in sentence_buf.push(token):
                             _collect_validated_sentence(sentence)
@@ -1726,6 +1724,14 @@ class VoiceOrchestrator:
                 clean_full = "माफ कीजिए, मैं इस सवाल का स्पष्ट हिंदी में उत्तर नहीं दे पाया।"
             elif reply_language == "en":
                 clean_full = get_phrase("supported_languages", "en")
+
+        # The dashboard and screen readers must receive the same validated answer as TTS.
+        if not ctx.is_cancelled:
+            timestamps["validated_response_text"] = time.perf_counter()
+            await self.ws_hub.broadcast(
+                "response_text_delta",
+                {"turn_id": ctx.turn_id, "token": clean_full, "language": reply_language},
+            )
 
         speak_res = dict(empty_speak_res)
         already_spoke = False

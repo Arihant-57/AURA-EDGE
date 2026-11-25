@@ -86,6 +86,7 @@ class Settings(BaseSettings):
 
     # Phase 1 Voice, Speech & Local Intelligence Settings
     models_dir: Path = _DEFAULT_MODELS_DIR
+    hindi_specialist_dir: Path | None = None
     stt_model_size: Literal["base", "small"] = "small"
     stt_language: Literal["auto", "en", "hi", "kn"] = "auto"
     stt_recognition_mode: Literal["multilingual", "strict"] = "multilingual"

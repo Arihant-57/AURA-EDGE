@@ -159,7 +159,7 @@ def test_r4_legitimate_short_commands_preserved(monkeypatch: Any) -> None:
                 None,
             ),
         )
-        monkeypatch.setattr(stt, "_transcribe_kn_specialist_locked", lambda _s, _d, _c=kn_cmd: (_c, 12.0))
+        monkeypatch.setattr(stt, "_decode_specialist_locked", lambda _s, _d, _c=kn_cmd: (_c, 12.0))
         kn_res = stt.transcribe(short_speech, language="kn", vad_voiced_ms=192.0, noise_floor_rms=0.004)
         assert kn_res.quality_ok is True
         assert kn_res.text == kn_cmd
