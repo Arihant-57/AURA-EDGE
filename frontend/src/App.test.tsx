@@ -1,165 +1,75 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
+import { commandDevice, Device, validateValue } from "./api/desktop";
+import { dateInput, recurrence } from "./ui";
 
-const MOCK_HEALTH = {
-  status: "ok",
-  service: "aura-edge",
-  version: "0.1.0-phase0",
-  phase: 0,
-  connectivity_mode: "strict_offline",
-  compute_mode: "auto",
-  bind_host: "127.0.0.1",
-  timestamp_utc: "2026-11-25T06:20:00+00:00",
+const light: Device = {
+  id: "light.bedroom_main", name: "Bedroom Light", room: "bedroom", device_type: "light", available: true,
+  capabilities: { power: { type: "bool" }, brightness: { min: 0, max: 100 } }, state: { power: false, brightness: 60 },
+  estimated_power_w: 0, updated_at_utc: "2026-11-26T00:00:00Z",
 };
 
-const BASE_HARDWARE = {
-  os: "Windows 11",
-  architecture: "AMD64",
-  python_version: "3.13.2",
-  compute_mode_configured: "auto",
-  effective_compute_backend: "cuda",
-  cpu_cores_physical: 14,
-  cpu_cores_logical: 20,
-  cpu_percent: 12.5,
-  ram_total_gb: 15.78,
-  ram_used_gb: 8.1,
-  ram_percent: 51.3,
-  gpu: {
-    available: true,
-    name: "NVIDIA GeForce RTX 3050 6GB Laptop GPU",
-    vram_total_mb: 6144,
-    vram_used_mb: 420,
-    driver_version: "621.24",
-    error: null,
-  },
-  ollama: {
-    url: "http://127.0.0.1:11434",
-    reachable: false,
-    models: [],
-    error: "Connection refused",
-  },
-};
+function response(payload: unknown, status = 200) {
+  return new Response(JSON.stringify(payload), { status });
+}
 
-afterEach(() => {
-  vi.restoreAllMocks();
-});
+afterEach(() => { vi.restoreAllMocks(); });
 
-describe("App Phase 0 Console", () => {
-  it("renders real DB, pgvector, policy, and hardware metrics when ready", async () => {
-    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
-      const url = typeof input === "string" ? input : input.toString();
-      if (url === "/api/v1/health") {
-        return new Response(JSON.stringify(MOCK_HEALTH), { status: 200 });
+describe("Phase 5 dashboard", () => {
+  it("selects the same room across Home and Rooms and sends a boolean device command", async () => {
+    let device = light;
+    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (path, options) => {
+      const url = String(path);
+      if (url.endsWith("/smart-home/rooms")) return response([{ id: "living_room", device_count: 0 }, { id: "bedroom", device_count: 1 }]);
+      if (url.endsWith("/smart-home/devices")) return response([device]);
+      if (url.endsWith("/command")) {
+        expect(options?.method).toBe("POST");
+        const body = JSON.parse(String(options?.body));
+        expect(body).toEqual({ action: "power", value: true, source: "ui" });
+        device = { ...device, state: { ...device.state, power: body.value } };
+        return response({ status: "verified", device });
       }
-      if (url === "/api/v1/readiness") {
-        return new Response(
-          JSON.stringify({
-            ready: true,
-            phase: 0,
-            service: "aura-edge",
-            version: "0.1.0-phase0",
-            connectivity: {
-              mode: "strict_offline",
-              external_requests_blocked: true,
-              lan_allowed_cidrs: ["192.168.0.0/16"],
-              online_allowed_hosts: [],
-            },
-            database: {
-              status: "ok",
-              connected: true,
-              postgres_version: "PostgreSQL 16.4",
-              pgvector_installed: true,
-              pgvector_version: "0.8.0",
-              alembic_revision: "0001_phase0_foundation",
-              error: null,
-            },
-            hardware: BASE_HARDWARE,
-            timestamp_utc: "2026-11-25T06:20:00+00:00",
-          }),
-          { status: 200 },
-        );
-      }
-      if (url === "/api/v1/policy/check") {
-        return new Response(
-          JSON.stringify({
-            allowed: false,
-            mode: "strict_offline",
-            target: "https://example.com",
-            host: "example.com",
-            reason: "strict_offline permits loopback targets only; non-loopback host denied.",
-          }),
-          { status: 200 },
-        );
-      }
-      throw new Error(`Unexpected fetch: ${url}`);
+      if (url.endsWith("/smart-home/activities")) return response({ running: [], scheduled: [], completed: [] });
+      if (url.endsWith("/smart-home/energy")) return response({ total_power_w: 0, by_room_power_w: {}, devices: [] });
+      if (url.includes("/briefing?")) return response({ summary_text: "", low_stock_items: [], parcels_due: [], upcoming_reminders: [] });
+      if (url.includes("/timers") || url.includes("/reminders") || url.includes("/schedules")) return response([]);
+      if (url.includes("/tasks") || url.includes("/calendar") || url.endsWith("/notifications")) return response({ items: [], unread_count: 0 });
+      return response({});
     });
 
-    render(<App />);
-
-    expect(await screen.findByText("Backend + DB Ready")).toBeInTheDocument();
-    expect(screen.getByText("0001_phase0_foundation")).toBeInTheDocument();
-    expect(screen.getByText("v0.8.0")).toBeInTheDocument();
-    expect(screen.getByText(/RTX 3050 6GB Laptop GPU/)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Evaluate" }));
-    await waitFor(() => {
-      expect(screen.getByText("DENIED")).toBeInTheDocument();
-    });
+    render(<App/>);
+    fireEvent.change(await screen.findByLabelText("Select room"), { target: { value: "bedroom" } });
+    await screen.findByRole("button", { name: "Bedroom Light" });
+    fireEvent.click(screen.getByRole("button", { name: "Open room details" }));
+    expect(await screen.findByRole("heading", { name: "Bedroom devices" })).toBeInTheDocument();
+    const power = await screen.findByRole("switch", { name: "Bedroom Light Power" });
+    expect(power).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(power);
+    await waitFor(() => expect(power).toHaveAttribute("aria-checked", "true"));
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/light.bedroom_main/command"), expect.any(Object));
   });
 
-  it("surfaces PostgreSQL 503 unavailability honestly without fake success", async () => {
-    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
-      const url = typeof input === "string" ? input : input.toString();
-      if (url === "/api/v1/health") {
-        return new Response(JSON.stringify(MOCK_HEALTH), { status: 200 });
-      }
-      if (url === "/api/v1/readiness") {
-        return new Response(
-          JSON.stringify({
-            ready: false,
-            phase: 0,
-            service: "aura-edge",
-            version: "0.1.0-phase0",
-            connectivity: {
-              mode: "strict_offline",
-              external_requests_blocked: true,
-              lan_allowed_cidrs: ["192.168.0.0/16"],
-              online_allowed_hosts: [],
-            },
-            database: {
-              status: "unavailable",
-              connected: false,
-              postgres_version: null,
-              pgvector_installed: false,
-              pgvector_version: null,
-              alembic_revision: null,
-              error: "connection to server at 127.0.0.1, port 5432 failed",
-            },
-            hardware: BASE_HARDWARE,
-            timestamp_utc: "2026-11-25T06:20:00+00:00",
-          }),
-          { status: 503 },
-        );
-      }
-      throw new Error(`Unexpected fetch: ${url}`);
-    });
-
-    render(<App />);
-
-    expect(await screen.findByText("Backend Up · DB Not Ready")).toBeInTheDocument();
-    expect(screen.getByText("UNAVAILABLE (HTTP 503)")).toBeInTheDocument();
-    expect(
-      screen.getByText(/connection to server at 127\.0\.0\.1, port 5432 failed/),
-    ).toBeInTheDocument();
+  it("commits capability values only after verified API success and displays rejection detail", async () => {
+    const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(response({ detail: "Device is unavailable." }, 409));
+    await expect(commandDevice(light, "power", "off")).rejects.toThrow("does not support");
+    expect(fetch).not.toHaveBeenCalled();
+    await expect(commandDevice(light, "brightness", 80)).rejects.toThrow("Device is unavailable. (HTTP 409)");
+    expect(validateValue({ min: 0, max: 100 }, 101)).toBe(false);
+    expect(validateValue({ enum: ["cool"] }, "heat")).toBe(false);
   });
 
-  it("shows Backend Unreachable alert when network request throws", async () => {
-    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("ECONNREFUSED"));
+  it("reports a missing planner endpoint without presenting an empty database", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () => response({ detail: "Not Found" }, 404));
+    render(<App/>);
+    act(() => fireEvent.click(within(screen.getByRole("navigation")).getByRole("button", { name: "Tasks" })));
+    expect(await within(screen.getByRole("main")).findByText("Not Found (HTTP 404)")).toBeInTheDocument();
+    expect(screen.queryByText("No tasks in this view.")).not.toBeInTheDocument();
+  });
 
-    render(<App />);
-
-    expect(await screen.findByText("Local Backend Unreachable")).toBeInTheDocument();
-    expect(screen.getByText("ECONNREFUSED")).toBeInTheDocument();
+  it("translates scheduler wall time with the configured timezone and weekday", () => {
+    expect(dateInput("2026-11-26T09:00", "Asia/Kolkata")).toBe("2026-11-26T03:30:00.000Z");
+    expect(recurrence("weekly", "2026-11-26T09:00")).toEqual({ kind: "weekly", hour: 9, minute: 0, weekdays: [3] });
+    expect(() => dateInput("2026-03-08T02:30", "America/New_York")).toThrow("does not exist");
   });
 });

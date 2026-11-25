@@ -1,5 +1,9 @@
 # AURA EDGE — Project Progress Log
 
+## Phase 5 — Windows desktop experience
+
+The Phase 5 branch adds the native companion, embedded React dashboard and integration verification. See the [handover](PHASE_5_HANDOVER.md) and [test report](PHASE_5_TEST_REPORT.md).
+
 ## Part A & Phase 4 — Shared Multilingual Grounding & Personal Secretary (`feat/backend-intelligence`)
 
 **Status:** Core Automated Verification **COMPLETE** (`ruff check .\backend` 0 errors; **`191 passed, 0 failed, 0 skipped`** in `426.72s` against live PostgreSQL `0005_phase4_personal_assistant`). `frontend/` and `main` remain untouched.
