@@ -75,3 +75,31 @@ Observed results:
 ## 5. Original AURA V4 Untouched Check
 
 - `git -C C:\Users\ariha\local-ai-lab\phase4-agent status` confirmed unchanged relative to session start (zero edits inside `C:\Users\ariha\local-ai-lab\phase4-agent`).
+
+---
+
+## 6. Phase 1 Verification Summary (`feat/backend-intelligence`)
+
+### 6.1 Lint & Automated Test Suite (`ruff` + `pytest`)
+
+Executed from `C:\Users\ariha\Desktop\AURA-EDGE` with `AURA_EDGE_REQUIRE_LIVE_DB=1` against live PostgreSQL `16.16` (`alembic` head `0002_phase1_voice_timers`):
+
+- `ruff check .\backend`: **All checks passed!** (`0` errors)
+- `pytest -v .\backend\tests`: **`128 passed, 0 failed, 0 skipped` in `25.77s`**:
+  - Phase 0 regressions (`14` passed): `test_config_and_db_guard.py` (`5`), `test_db_live_integration.py` (`1`, updated for `0002_phase1_voice_timers`), `test_health_api.py` (`3`), `test_network_policy.py` (`5`).
+  - Phase 1 suites (`114` passed):
+    - `test_phase1_multilingual_router.py` (`99`): 96 EN/HI/KN utterances (`100%` intent & language match), Unicode preservation, compound commands, clarification, refusal.
+    - `test_phase1_audio_and_vad.py` (`4`): Silero VAD speech/silence/noise, ring buffer capture, missing-mic error, self-trigger mute gating.
+    - `test_phase1_tts_and_playback.py` (`3`): EN/HI/KN offline synthesis, LRU cache hits, sentence splitting & barge-in cancellation.
+    - `test_phase1_stt_and_compute.py` (`3`): CPU vs CUDA Whisper `small` transcription, `ModelNotFoundError`, `ComputeManager` CPU/GPU/fallback reporting.
+    - `test_phase1_state_machine.py` (`2`): 10-state FSM transitions, stale-turn guard, completed-action preservation on cancel.
+    - `test_phase1_timers_live_db.py` (`1`): real PostgreSQL timer create/list/pause/resume/restart recovery + atomic duplicate-notification prevention.
+    - `test_phase1_api_and_ws.py` (`2`): Phase 1 REST routes + `/api/v1/ws/live` WebSocket state/timer events.
+
+### 6.2 Live Alembic Migration, Uvicorn & Hardware Checks
+
+- **Alembic Reversibility:** Verified `upgrade head` (`0002_phase1_voice_timers`) -> `downgrade 0001_phase0_foundation` -> `upgrade head` cleanly against `aura-edge-postgres`.
+- **Live Hardware Capture:** `AudioCapture.start_ptt_capture(open_hardware_stream=True)` captured `1536` samples (`0.096s`) from host `Microphone Array (Realtek(R) Audio)` and stopped cleanly (`reason=manual_stop`).
+- **Live Uvicorn HTTP Endpoints (`127.0.0.1:8000`):** Verified `/api/v1/health`, `/api/v1/readiness` (`ready=True db=0002_phase1_voice_timers ollama=True`), `/api/v1/voice/status` (`state=IDLE stt_ready=True vad_ready=True mic=True spk=True`), `/api/v1/intent/process` across EN (`GetTime`), HI (`SetTimer`), KN (`Unsupported`), `/api/v1/timers` cleanup, and `/api/v1/voice/synthesize` returning HTTP `200` RIFF WAV (`47868` bytes via `sherpa_onnx` / `vits-mms-kan` in `233.03 ms`).
+- **Strict Offline Network Isolation Check:** Confirmed `HF_HUB_OFFLINE=1` & `TRANSFORMERS_OFFLINE=1`, `0` external TCP/UDP sockets opened by Python during offline Kannada routing & TTS synthesis, and zero-I/O rejection of `huggingface.co`, `api.openai.com`, and `169.254.169.254` via `build_async_http_client(enforcer)`.
+- **Benchmark & Multilingual Reports:** Full raw numbers documented in [VOICE_MODEL_EVALUATION.md](file:///C:/Users/ariha/Desktop/AURA-EDGE/docs/VOICE_MODEL_EVALUATION.md), [VOICE_BENCHMARKS.md](file:///C:/Users/ariha/Desktop/AURA-EDGE/docs/VOICE_BENCHMARKS.md), and [MULTILINGUAL_TEST_REPORT.md](file:///C:/Users/ariha/Desktop/AURA-EDGE/docs/MULTILINGUAL_TEST_REPORT.md).

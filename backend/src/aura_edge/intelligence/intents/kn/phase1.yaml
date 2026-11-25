@@ -1,0 +1,109 @@
+language: "kn"
+intents:
+  GetTime:
+    data:
+      - sentences:
+          - "[ಈಗ] (ಎಷ್ಟು ಗಂಟೆ|ಸಮಯ ಎಷ್ಟು|ಟೈಮ್ ಎಷ್ಟು) [ಆಗಿದೆ]"
+          - "(ಸಮಯ|ಗಂಟೆ) ಹೇಳು"
+          - "(eega|iga) (eshtu gante|samaya eshtu|time eshtu) [aagide]"
+          - "samaya helu"
+  GetDate:
+    data:
+      - sentences:
+          - "[ಇವತ್ತು|ಇಂದು] (ದಿನಾಂಕ ಏನು|ಯಾವ ದಿನ|ದಿನಾಂಕ ಎಷ್ಟು|ಯಾವ ತಾರೀಖು) [ಇದೆ]"
+          - "(ದಿನಾಂಕ|ತಾರೀಖು) ಹೇಳು"
+          - "(ivattu|indu) (dinanka enu|yava dina|date enu)"
+          - "dinanka helu"
+  SetTimer:
+    data:
+      - sentences:
+          - "[<label> ಗಾಗಿ|<label> ಕ್ಕೆ] <duration> [ದ] ಟೈಮರ್ (ಇಡು|ಸೆಟ್ ಮಾಡು|ಹಾಕು|ಪ್ರಾರಂಭಿಸು)"
+          - "<duration> [ದ] [<label>] ಟೈಮರ್ (ಇಡು|ಸೆಟ್ ಮಾಡು|ಹಾಕು)"
+          - "<duration> [<label>] timer (idu|set maadu|haaku)"
+          - "[<label>] <duration> timer (idu|set maadu|haaku)"
+  ListTimers:
+    data:
+      - sentences:
+          - "[ಎಲ್ಲಾ|ನನ್ನ] [ಸಕ್ರಿಯ] ಟೈಮರ್‌ಗಳನ್ನು (ತೋರಿಸು|ಹೇಳು)"
+          - "[ಎಲ್ಲಾ] ಟೈಮರ್ (ತೋರಿಸು|ಪಟ್ಟಿ ಮಾಡು)"
+          - "(ella|nanna) timer (torisu|helu)"
+  GetTimerRemaining:
+    data:
+      - sentences:
+          - "[<label>] ಟೈಮರ್‌ನಲ್ಲಿ ಎಷ್ಟು ಸಮಯ ಬಾಕಿ ಇದೆ"
+          - "[<label>] ಟೈಮರ್ ಎಷ್ಟು ಸಮಯ ಬಾಕಿ ಇದೆ"
+          - "[<label>] timer (eshtu samaya|eshtu time) baaki ide"
+  PauseTimer:
+    data:
+      - sentences:
+          - "[<label>] ಟೈಮರ್ (ನಿಲ್ಲಿಸು|ಪಾಸ್ ಮಾಡು)"
+          - "[<label>] timer (nillisu|pause maadu)"
+  ResumeTimer:
+    data:
+      - sentences:
+          - "[<label>] ಟೈಮರ್ (ಮತ್ತೆ ಪ್ರಾರಂಭಿಸು|ಮುಂದುವರಿಸು)"
+          - "[<label>] timer (resume maadu|matte shuru maadu)"
+  CancelTimer:
+    data:
+      - sentences:
+          - "[<label>] ಟೈಮರ್ (ರದ್ದು ಮಾಡು|ರದ್ದುಗೊಳಿಸು|ತೆಗೆದುಹಾಕು|ಕ್ಯಾನ್ಸಲ್ ಮಾಡು)"
+          - "[<label>] timer (raddu maadu|cancel maadu|tegi)"
+  CancelAllTimers:
+    data:
+      - sentences:
+          - "(ಎಲ್ಲಾ|ಸರ್ವ) ಟೈಮರ್‌ಗಳನ್ನು (ರದ್ದು ಮಾಡು|ರದ್ದುಗೊಳಿಸು|ತೆಗೆದುಹಾಕು)"
+          - "(ella|all) timers (raddu maadu|cancel maadu)"
+  Help:
+    data:
+      - sentences:
+          - "(ಸಹಾಯ ಮಾಡು|ನೀನು ಏನು ಮಾಡಬಲ್ಲೆ)"
+          - "(sahaya maadu|enu maadaballe)"
+  StopAssistant:
+    data:
+      - sentences:
+          - "(ನಿಲ್ಲಿಸು|ಸುಮ್ಮನಿರು|ಬಿಡು)"
+          - "(nillisu|bidu)"
+
+expansion_rules:
+  duration: "{number} {unit} [{number2} {unit2}]"
+  label: "{timer_label}"
+
+lists:
+  number:
+    range:
+      type: "number"
+      from: 1
+      to: 1440
+  number2:
+    range:
+      type: "number"
+      from: 1
+      to: 60
+  unit:
+    values:
+      - "ಸೆಕೆಂಡ್"
+      - "ಸೆಕೆಂಡು"
+      - "ನಿಮಿಷ"
+      - "ನಿಮಿಷದ"
+      - "ನಿಮಿಷಗಳ"
+      - "ಗಂಟೆ"
+      - "second"
+      - "seconds"
+      - "sec"
+      - "minute"
+      - "minutes"
+      - "min"
+      - "nimisha"
+      - "hour"
+      - "hours"
+      - "gante"
+  unit2:
+    values:
+      - "ಸೆಕೆಂಡ್"
+      - "ನಿಮಿಷ"
+      - "second"
+      - "seconds"
+      - "minute"
+      - "minutes"
+  timer_label:
+    wildcard: true

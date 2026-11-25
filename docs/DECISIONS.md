@@ -30,3 +30,15 @@ Inspection performed read-only on 2026-11-25. **No source code, credentials, `.e
 1. **Missing Official PDF (`Synapse_2.0_Problem_Statements.pdf`)**: Searched `Downloads`, `Documents`, `Desktop`, and `local-ai-lab`; the file is not present on disk (only `Synapse_2_Permission_and_Expense_Request.docx` exists in `Downloads`). Requirements in `docs/spec/AURA_EDGE_MASTER_CONTEXT.md` (which summarizes Problem Statement 13) were used; exact wording in the PDF should be cross-checked once supplied.
 2. **Competition Reuse / Pre-Work Policy**: Confirm with Synapse 2.0 organizers whether pre-downloaded model weights (Hugging Face / Ollama), pre-built UI/boilerplate, or prior repository code reuse are allowed before submission.
 3. **Multilingual Models Not Yet Cached**: Only `faster-whisper-base.en` (English) and `all-MiniLM-L6-v2` are cached in `~/.cache/huggingface/hub`, and `qwen3.5:2b` is not pulled in `~/.ollama/models`. Phase 1 will require pulling/preparing multilingual STT/TTS weights and benchmarking `qwen3.5:4b` vs `2b` if desired.
+
+---
+
+## 4. Phase 1 Engineering Decisions (`feat/backend-intelligence`)
+
+| ID | Decision | Rationale |
+|---|---|---|
+| D-05 | Pin `sherpa-onnx>=1.12.0,<2.0` (`1.13.8`) and synthesize Kannada offline with `vits-mms-kan` (`Symmetris-labs/tts-mms`, `CC-BY-NC-4.0`) using `num_threads=4`, alongside Piper `en_US-lessac-medium` & `hi_IN-rohan-medium` (`MIT`). | `sherpa-onnx 2.0.3` dropped the built-in Piper/espeak-ng frontend; `micahchoo/piper-kn` failed runtime metadata loading. `1.13.8` + `vits-mms-kan` synthesizes non-silent offline speech across all 3 languages (`233 ms`–`1.8 s` KN, `<380 ms` EN/HI warm). |
+| D-06 | Select `faster-whisper-small` with `repetition_penalty=1.2`, `no_repeat_ngram_size=3`, `vad_filter=True`, and Windows `torch\lib` CUDA DLL handle caching (`_DLL_DIR_HANDLES`). | `base` mis-scripted Hindi/Kannada into Arabic tokens; `small` eliminates HI script substitution, and anti-loop decoding fixes Kannada token loops (`36.6s -> 13.7s` CPU / `8.4s -> 3.1s` GPU). Note that Kannada human voice evaluation remains open (see `VOICE_MODEL_EVALUATION.md`). |
+| D-07 | Keep Silero VAD v5 ONNX (`silero_vad.onnx`) and `TTSRouter` pinned to CPU even when `compute_mode="gpu"`. | Preserves the `6144 MiB` RTX 3050 VRAM budget for `faster-whisper-small` (`int8_float16`) and `qwen3.5:4b` (`num_ctx=4096`), preventing out-of-VRAM context thrashing (`9B` disabled by default). |
+| D-08 | Isolate Romanized Hindi `"do"` (`2`) behind Indic language/time-unit guards inside `intelligence/normalizer.py`. | Unconditional `_NUMBER_WORDS["do"] = 2` corrupted English utterances such as `"What can you do?"`. Separating `_ROMAN_INDIC_NUMBER_WORDS` preserves `100%` accuracy on both English and Romanized Hindi timers. |
+| D-09 | Enforce atomic timer completion (`UPDATE timers ... WHERE status='active' AND notified_at_utc IS NULL`) in PostgreSQL `TimerRepository`. | Prevents duplicate completion announcements across background watchdog polls and container/app restarts. |

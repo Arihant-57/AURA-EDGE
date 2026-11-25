@@ -63,6 +63,8 @@ recordings/
 *.safetensors
 *.tflite
 *.ckpt
+*.tar.bz2
+*.tar.gz
 
 # Media recordings (prevent audio cache leakage)
 *.wav

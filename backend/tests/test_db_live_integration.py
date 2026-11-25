@@ -25,7 +25,10 @@ def test_live_postgres_pgvector_roundtrip_and_distance_query() -> None:
             pytest.skip(f"Local PostgreSQL unreachable: {readiness.error}")
 
         assert readiness.pgvector_installed is True, readiness.error
-        assert readiness.alembic_revision == "0001_phase0_foundation"
+        assert readiness.alembic_revision in {
+            "0001_phase0_foundation",
+            "0002_phase1_voice_timers",
+        }
 
         token = uuid.uuid4().hex[:12]
         key = f"pytest.setting.{token}"

@@ -1,0 +1,107 @@
+language: "hi"
+intents:
+  GetTime:
+    data:
+      - sentences:
+          - "[अभी] (क्या समय|कितने बजे|कितना टाइम|टाइम क्या) [हुआ] [है]"
+          - "[अभी] समय [क्या है|बताओ|बताइए]"
+          - "(abhi|ab) (kitne baje|kya samay|kya time|time kya) [hua] [hai]"
+          - "samay batao"
+  GetDate:
+    data:
+      - sentences:
+          - "[आज] (तारीख क्या|कौन सी तारीख|क्या तारीख|क्या दिन|कौन सा दिन) [है]"
+          - "[आज की] तारीख [बताओ|बताइए]"
+          - "(aaj|aj) (kya tareekh|kya tarikh|kaun sa din|date kya) [hai]"
+          - "tareekh batao"
+  SetTimer:
+    data:
+      - sentences:
+          - "[<label> के लिए] <duration> [का] टाइमर (लगाओ|सेट करो|शुरू करो|रखो|लगा दो)"
+          - "<duration> [का] [<label>] टाइमर (लगाओ|सेट करो|शुरू करो|लगा दो)"
+          - "<duration> [ka] [<label>] timer (lagao|set karo|shuru karo|laga do)"
+          - "[<label> ka] <duration> [ka] timer (lagao|set karo|laga do)"
+  ListTimers:
+    data:
+      - sentences:
+          - "[सभी|मेरे] [सक्रिय|चलते हुए] टाइमर (दिखाओ|बताओ|लिस्ट करो|क्या हैं)"
+          - "(mere|saare|sabhi) timer (dikhao|batao)"
+  GetTimerRemaining:
+    data:
+      - sentences:
+          - "[<label>] टाइमर में (कितना समय|कितनी देर) बाकी [है]"
+          - "[<label>] timer mein kitna (time|samay|waqt) (baki|baaki) [hai]"
+  PauseTimer:
+    data:
+      - sentences:
+          - "[<label>] टाइमर (रोको|पॉज़ करो|रोक दो)"
+          - "[<label>] timer (roko|pause karo|rok do)"
+  ResumeTimer:
+    data:
+      - sentences:
+          - "[<label>] टाइमर (फिर से शुरू करो|रिज़्यूम करो|चलाओ)"
+          - "[<label>] timer (resume karo|chalu karo|phir se shuru karo)"
+  CancelTimer:
+    data:
+      - sentences:
+          - "[<label>] टाइमर (रद्द करो|बंद करो|हटाओ|कैंसिल करो|हटा दो)"
+          - "[<label>] timer (band karo|cancel karo|hatao|radd karo)"
+  CancelAllTimers:
+    data:
+      - sentences:
+          - "(सभी|सारे) टाइमर (रद्द करो|बंद करो|हटाओ|कैंसिल करो)"
+          - "(sabhi|saare|all) timers (band karo|cancel karo|hatao)"
+  Help:
+    data:
+      - sentences:
+          - "(मदद करो|तुम क्या कर सकते हो|सहायता)"
+          - "(madad karo|kya kar sakte ho)"
+  StopAssistant:
+    data:
+      - sentences:
+          - "(रुको|बंद करो|चुप रहो|रहने दो)"
+          - "(ruko|chup raho|rehne do)"
+
+expansion_rules:
+  duration: "{number} {unit} [{number2} {unit2}]"
+  label: "{timer_label}"
+
+lists:
+  number:
+    range:
+      type: "number"
+      from: 1
+      to: 1440
+  number2:
+    range:
+      type: "number"
+      from: 1
+      to: 60
+  unit:
+    values:
+      - "सेकंड"
+      - "मिनट"
+      - "मिनटों"
+      - "घंटा"
+      - "घंटे"
+      - "second"
+      - "seconds"
+      - "sec"
+      - "minute"
+      - "minutes"
+      - "min"
+      - "minat"
+      - "hour"
+      - "hours"
+      - "ghanta"
+      - "ghante"
+  unit2:
+    values:
+      - "सेकंड"
+      - "मिनट"
+      - "second"
+      - "seconds"
+      - "minute"
+      - "minutes"
+  timer_label:
+    wildcard: true

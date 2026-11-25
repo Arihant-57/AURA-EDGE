@@ -1,311 +1,196 @@
-# AURA EDGE â€” API Contract & Interface Specification
+# AURA EDGE — API Contract & Interface Specification
 
-> **Target Version:** Phase 0 (Baseline) through Phase 2 (Smart Home & Multilingual Voice)  
+> **Current Version:** Phase 0 (Baseline) + Phase 1 (Multilingual Voice, Persistent Timers, 10-State WebSocket FSM)  
 > **Base URL:** `http://127.0.0.1:8000/api/v1`  
 > **Vite UI Proxy:** `/api/v1` (proxied to `http://127.0.0.1:8000` via `vite.config.ts`)  
-> **Security & Connectivity:** Bound strictly to loopback (`127.0.0.1`). Strict offline enforcement prevents outbound leaks.
+> **Security & Connectivity:** Bound strictly to loopback (`127.0.0.1`). `strict_offline` blocks all outbound non-loopback requests.
 
 ---
 
-## 1. Overview & Architectural Conventions
+## 1. Standard Conventions
 
-This document serves as the binding contract between:
-- **Backend Developer (`feat/backend-intelligence`)**: Implements endpoints in `backend/src/aura_edge/api/` using FastAPI and Pydantic v2.
-- **Frontend Developer (`feat/frontend-experience`)**: Consumes endpoints in `frontend/src/api/client.ts` using TypeScript and React.
-
-### Standard Response Format
-- All REST requests and responses use `application/json; charset=utf-8` unless delivering audio streams (`audio/wav`).
-- Success responses return HTTP `200 OK` (or `201 Created` for new resources).
-- Errors follow FastAPI standard error format:
-  ```json
-  {
-    "detail": "Descriptive error message"
-  }
-  ```
-  Or structured validation errors (HTTP `422 Unprocessable Entity`):
-  ```json
-  {
-    "detail": [
-      {
-        "loc": ["body", "field_name"],
-        "msg": "Field required",
-        "type": "value_error.missing"
-      }
-    ]
-  }
-  ```
+- All JSON requests and responses use `application/json; charset=utf-8`.
+- Audio synthesis (`POST /api/v1/voice/synthesize`) returns binary `audio/wav` (`16-bit` mono PCM).
+- Audio upload transcription (`POST /api/v1/voice/transcribe`) accepts `multipart/form-data` with a `.wav` `file`.
+- Standard FastAPI error payloads return `{"detail": "..."}` (HTTP `400`, `404`, `422`, `503`).
 
 ---
 
-## 2. Phase 0 Endpoints (Implemented & Verified)
+## 2. Phase 0 Endpoints (Preserved 100% Compatible)
 
-### 2.1 Health Check
-- **Method & Path:** `GET /api/v1/health`
-- **Purpose:** Fast liveness probe (does not touch database).
-- **Response (HTTP 200):**
-  ```json
-  {
-    "status": "ok",
-    "service": "aura-edge",
-    "version": "0.1.0",
-    "phase": 0,
-    "connectivity_mode": "strict_offline",
-    "compute_mode": "auto",
-    "bind_host": "127.0.0.1",
-    "timestamp_utc": "2026-11-25T12:00:00.000000Z"
-  }
-  ```
-
-### 2.2 System Readiness & Telemetry Probe
-- **Method & Path:** `GET /api/v1/readiness`
-- **Purpose:** Deep readiness probe verifying PostgreSQL, pgvector extension, Alembic migration revision, CPU/RAM telemetry, GPU detection (NVIDIA NVML / RTX 3050), and Ollama reachability.
-- **Response (HTTP 200 when ready, HTTP 503 when degraded/DB down):**
-  ```json
-  {
-    "ready": true,
-    "phase": 0,
-    "service": "aura-edge",
-    "version": "0.1.0",
-    "connectivity": {
-      "mode": "strict_offline",
-      "external_requests_blocked": true,
-      "lan_allowed_cidrs": ["192.168.0.0/16", "10.0.0.0/8", "172.16.0.0/12"],
-      "online_allowed_hosts": []
-    },
-    "database": {
-      "status": "ok",
-      "connected": true,
-      "postgres_version": "PostgreSQL 16.6 on x86_64...",
-      "pgvector_installed": true,
-      "pgvector_version": "0.8.0",
-      "alembic_revision": "0001_phase0_foundation",
-      "error": null
-    },
-    "hardware": {
-      "os": "Windows 11",
-      "architecture": "AMD64",
-      "python_version": "3.13.2",
-      "compute_mode_configured": "auto",
-      "effective_compute_backend": "gpu",
-      "cpu_cores_physical": 14,
-      "cpu_cores_logical": 20,
-      "cpu_percent": 12.5,
-      "ram_total_gb": 15.78,
-      "ram_used_gb": 8.12,
-      "ram_percent": 51.4,
-      "gpu": {
-        "available": true,
-        "name": "NVIDIA GeForce RTX 3050 6GB Laptop GPU",
-        "vram_total_mb": 6144,
-        "vram_used_mb": 1240,
-        "driver_version": "621.24",
-        "error": null
-      },
-      "ollama": {
-        "url": "http://127.0.0.1:11434",
-        "reachable": true,
-        "models": ["qwen3.5:4b", "nemotron-3-nano:4b", "nomic-embed-text:latest"],
-        "error": null
-      }
-    },
-    "timestamp_utc": "2026-11-25T12:00:00.000000Z"
-  }
-  ```
-
-### 2.3 Connectivity Policy Summary & Dry-Run
-- **Method & Path:** `GET /api/v1/policy`
-- **Method & Path:** `POST /api/v1/policy/check`
-- **Request Body (`POST /api/v1/policy/check`):**
-  ```json
-  {
-    "url": "https://example.com/api"
-  }
-  ```
-- **Response (HTTP 200):**
-  ```json
-  {
-    "allowed": false,
-    "mode": "strict_offline",
-    "target": "https://example.com/api",
-    "host": "example.com",
-    "reason": "strict_offline mode allows loopback targets only"
-  }
-  ```
+- `GET /api/v1/health` -> HTTP `200`: `status`, `service`, `version`, `phase`, `connectivity_mode`, `compute_mode`, `bind_host`, `timestamp_utc`.
+- `GET /api/v1/readiness` -> HTTP `200` (ready) or `503` (DB/pgvector/Alembic not ready): `ready`, `connectivity`, `database`, `hardware`, `timestamp_utc`.
+- `GET /api/v1/policy` -> Active connectivity mode and allowlist summary.
+- `POST /api/v1/policy/check` -> Evaluates `{"url": "..."}` against `NetworkPolicyEnforcer` without outbound I/O.
 
 ---
 
-## 3. Phase 1 Voice & Multilingual Intent Contracts (Upcoming)
-
-Owned by `feat/backend-intelligence`; consumed by `feat/frontend-experience`.
+## 3. Phase 1 Voice, Multilingual Intent & Compute Endpoints
 
 ### 3.1 Voice Pipeline Status
 - **Method & Path:** `GET /api/v1/voice/status`
 - **Response (HTTP 200):**
   ```json
   {
-    "active_state": "idle",
+    "active_state": "IDLE",
+    "active_turn_id": null,
     "stt_engine": "faster-whisper",
-    "stt_model": "base",
+    "stt_model": "small",
+    "stt_ready": true,
     "stt_device": "cuda",
-    "tts_engine": "indic-tts-local",
+    "stt_compute_type": "int8_float16",
+    "vad_ready": true,
+    "tts_engine": "sherpa_onnx",
+    "tts_summary": {
+      "primary_backend": "sherpa_onnx",
+      "voices": {
+        "en": {"backend": "sherpa_onnx", "model": "vits-piper-en_US-lessac-medium", "voice": "en_US-lessac-medium"},
+        "hi": {"backend": "sherpa_onnx", "model": "vits-piper-hi_IN-rohan-medium", "voice": "hi_IN-rohan-medium"},
+        "kn": {"backend": "sherpa_onnx", "model": "vits-mms-kan", "voice": "facebook/mms-tts-kan"}
+      },
+      "cache_entries": 0,
+      "cache_max_entries": 64,
+      "cache_hits": 0,
+      "cache_misses": 0
+    },
     "supported_languages": ["en", "hi", "kn"],
+    "session_language": "auto",
+    "resolved_language": "en",
+    "compute": {
+      "requested_mode": "auto",
+      "effective_mode": "gpu",
+      "stt_device": "cuda",
+      "stt_compute_type": "int8_float16",
+      "llm_device": "gpu",
+      "llm_num_gpu": null,
+      "vad_device": "cpu",
+      "tts_device": "cpu",
+      "cuda_dll_dirs_registered": ["..."],
+      "fallback_reason": null
+    },
     "mic_detected": true,
-    "speaker_detected": true
+    "speaker_detected": true,
+    "audio_devices": [],
+    "audio_route_mode": "normal"
   }
   ```
 
-### 3.2 Process User Utterance (Text or Intent Processing)
+### 3.2 Push-To-Talk Microphone Capture
+- **Start Mic:** `POST /api/v1/voice/mic/start` (alias `POST /api/v1/voice/ptt/start`)
+  - Optional Body: `{"language": "auto" | "en" | "hi" | "kn"}`
+  - Response `200`: `{"started": true, "turn_id": "abc123...", "state": "LISTENING", "language": "auto"}`
+  - Response `503`: When no usable host microphone is present.
+- **Stop Mic & Process:** `POST /api/v1/voice/mic/stop` (alias `POST /api/v1/voice/ptt/stop`)
+  - Optional Body: `{"speak": true}`
+  - Response `200`: `ProcessTurnOutput` (same schema as `POST /api/v1/intent/process`).
+
+### 3.3 Audio Upload Transcription & Execution
+- **Method & Path:** `POST /api/v1/voice/transcribe` (`multipart/form-data`)
+- **Fields:** `file` (`.wav`), `language` (`"auto" | "en" | "hi" | "kn"`), `speak` (`bool = false`), `allow_llm_fallback` (`bool = true`)
+- **Response (`200`):** `ProcessTurnOutput` (`503` if offline STT model weights are missing).
+
+### 3.4 Process User Command (Text / Intent)
 - **Method & Path:** `POST /api/v1/intent/process`
-- **Purpose:** Parse user command across EN/HI/KN, route intent deterministically, trigger local action, and return spoken response text.
 - **Request Body:**
   ```json
   {
-    "text": "Living room light turn on",
-    "language": "en",
-    "source": "text_input"
+    "text": "पांच मिनट का टाइमर लगाओ",
+    "language": "auto",
+    "source": "text_input",
+    "speak": false,
+    "allow_llm_fallback": true
   }
   ```
-- **Response (HTTP 200):**
+- **Response (`200` — `ProcessTurnOutput`):**
   ```json
   {
-    "intent": "smart_home.device_set",
+    "turn_id": "9f1a2b3c4d5e",
+    "intent": "SetTimer",
     "confidence": 0.98,
-    "detected_language": "en",
-    "slots": {
-      "target_device": "living_room_light",
-      "action": "turn_on",
-      "value": null
-    },
-    "response_text": "Turning on the living room light.",
-    "response_language": "en",
+    "intent_source": "hassil_fast",
+    "detected_language": "hi",
+    "slots": {"duration_seconds": 300},
+    "response_text": "5 मिनट का टाइमर सेट कर दिया गया है।",
+    "response_language": "hi",
     "action_executed": true,
-    "latency_ms": 42.1
-  }
-  ```
-
-### 3.3 Audio Synthesis (Local TTS)
-- **Method & Path:** `POST /api/v1/voice/synthesize`
-- **Request Body:**
-  ```json
-  {
-    "text": "à²¬à³†à²³à²•à²¨à³à²¨à³ à²¹à²¾à²•à²²à²¾à²—à²¿à²¦à³†",
-    "language": "kn",
-    "speed": 1.0
-  }
-  ```
-- **Response:** `audio/wav` binary stream.
-
----
-
-## 4. Phase 2 Smart-Home Simulator Contracts
-
-### 4.1 List Simulated Devices
-- **Method & Path:** `GET /api/v1/devices`
-- **Response (HTTP 200):**
-  ```json
-  [
-    {
-      "id": "dev_living_light",
-      "name": "Living Room Light",
-      "type": "light",
-      "room": "Living Room",
-      "state": {
-        "powered": true,
-        "brightness": 80,
-        "color_temp_k": 3000
-      },
-      "last_updated": "2026-11-25T12:00:00Z"
+    "status": "verified",
+    "state": "IDLE",
+    "data": {
+      "timer": {
+        "id": "...",
+        "label": null,
+        "duration_seconds": 300,
+        "remaining_seconds": 300,
+        "status": "active",
+        "language": "hi"
+      }
     },
-    {
-      "id": "dev_thermostat",
-      "name": "AC Thermostat",
-      "type": "climate",
-      "room": "Bedroom",
-      "state": {
-        "powered": true,
-        "target_temperature_c": 24.0,
-        "current_temperature_c": 25.2,
-        "mode": "cool"
-      },
-      "last_updated": "2026-11-25T12:00:00Z"
-    }
-  ]
-  ```
-
-### 4.2 Control Device State
-- **Method & Path:** `PATCH /api/v1/devices/{device_id}`
-- **Request Body:**
-  ```json
-  {
-    "state": {
-      "powered": false
-    }
+    "latency_ms": 18.4,
+    "stt_ms": null,
+    "router_ms": 1.2,
+    "llm_ms": null,
+    "tool_ms": 16.5,
+    "tts_ms": null,
+    "ttfa_ms": null,
+    "error": null,
+    "transcript": "पांच मिनट का टाइमर लगाओ"
   }
   ```
-- **Response (HTTP 200):** Updated Device schema.
+
+### 3.5 Offline Speech Synthesis
+- **Method & Path:** `POST /api/v1/voice/synthesize`
+- **Request Body:** `{"text": "ಸಮಯ ಮುಗಿದಿದೆ", "language": "kn", "speed": 1.0}` (`speed` in `0.5..2.0`)
+- **Response (`200`):** Binary `audio/wav` stream with headers `X-Aura-TTS-Backend`, `X-Aura-TTS-Model`, `X-Aura-TTS-Cached`, `X-Aura-TTS-Latency-Ms`.
+
+### 3.6 Turn Cancellation, Language & Compute Selection
+- `POST /api/v1/voice/cancel` — Body `{"turn_id": null}` -> `{"cancelled": bool, "turn_id": str|null, "completed_actions": [], "completed_actions_preserved": true}`
+- `PUT /api/v1/voice/language` — Body `{"language": "auto"|"en"|"hi"|"kn"}` -> `{"session_language": ..., "resolved_language": ...}`
+- `PUT /api/v1/voice/compute-mode` — Body `{"compute_mode": "auto"|"cpu"|"gpu"}` -> `ComputePlacement` object reporting requested mode, effective mode, device placements, and `fallback_reason`.
 
 ---
 
-## 5. Real-Time WebSocket Interface (Dynamic Island & Dashboard)
+## 4. Phase 1 Persistent Timer Endpoints (`/api/v1/timers`)
 
-- **WebSocket URL:** `ws://127.0.0.1:8000/api/v1/ws/live`
-- **Client Connection Handshake:** Frontend connects on mount, auto-reconnects with exponential backoff on disconnect.
+- `GET /api/v1/timers?include_closed=false` -> `TimerView[]`
+- `POST /api/v1/timers` — Body `{"duration_seconds": 300, "label": "tea", "language": "en"}` -> `201 Created` (`{"timer": TimerView, "message": "...", "status": "verified"}`)
+- `GET /api/v1/timers/{timer_id}` -> `TimerView`
+- `POST /api/v1/timers/{timer_id}/pause?language=en` -> `TimerActionResponse`
+- `POST /api/v1/timers/{timer_id}/resume?language=en` -> `TimerActionResponse`
+- `DELETE /api/v1/timers/{timer_id}?language=en` -> `TimerActionResponse`
 
-### Incoming Server Event Schema
+---
+
+## 5. Real-Time WebSocket Interface (`WS /api/v1/ws/live`)
+
+All server frames share `{"type": string, "payload": object, "timestamp_utc": string}`.
+
+| Event `type` | `payload` Schema |
+|---|---|
+| `assistant_state_change` | `{"state": AssistantState, "turn_id": string\|null, "message": string\|null, "language": "en"\|"hi"\|"kn"}` |
+| `audio_level` | `{"rms_db": number, "peak": number}` |
+| `timer_updated` | `{"timer": TimerView}` |
+| `timer_completed` | `{"timer": TimerView}` |
+| `timer_missed` | `{"timer": TimerView}` |
+| `action_verified` | `{"turn_id": string, "action": string, "status": string, "success": bool, "data": object}` |
+| `clarification_required` | `{"turn_id": string, "language": "en"\|"hi"\|"kn", "message": string}` |
+| `error` | `{"code"?: string, "turn_id"?: string, "message": string}` |
+
+### Canonical TypeScript States (`AssistantState`)
 ```typescript
-export type AssistantState = "idle" | "listening" | "processing" | "speaking" | "error";
-
-export interface AssistantEvent {
-  type: "assistant_state_change";
-  payload: {
-    state: AssistantState;
-    message?: string;
-    language?: "en" | "hi" | "kn";
-  };
-}
-
-export interface AudioLevelEvent {
-  type: "audio_level";
-  payload: {
-    rms_db: number;
-    peak: number;
-  };
-}
-
-export interface DeviceStateEvent {
-  type: "device_state_change";
-  payload: {
-    device_id: string;
-    state: Record<string, unknown>;
-  };
-}
+export type AssistantState =
+  | "IDLE"
+  | "LISTENING"
+  | "TRANSCRIBING"
+  | "UNDERSTANDING"
+  | "CLARIFYING"
+  | "EXECUTING"
+  | "VERIFYING"
+  | "SPEAKING"
+  | "CANCELLED"
+  | "ERROR";
 ```
 
 ---
 
-## 6. TypeScript Frontend Integration Model
-
-Frontend developers can directly paste these types into `frontend/src/api/types.ts`:
-
-```typescript
-export type ConnectivityMode = "strict_offline" | "lan_only" | "online_opt_in";
-export type ComputeMode = "auto" | "cpu" | "gpu";
-export type SupportedLanguage = "en" | "hi" | "kn";
-
-export interface IntentProcessRequest {
-  text: string;
-  language: SupportedLanguage;
-  source?: "voice" | "text_input";
-}
-
-export interface IntentProcessResponse {
-  intent: string;
-  confidence: number;
-  detected_language: SupportedLanguage;
-  slots: Record<string, string | number | boolean | null>;
-  response_text: string;
-  response_language: SupportedLanguage;
-  action_executed: boolean;
-  latency_ms: number;
-}
-```
+## 6. Reserved Phase 2 Contracts (Not Yet Implemented)
+- `GET /api/v1/devices` and `PATCH /api/v1/devices/{device_id}` remain Phase 2 contracts and are **not** active in Phase 1.
