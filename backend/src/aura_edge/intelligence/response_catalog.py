@@ -41,9 +41,9 @@ def format_duration_spoken(seconds: int, lang: LanguageCode) -> str:
 
 _TEMPLATES: dict[str, dict[LanguageCode, str]] = {
     "unsupported": {
-        "en": "Sorry, I cannot perform that request. I can tell the time or date and manage local timers.",
-        "hi": "माफ कीजिए, मैं यह कार्य नहीं कर सकता। मैं समय, तारीख और टाइमर संभाल सकता हूँ।",
-        "kn": "ಕ್ಷಮಿಸಿ, ನಾನು ಆ ಕೆಲಸವನ್ನು ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ. ನಾನು ಸಮಯ, ದಿನಾಂಕ ಮತ್ತು ಟೈಮರ್‌ಗಳನ್ನು ನಿರ್ವಹಿಸಬಲ್ಲೆ.",
+        "en": "Sorry, I cannot do that. I can handle time, date, timers, local smart-home devices, and offline conversation.",
+        "hi": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+        "kn": "ಕ್ಷಮಿಸಿ, ನಾನು ಅದನ್ನು ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ. ನಾನು ಸಮಯ, ದಿನಾಂಕ, ಟೈಮರ್‌ಗಳು, ಸ್ಮಾರ್ಟ್ ಹೋಮ್ ಸಾಧನಗಳು ಮತ್ತು ಆಫ್‌ಲೈನ್ ಸಂಭಾಷಣೆಗೆ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ.",
     },
     "ambiguous_request": {
         "en": "Could you clarify what you would like me to do?",
@@ -101,9 +101,9 @@ _TEMPLATES: dict[str, dict[LanguageCode, str]] = {
         "kn": "ಸಮಯ ಮುಗಿದಿದೆ! ನಿಮ್ಮ {label_part} ಟೈಮರ್ ಪೂರ್ಣಗೊಂಡಿದೆ.",
     },
     "help": {
-        "en": "You can ask for the time, today's date, or set, check, pause, resume, and cancel timers in English, Hindi, or Kannada.",
-        "hi": "आप अंग्रेज़ी, हिंदी या कन्नड़ में समय, तारीख पूछ सकते हैं, या टाइमर सेट, चेक, पॉज़ और रद्द कर सकते हैं।",
-        "kn": "ನೀವು ಇಂಗ್ಲಿಷ್, ಹಿಂದಿ ಅಥವಾ ಕನ್ನಡದಲ್ಲಿ ಸಮಯ, ದಿನಾಂಕ ಕೇಳಬಹುದು ಅಥವಾ ಟೈಮರ್‌ಗಳನ್ನು ಸೆಟ್, ಪರಿಶೀಲನೆ, ಪಾಸ್ ಮತ್ತು ರದ್ದು ಮಾಡಬಹುದು.",
+        "en": "You can ask for the time, date, manage timers, control simulated smart-home lights, fans, AC, TV, curtains, or appliances, or chat in English, Hindi, or Kannada.",
+        "hi": "आप अंग्रेज़ी, हिंदी या कन्नड़ में समय, तारीख पूछ सकते हैं, टाइमर चला सकते हैं, स्मार्ट होम डिवाइस और रूटीन नियंत्रित कर सकते हैं, या बातचीत कर सकते हैं।",
+        "kn": "ನೀವು ಇಂಗ್ಲಿಷ್, ಹಿಂದಿ ಅಥವಾ ಕನ್ನಡದಲ್ಲಿ ಸಮಯ, ದಿನಾಂಕ, ಟೈಮರ್‌ಗಳು, ಸ್ಮಾರ್ಟ್ ಹೋಮ್ ಸಾಧನಗಳು ಮತ್ತು ದಿನಚರಿಗಳನ್ನು ನಿಯಂತ್ರಿಸಬಹುದು ಅಥವಾ ಮಾತನಾಡಬಹುದು.",
     },
     "stopped": {
         "en": "Stopped.",
@@ -126,19 +126,29 @@ _TEMPLATES: dict[str, dict[LanguageCode, str]] = {
         "kn": "ದಯವಿಟ್ಟು 1 ಸೆಕೆಂಡ್‌ನಿಂದ 24 ಗಂಟೆಗಳ ಒಳಗಿನ ಸರಿಯಾದ ಟೈಮರ್ ಸಮಯವನ್ನು ಹೇಳಿ.",
     },
     "greeting": {
-        "en": "Hello! I am AURA EDGE, ready to help you offline. You can chat with me, ask questions, or manage time and timers.",
-        "hi": "नमस्ते! मैं ऑरा एज हूँ, ऑफ़लाइन आपकी मदद के लिए तैयार हूँ। आप मुझसे बात कर सकते हैं, सवाल पूछ सकते हैं या समय और टाइमर पूछ सकते हैं।",
-        "kn": "ನಮಸ್ಕಾರ! ನಾನು ಆರಾ ಎಡ್ಜ್, ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿ ನಿಮಗೆ ಸಹಾಯ ಮಾಡಲು ಸಿದ್ಧನಿದ್ದೇನೆ. ನೀವು ನನ್ನೊಂದಿಗೆ ಮಾತನಾಡಬಹುದು, ಪ್ರಶ್ನೆಗಳನ್ನು ಕೇಳಬಹುದು ಅಥವಾ ಸಮಯ ಮತ್ತು ಟೈಮರ್‌ಗಳನ್ನು ನಿರ್ವಹಿಸಬಹುದು.",
+        "en": "Hello! How can I help?",
+        "hi": "नमस्ते! बताइए, क्या मदद करूँ?",
+        "kn": "ನಮಸ್ಕಾರ! ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
     },
     "acknowledgment": {
-        "en": "You're welcome! Let me know if you need anything else.",
-        "hi": "आपका स्वागत है! बताइए, और क्या मदद करूँ?",
-        "kn": "ನಿಮಗೆ ಸ್ವಾಗತ! ಬೇರೆ ಏನಾದರೂ ಸಹಾಯ ಬೇಕಿದ್ದರೆ ಕೇಳಿ.",
+        "en": "You're welcome.",
+        "hi": "आपका स्वागत है।",
+        "kn": "ನಿಮಗೆ ಸ್ವಾಗತ.",
     },
     "farewell": {
-        "en": "Goodbye! Feel free to talk whenever you need me.",
-        "hi": "अलविदा! जब भी ज़रूरत हो, मुझसे बात करिएगा।",
-        "kn": "ವಿದಾಯ! ನಿಮಗೆ ಅಗತ್ಯವಿದ್ದಾಗ ಮತ್ತೆ ಮಾತನಾಡಿ.",
+        "en": "Goodbye!",
+        "hi": "अलविदा!",
+        "kn": "ವಿದಾಯ!",
+    },
+    "identity": {
+        "en": "I am AURA EDGE, your local voice assistant.",
+        "hi": "मैं ऑरा एज हूँ, आपका स्थानीय वॉइस असिस्टेंट।",
+        "kn": "ನಾನು ಆರಾ ಎಡ್ಜ್, ನಿಮ್ಮ ಸ್ಥಳೀಯ ವಾಯ್ಸ್ ಅಸಿಸ್ಟೆಂಟ್.",
+    },
+    "supported_languages": {
+        "en": "I support English, Hindi, and Kannada.",
+        "hi": "मैं अंग्रेज़ी, हिंदी और कन्नड़ भाषाएं बोलता हूँ।",
+        "kn": "ನಾನು ಇಂಗ್ಲಿಷ್, ಹಿಂದಿ ಮತ್ತು ಕನ್ನಡ ಭಾಷೆಗಳನ್ನು ಮಾತ್ರ ಬೆಂಬಲಿಸುತ್ತೇನೆ.",
     },
     "language_switched": {
         "en": "Okay, I will now speak in English.",

@@ -122,6 +122,7 @@ class AudioCapture:
 
         self._route_mode = AudioRouteMode.NORMAL
         self._user_muted = False
+        self._speaking_suspended = False
         self._stream: Any = None
         self._recording = False
         self._recorded_frames: list[np.ndarray] = []
@@ -136,23 +137,52 @@ class AudioCapture:
 
     @property
     def is_muted(self) -> bool:
-        return self._user_muted or self._route_mode == AudioRouteMode.MUTED
+        return self._user_muted or self._speaking_suspended or self._route_mode == AudioRouteMode.MUTED
+
+    @property
+    def is_suspended(self) -> bool:
+        return self._speaking_suspended
 
     def set_user_muted(self, muted: bool) -> None:
         """Explicit user mute toggle (never overridden by SPEAKING -> IDLE echo gate)."""
         with self._capture_lock:
             self._user_muted = bool(muted)
-            if self._user_muted:
+            if self._user_muted or self._speaking_suspended:
                 self._route_mode = AudioRouteMode.MUTED
                 self._preroll.clear()
                 self._recorded_frames.clear()
             elif self._route_mode == AudioRouteMode.MUTED:
                 self._route_mode = AudioRouteMode.NORMAL
 
+    def suspend_for_playback(self) -> None:
+        """Suspend mic recognition and purge stale/echo buffers while AURA speaks (half-duplex)."""
+        self._stop_event.set()
+        self._close_stream()
+        with self._capture_lock:
+            self._speaking_suspended = True
+            self._route_mode = AudioRouteMode.MUTED
+            self._drain_queue()
+            self._preroll.clear()
+            self._recorded_frames.clear()
+            self._recording = False
+        if self._vad is not None:
+            self._vad.reset()
+
+    def resume_after_playback(self) -> None:
+        """Discard residual acoustic frames and resume mic recognition unless user-muted."""
+        with self._capture_lock:
+            self._drain_queue()
+            self._preroll.clear()
+            self._recorded_frames.clear()
+            self._speaking_suspended = False
+            self._route_mode = AudioRouteMode.MUTED if self._user_muted else AudioRouteMode.NORMAL
+        if self._vad is not None:
+            self._vad.reset()
+
     def set_route_mode(self, mode: AudioRouteMode) -> None:
         """Gate audio capture during assistant TTS playback while preserving explicit user mute."""
         with self._capture_lock:
-            if self._user_muted and mode == AudioRouteMode.NORMAL:
+            if (self._user_muted or self._speaking_suspended) and mode == AudioRouteMode.NORMAL:
                 self._route_mode = AudioRouteMode.MUTED
                 self._preroll.clear()
                 return
@@ -180,7 +210,7 @@ class AudioCapture:
         """PortAudio realtime callback: zero inference, zero blocking locks."""
         if status:
             logger.debug("PortAudio status: %s", status)
-        if self._route_mode == AudioRouteMode.MUTED:
+        if self._speaking_suspended or self._user_muted or self._route_mode == AudioRouteMode.MUTED:
             return
         frame = np.copy(indata[:, 0] if indata.ndim > 1 else indata).astype(np.int16, copy=False)
         try:
@@ -197,7 +227,7 @@ class AudioCapture:
 
     def push_test_frame(self, frame: np.ndarray) -> None:
         """Inject a frame directly into the worker queue (for deterministic offline tests)."""
-        if self._route_mode == AudioRouteMode.MUTED:
+        if self._speaking_suspended or self._user_muted or self._route_mode == AudioRouteMode.MUTED:
             return
         self._frame_queue.put_nowait(frame.astype(np.int16, copy=False))
 
@@ -222,6 +252,9 @@ class AudioCapture:
 
         with self._capture_lock:
             self._drain_queue()
+            if self._speaking_suspended or self._user_muted or self._route_mode == AudioRouteMode.MUTED:
+                self._recording = False
+                return
             self._recorded_frames = list(self._preroll) if self._route_mode == AudioRouteMode.NORMAL else []
             self._preroll.clear()
             self._stop_event.clear()

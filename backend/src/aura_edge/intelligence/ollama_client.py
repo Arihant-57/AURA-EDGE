@@ -83,6 +83,7 @@ class OllamaClient:
             "messages": messages,
             "stream": True,
             "think": False,
+            "keep_alive": "15m",
             "options": options,
         }
         if json_mode:
@@ -109,8 +110,8 @@ class OllamaClient:
         messages: list[dict[str, str]],
         *,
         model: str | None = None,
-        temperature: float = 0.4,
-        num_predict: int = 240,
+        temperature: float = 0.3,
+        num_predict: int = 120,
         cancel_event: asyncio.Event | None = None,
     ) -> AsyncIterator[tuple[str, dict[str, Any] | None]]:
         """Yield ``(token_delta, final_stats_or_none)`` while respecting cancellation."""

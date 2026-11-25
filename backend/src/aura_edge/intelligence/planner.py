@@ -43,8 +43,8 @@ Analyze the user utterance (English, Hindi, Kannada, or Hinglish/Kanglish) and r
   "clarification_needed": boolean
 }
 Rules:
-1. NEVER invent tools, smart-home devices, weather APIs, web searches, or execution results.
-2. Requests to control smart-home appliances, unlock doors, send emails, shop/order, transfer money, or open external apps MUST return "Unsupported".
+1. NEVER invent tools, unregistered smart-home devices, weather APIs, web searches, or execution results.
+2. External/unregistered actions (unlock doors, send emails, shop/order, transfer money, web search, open external apps) MUST return "Unsupported".
 3. Ambiguous commands ("do the thing", "fix that") MUST return "Clarify" with clarification_needed=true.
 4. General conversation, greetings, knowledge questions, explanations, or follow-ups ("explain that again", "make it shorter", "repeat in Kannada") MUST return "Conversation".
 5. For SetTimer, duration_seconds must be a positive integer (1..86400). If duration is missing, return "Clarify".

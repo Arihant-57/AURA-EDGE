@@ -24,7 +24,7 @@ _FORM_PARAM = Form()
 
 class IntentProcessRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=2000)
-    language: RequestedLanguage = "auto"
+    language: RequestedLanguage | None = None
     source: str = "text_input"
     speak: bool = False
     allow_llm_fallback: bool = True

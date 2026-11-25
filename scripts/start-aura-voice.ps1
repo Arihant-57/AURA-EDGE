@@ -14,7 +14,7 @@ param(
     [string]$ComputeMode = "auto",
 
     [ValidateSet("continuous", "ptt")]
-    [string]$ConversationMode = "continuous",
+    [string]$ConversationMode = "ptt",
 
     [switch]$NoCli,
     [switch]$NoSpeak,

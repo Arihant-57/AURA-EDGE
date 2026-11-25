@@ -114,3 +114,22 @@ Executed from `C:\Users\ariha\Desktop\AURA-EDGE` with `AURA_EDGE_REQUIRE_LIVE_DB
 - **EN / HI / KN Multi-Turn Spoken Conversations (`backend/scripts/verify_voice_conversations.py`):** Verified `15 / 15` multi-turn spoken WAV interactions (`GetTime`, `SetTimer`, `GetTimerRemaining` / `ListTimers`, `CancelTimer` / `CancelAllTimers`, `Unsupported` refusal) + spoken WAV responses + live host Realtek mic PTT cycle (`started=true`, `stop_state="IDLE"`).
 - **Strict Offline & Process Socket Audit (`backend/scripts/verify_offline.py --require-live-backend`):** Confirmed `HF_HUB_OFFLINE=1` & `TRANSFORMERS_OFFLINE=1`, zero outbound I/O policy blocking on external URLs, `self_external_sockets=0`, and `backend_external_sockets=0` while processing live EN/HI/KN turns and TTS. *(Host OS Wi-Fi adapter was kept online during the automated run to avoid interrupting agent execution; manual airplane-mode verification steps are provided in [PHASE_1_HANDOVER.md](file:///C:/Users/ariha/Desktop/AURA-EDGE/docs/PHASE_1_HANDOVER.md).)*
 - **Benchmark & Multilingual Reports:** Full raw numbers documented in [VOICE_MODEL_EVALUATION.md](file:///C:/Users/ariha/Desktop/AURA-EDGE/docs/VOICE_MODEL_EVALUATION.md), [VOICE_BENCHMARKS.md](file:///C:/Users/ariha/Desktop/AURA-EDGE/docs/VOICE_BENCHMARKS.md), and [MULTILINGUAL_TEST_REPORT.md](file:///C:/Users/ariha/Desktop/AURA-EDGE/docs/MULTILINGUAL_TEST_REPORT.md).
+
+---
+
+## 7. Phase 1.5, Phase 2 & Real-World Voice Bugfix Verification (`feat/backend-intelligence`)
+
+### 7.1 Lint & Full Pytest Regression (`ruff` + `pytest`)
+
+Executed from `C:\Users\ariha\Desktop\AURA-EDGE` with `AURA_EDGE_REQUIRE_LIVE_DB=1` against live PostgreSQL `16.16`:
+
+- `ruff check .\backend`: **All checks passed!** (`0` errors)
+- Focused acceptance check (`test_voice_bugfixes.py`, `test_phase1_5_conversation.py`, `test_phase1_tts_and_playback.py`, `test_phase1_multilingual_router.py`, `test_phase2_smart_home.py`): **`117 passed, 0 failed, 0 skipped`**
+- Full regression suite (`pytest -v .\backend\tests`): **`146 passed, 0 failed, 0 skipped` in `127.53s`**, adding:
+  - `test_phase1_5_conversation.py` (`7` passed): 6-way routing, bounded session history, streaming buffer/metrics separation, WS streaming, continuous loop, offline fallback.
+  - `test_phase2_smart_home.py` (`3` passed): 19-device simulator persistence, capability checks, appliance cycles, routines, energy, and EN/HI/KN voice dispatcher parity.
+  - `test_voice_bugfixes.py` (`5` passed): updated Phase 2 capability prompt & concise deterministic replies; EN/HI/KN language enforcement + Kannada script & Tagalog guards; PCM DC/anti-clipping/resampling + exclusive playback owner + half-duplex suspension; 10 consecutive hands-free turns + smart-home/timers + `_turn_lock` concurrency; CLI command validation & `TurnOutputDeduplicator`.
+
+### 7.2 Installed Local Ollama Comparison & Human Mic Gate
+
+- Local model comparison (`qwen3.5:4b`, `nemotron-3-nano:4b`, `qwen3.5:9b`) and the interactive Human Microphone Acceptance Test checklist are recorded in [VOICE_BUGFIX_REPORT.md](file:///C:/Users/ariha/Desktop/AURA-EDGE/docs/VOICE_BUGFIX_REPORT.md). Automated playback tests used `play_to_speaker=False` / mocked audio streams to avoid hardware-blocking flakiness.

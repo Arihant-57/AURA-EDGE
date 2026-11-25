@@ -55,3 +55,20 @@
 - Physical host Wi-Fi/network interface was intentionally kept active during the automated session so agent execution was not interrupted; user can run `.\scripts\start-aura-voice.ps1` under Airplane Mode post-session to physically double-check offline operation.
 - Natural in-room microphone testing with live speakers in EN/HI/KN is enabled via `.\scripts\start-aura-voice.ps1` and should be spot-checked interactively by the user.
 - Smart-home device simulator and external connectors remain deferred to Phase 2+.
+
+---
+
+## Phase 1.5, Phase 2 & Real-World Voice Bug Fix (`feat/backend-intelligence`)
+
+**Status:** Verified with live PostgreSQL (**`146 passed, 0 failed, 0 skipped`** in `127.53s`; `ruff check .\backend` clean). `frontend/` and `main` remain untouched.
+
+### Verified Deliverables
+- [x] **Phase 1.5 Natural Conversational Streaming & Session Memory**: Bounded 12-turn `ConversationSession`, streaming `OllamaClient` (`keep_alive="15m"`), sentence-level `SentenceStreamBuffer`, live `transcript_ready`/`response_text_delta`/`response_completed` WS events, and continuous/PTT controls.
+- [x] **Phase 2 Persistent Smart-Home Simulator (`d56a0ac`)**: 19 PostgreSQL-backed virtual home devices across 5 rooms, 4 routines (`morning`, `night`, `study`, `away`), capability validation, state audit history, estimated energy metrics, and multilingual voice control (`DeviceControl`).
+- [x] **Real-World Voice, Playback, Language, CLI & Concurrency Bug Fix**:
+  - Exclusive `AudioPlayback` owner lock + generation token + callback-driven `_BoundedPcmBuffer` + DC/anti-clipping/fade/device-rate resampling (`prepare_pcm_for_playback`) + separated `audio_startup_ms`.
+  - Strict half-duplex `suspend_for_playback()` / `resume_after_playback()` + configurable `audio_post_playback_cooldown_sec` (`0.65s`) preventing speaker-to-mic feedback loops.
+  - Explicit EN/HI/KN language enforcement across `routes_voice.py`, `normalizer.py` (fixed Romanized `"do"` -> `"2"` corruption in `hi`/`kn` modes), `stt.py` (no unsupported `'tl'` leakage), `validate_response_language()`, and deterministic `Identity` / `SupportedLanguages` templates.
+  - Dynamic `ToolRegistry.describe_capabilities()` replacing the obsolete smart-home disclaimer in `conversation.py`.
+  - Local slash-command & punctuation validation + `TurnOutputDeduplicator` in `voice_cli.py`, and `_turn_lock` serialization in `VoiceOrchestrator`.
+  - Live Ollama EN/HI/KN comparison across `qwen3.5:4b`, `nemotron-3-nano:4b`, and `qwen3.5:9b` documented in [VOICE_BUGFIX_REPORT.md](file:///C:/Users/ariha/Desktop/AURA-EDGE/docs/VOICE_BUGFIX_REPORT.md) alongside a Human Microphone Acceptance Test checklist.

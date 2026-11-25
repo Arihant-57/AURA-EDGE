@@ -45,6 +45,39 @@ class ToolRegistry:
         """Reserved extension point for Phase 2 smart-home tools (unused in Phase 1)."""
         self._phase2_hooks[intent_name] = handler
 
+    def describe_capabilities(self, language: LanguageCode = "en") -> str:
+        """Return an accurate factual capability summary derived from registered tools."""
+        has_home = self.smart_home is not None
+        if language == "hi":
+            base = "पंजीकृत स्थानीय टूल्स: समय व तारीख (DateTimeTool), और स्थायी टाइमर (TimerManager)।"
+            if has_home:
+                return (
+                    f"{base} सिमुलेटेड स्मार्ट होम (SmartHomeService) भी सक्रिय है: "
+                    "लिविंग रूम, बेडरूम, किचन, स्टडी और यूटिलिटी रूम की लाइट, पंखा, एसी, टीवी, "
+                    "पर्दे, एयर प्यूरीफायर, वॉशिंग मशीन, रोबोट वैक्यूम, वॉटर हीटर, पंप और रूटीन "
+                    "(morning, night, study, away)।"
+                )
+            return base
+        if language == "kn":
+            base = "ನೋಂದಾಯಿತ ಸ್ಥಳೀಯ ಟೂಲ್‌ಗಳು: ಸಮಯ ಮತ್ತು ದಿನಾಂಕ (DateTimeTool), ಮತ್ತು ಟೈಮರ್‌ಗಳು (TimerManager)."
+            if has_home:
+                return (
+                    f"{base} ಸಿಮ್ಯುಲೇಟೆಡ್ ಸ್ಮಾರ್ಟ್ ಹೋಮ್ (SmartHomeService) ಸಕ್ರಿಯವಾಗಿದೆ: "
+                    "ಲಿವಿಂಗ್ ರೂಮ್, ಬೆಡ್‌ರೂಮ್, ಕಿಚನ್, ಸ್ಟಡಿ ಮತ್ತು ಯುಟಿಲಿಟಿ ರೂಮ್‌ನ ಲೈಟ್, ಫ್ಯಾನ್, ಏಸಿ, "
+                    "ಟಿವಿ, ಪರದೆ, ಪ್ಯೂರಿಫೈಯರ್, ವಾಷಿಂಗ್ ಮೆಷಿನ್, ರೋಬೋಟ್ ವ್ಯಾಕ್ಯೂಮ್, ವಾಟರ್ ಹೀಟರ್, ಪಂಪ್ ಮತ್ತು "
+                    "ದಿನಚರಿಗಳು (morning, night, study, away)."
+                )
+            return base
+        base = "Registered local tools: current time and date (DateTimeTool), and persistent timers (TimerManager)."
+        if has_home:
+            return (
+                f"{base} Simulated smart-home control (SmartHomeService) is active across "
+                "living room, bedroom, kitchen, study, and utility room for lights, fans, AC, TV, "
+                "curtains, air purifier, washing machine, robot vacuum, water heater, water pump, "
+                "and routines (morning, night, study, away)."
+            )
+        return base
+
     def validate_intent(self, intent: TypedIntent) -> tuple[bool, str | None]:
         """Validate primary intent and every sub-action in a compound request."""
         actions = intent.sub_actions if intent.sub_actions else [

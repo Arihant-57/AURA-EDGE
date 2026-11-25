@@ -291,7 +291,7 @@ def _replace_number_words(text: str, *, language: LanguageCode = "en") -> str:
     active_maps: list[tuple[dict[str, int], bool]] = [
         (_INDIC_SCRIPT_NUMBER_WORDS, False),
         (_EN_NUMBER_WORDS, False),
-        (_ROMAN_INDIC_NUMBER_WORDS, language == "en"),
+        (_ROMAN_INDIC_NUMBER_WORDS, True),
     ]
     for word_map, require_unit_followup in active_maps:
         for phrase in sorted(word_map.keys(), key=len, reverse=True):

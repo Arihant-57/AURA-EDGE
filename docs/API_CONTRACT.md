@@ -135,12 +135,13 @@ timestamp. WebSocket events: `device_state_changed`,
   ```json
   {
     "text": "पांच मिनट का टाइमर लगाओ",
-    "language": "auto",
+    "language": null,
     "source": "text_input",
     "speak": false,
     "allow_llm_fallback": true
   }
   ```
+  - `language` is optional (`null` respects the active `/api/v1/voice/language` session setting; pass `"auto"`, `"en"`, `"hi"`, or `"kn"` to override).
 - **Response (`200` — `ProcessTurnOutput`):**
   ```json
   {
@@ -168,14 +169,19 @@ timestamp. WebSocket events: `device_state_changed`,
     "latency_ms": 18.4,
     "stt_ms": null,
     "router_ms": 1.2,
+    "llm_ttft_ms": null,
     "llm_ms": null,
     "tool_ms": 16.5,
     "tts_ms": null,
+    "audio_startup_ms": null,
+    "playback_ms": null,
     "ttfa_ms": null,
+    "tts_cache_hit": false,
     "error": null,
     "transcript": "पांच मिनट का टाइमर लगाओ"
   }
   ```
+  - Timing separation: `stt_ms` (speech recognition), `llm_ttft_ms` (first token), `llm_ms` (generation), `tts_ms` (pure synthesis only), `audio_startup_ms` (first PCM callback write), `playback_ms` (actual audible drain duration), `ttfa_ms` (time to first audio readiness), `latency_ms` (total turn).
 
 ### 3.5 Offline Speech Synthesis
 - **Method & Path:** `POST /api/v1/voice/synthesize`
@@ -208,10 +214,17 @@ All server frames share `{"type": string, "payload": object, "timestamp_utc": st
 |---|---|
 | `assistant_state_change` | `{"state": AssistantState, "turn_id": string\|null, "message": string\|null, "language": "en"\|"hi"\|"kn"}` |
 | `audio_level` | `{"rms_db": number, "peak": number}` |
+| `transcript_ready` | `{"turn_id": string, "transcript": string, "language": "en"\|"hi"\|"kn", "model_size": string, "stt_ms": number}` |
+| `response_text_delta` | `{"turn_id": string, "token": string, "language": "en"\|"hi"\|"kn"}` |
+| `response_completed` | `{"turn_id": string, "intent": string, "route_category": string, "language": "en"\|"hi"\|"kn", "response_text": string, "llm_ttft_ms"?: number\|null, "llm_ms"?: number\|null, "tts_ms"?: number\|null, "audio_startup_ms"?: number\|null, "playback_ms"?: number\|null, "ttfa_ms"?: number\|null}` |
+| `conversation_mode_change` | `{"active": bool, "mode": "continuous"\|"ptt"\|"idle", "language"?: string, "reason"?: string}` |
+| `mic_mute_change` | `{"muted": bool, "route_mode": string}` |
+| `conversation_history_updated` | `{"count": number, "turn_id"?: string}` |
 | `timer_updated` | `{"timer": TimerView}` |
 | `timer_completed` | `{"timer": TimerView}` |
 | `timer_missed` | `{"timer": TimerView}` |
 | `action_verified` | `{"turn_id": string, "action": string, "status": string, "success": bool, "data": object}` |
+| `device_state_changed` | `{"device": SmartHomeDeviceView, "source": "voice"\|"ui"\|"routine"\|"sim"}` |
 | `clarification_required` | `{"turn_id": string, "language": "en"\|"hi"\|"kn", "message": string}` |
 | `error` | `{"code"?: string, "turn_id"?: string, "message": string}` |
 
@@ -232,5 +245,27 @@ export type AssistantState =
 
 ---
 
-## 6. Reserved Phase 2 Contracts (Not Yet Implemented)
-- `GET /api/v1/devices` and `PATCH /api/v1/devices/{device_id}` remain Phase 2 contracts and are **not** active in Phase 1.
+## 6. Conversation Mode & History Endpoints (Phase 1.5+)
+
+- `POST /api/v1/voice/conversation/start` — Body `{"language": "auto"|"en"|"hi"|"kn"|null, "speak": true, "mode": "continuous"|"ptt", "silence_timeout_sec": 60.0}` -> Starts half-duplex continuous listening loop (`503` if no mic).
+- `POST /api/v1/voice/conversation/stop` -> Stops continuous listening, playback, and active turn cleanly.
+- `PUT /api/v1/voice/mic/mute` — Body `{"muted": bool}` -> Sticky user mute independent of playback gating.
+- `GET /api/v1/conversation/history` -> `{"count": int, "messages": ConversationMessage[]}`.
+- `DELETE /api/v1/conversation/history` -> `{"cleared": int}`.
+- `POST /api/v1/voice/prewarm` — Body `{"prewarm_ollama": true}` -> Warms EN/HI/KN TTS cache and local Ollama model.
+
+---
+
+## 7. Phase 2 Persistent Smart-Home Simulator Endpoints (`/api/v1/smart-home`)
+
+- `GET /api/v1/smart-home/rooms` -> Room list & device counts (`living_room`, `bedroom`, `kitchen`, `study`, `utility_room`).
+- `GET /api/v1/smart-home/devices?room=...` -> All persistent `SmartHomeDevice` records (`19` seeded devices).
+- `GET /api/v1/smart-home/devices/{device_id}` -> Single device (`404` if missing).
+- `POST /api/v1/smart-home/devices/{device_id}/command` — Body `{"action": str, "value": any, "source": "ui"|"voice"|"routine"|"simulator"}` (`200` verified, `422` capability rejection, `409` unavailable).
+- `GET /api/v1/smart-home/activities` -> Running, scheduled, and completed appliance cycles.
+- `GET /api/v1/smart-home/history?device_id=...&limit=100` -> State change audit history.
+- `GET /api/v1/smart-home/energy` -> Estimated real-time simulated energy summary.
+- `GET /api/v1/smart-home/routines` & `POST /api/v1/smart-home/routines/{routine_id}/run` -> Persistent routines (`morning`, `night`, `study`, `away`).
+- `PUT /api/v1/smart-home/simulator/devices/{device_id}/availability` — Toggle device online/offline availability.
+- `POST /api/v1/smart-home/simulator/devices/{device_id}/complete` — Fast-forward running appliance cycle to completed.
+- `POST /api/v1/smart-home/simulator/devices/{device_id}/sensor` — Inject temperature/humidity readings (`422` if not writable).

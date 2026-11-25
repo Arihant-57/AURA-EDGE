@@ -143,6 +143,7 @@ class SherpaOnnxBackend:
         language: LanguageCode,
         speed: float = 1.0,
     ) -> SynthesizedAudio:
+        safe_speed = max(0.5, min(2.0, float(speed)))
         clean = text.strip()
         if language == "kn":
             clean = re.sub(r"[^\u0C80-\u0CFF0-9\s'\-_]+", " ", clean)
@@ -161,7 +162,7 @@ class SherpaOnnxBackend:
         with self._lock:
             engine, spec = self._get_engine(language)
             t0 = time.perf_counter()
-            audio = engine.generate(clean, sid=spec.speaker_id, speed=float(speed))
+            audio = engine.generate(clean, sid=spec.speaker_id, speed=safe_speed)
             latency_ms = round((time.perf_counter() - t0) * 1000.0, 2)
 
         samples = np.asarray(audio.samples, dtype=np.float32)

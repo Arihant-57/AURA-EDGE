@@ -245,10 +245,15 @@ class WhisperTranscriber:
         resolved_lang: LanguageCode
         if language != "auto":
             resolved_lang = language
+        elif any("\u0C80" <= ch <= "\u0CFF" for ch in text):
+            resolved_lang = "kn"
+        elif any("\u0900" <= ch <= "\u097F" for ch in text):
+            resolved_lang = "hi"
         elif raw_lang in _SUPPORTED_WHISPER_LANGS:
             resolved_lang = raw_lang  # type: ignore[assignment]
         else:
-            resolved_lang = fallback_language
+            # Never emit unsupported languages (e.g. Tagalog 'tl'); stay within EN/HI/KN
+            resolved_lang = fallback_language if fallback_language in _SUPPORTED_WHISPER_LANGS else "en"
 
         return TranscriptionResult(
             text=text,

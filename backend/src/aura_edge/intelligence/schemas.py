@@ -41,6 +41,8 @@ class IntentName(str, Enum):
     GREETING = "Greeting"
     ACKNOWLEDGMENT = "Acknowledgment"
     FAREWELL = "Farewell"
+    IDENTITY = "Identity"
+    SUPPORTED_LANGUAGES = "SupportedLanguages"
     SWITCH_LANGUAGE = "SwitchLanguage"
     CONVERSATION = "Conversation"
     DEVICE_CONTROL = "DeviceControl"

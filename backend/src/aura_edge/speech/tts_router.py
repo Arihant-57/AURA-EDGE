@@ -23,7 +23,7 @@ _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?।॥])\s+(?=[^\d])")
 class SentenceStreamBuffer:
     """Incremental multilingual sentence chunker for low-TTFA streaming TTS."""
 
-    def __init__(self, *, min_chars: int = 18) -> None:
+    def __init__(self, *, min_chars: int = 24) -> None:
         self.min_chars = max(1, int(min_chars))
         self._buf = ""
 
@@ -175,7 +175,8 @@ class TTSRouter:
         speed: float | None = None,
     ) -> SynthesizedAudio:
         """Synthesize offline speech with LRU caching keyed by language/model/voice/speed/text."""
-        spd = round(float(speed if speed is not None else self._settings.tts_default_speed), 2)
+        raw_spd = float(speed if speed is not None else self._settings.tts_default_speed)
+        spd = round(max(0.5, min(2.0, raw_spd)), 2)
         normalized = normalize_for_pronunciation(text, language)
         backend = self._select_backend(language)
         model_name, voice_name = backend.model_info(language)
@@ -219,10 +220,10 @@ class TTSRouter:
         return pcm_float32_to_wav_bytes(audio.samples, audio.sample_rate), audio
 
     def prewarm_common_phrases(self) -> dict[str, int]:
-        """Pre-synthesize frequently used EN/HI/KN greetings and acknowledgments into LRU cache."""
+        """Pre-synthesize frequently used EN/HI/KN greetings, identity, and language phrases."""
         warmed = 0
         for lang in self.available_languages():
-            for key in ("greeting", "acknowledgment", "farewell"):
+            for key in ("greeting", "acknowledgment", "farewell", "identity", "supported_languages"):
                 phrase = get_phrase(key, lang)
                 if phrase:
                     self.synthesize(phrase, language=lang)

@@ -100,11 +100,22 @@ class Settings(BaseSettings):
     vad_threshold: float = 0.45
     vad_initial_timeout_sec: float = 3.0
     vad_trailing_silence_sec: float = 1.2
+    audio_post_playback_cooldown_sec: float = 0.65
 
     tts_backend: str = "sherpa_onnx"
     tts_cache_max_entries: int = 64
     tts_default_speed: float = 1.0
     cuda_dll_dirs: Annotated[list[str], NoDecode] = []
+
+    @field_validator("audio_post_playback_cooldown_sec")
+    @classmethod
+    def _non_negative_cooldown(cls, value: float) -> float:
+        return max(0.0, float(value))
+
+    @field_validator("tts_default_speed")
+    @classmethod
+    def _clamp_tts_speed(cls, value: float) -> float:
+        return max(0.5, min(2.0, float(value)))
 
     @field_validator(
         "lan_allowed_cidrs",

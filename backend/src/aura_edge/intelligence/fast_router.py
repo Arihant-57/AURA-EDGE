@@ -65,6 +65,19 @@ _FAREWELL_RE = re.compile(
     r"ವಿದಾಯ|ಬಾಯ್|ಸಂಭಾಷಣೆ\s+ನಿಲ್ಲಿಸು|ಸಾಕು\s+ಮಾತನಾಡೋದು)$",
     flags=re.IGNORECASE | re.UNICODE,
 )
+_IDENTITY_RE = re.compile(
+    r"^(?:what(?:'s|\s+is)\s+your\s+name|who\s+are\s+you|tell\s+me\s+your\s+name|"
+    r"तुम्हारा\s+नाम\s+क्या\s+है|आपका\s+नाम\s+क्या\s+है|तुम\s+कौन\s+हो|आप\s+कौन\s+हैं|"
+    r"ನಿಮ್ಮ\s+ಹೆಸರು\s+ಏನು|ನೀವು\s+ಯಾರು|ನಿನ್ನ\s+ಹೆಸರೇನು)(?:\s*[?!.।॥]*)?$",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+_SUPPORTED_LANGUAGES_RE = re.compile(
+    r"^(?:(?:which|what)\s+languages?\s+(?:do\s+you|can\s+you)\s+(?:support|speak|understand)|"
+    r"what\s+languages?\s+are\s+supported|list\s+supported\s+languages|"
+    r"तुम\s+कौन\s*सी\s+भाषाएं?\s*(?:बोल|समझ)\s*सकते\s+हो|आप\s+किन\s+भाषाओं\s+को\s+समर्थन\s+करते\s+हैं|"
+    r"ನೀವು\s+ಯಾವ\s+ಭಾಷೆಗಳ?ನ್ನು\s+(?:ಬೆಂಬಲಿಸುತ್ತೀರಿ|ಮಾತನಾಡುತ್ತೀರಿ|ಅರ್ಥಮಾಡಿಕೊಳ್ಳುತ್ತೀರಿ))(?:\s*[?!.।॥]*)?$",
+    flags=re.IGNORECASE | re.UNICODE,
+)
 _PURE_LANG_SWITCH_RE = re.compile(
     r"^(?:(?:please\s+)?(?:switch|change(?:\s+language)?|speak|talk|respond|reply)\s+(?:to|in)\s+|"
     r"(?:अपनी\s+)?भाषा\s+(?:बदलकर\s+)?)?"
@@ -432,7 +445,7 @@ class MultilingualFastRouter:
             fallback_language=fallback_language,
         )
 
-        if not norm.normalized:
+        if not norm.normalized or not any(ch.isalnum() for ch in norm.normalized):
             return (
                 TypedIntent(
                     intent_name=IntentName.CLARIFY,
@@ -553,6 +566,32 @@ class MultilingualFastRouter:
                 TypedIntent(
                     intent_name=IntentName.FAREWELL,
                     confidence=0.97,
+                    source="hassil_fast",
+                    route_category="greeting",
+                    language=norm.language,
+                    input_script=norm.script,
+                    raw_text=raw_text,
+                ),
+                round((time.perf_counter() - t0) * 1000.0, 2),
+            )
+        if _IDENTITY_RE.match(clean_low):
+            return (
+                TypedIntent(
+                    intent_name=IntentName.IDENTITY,
+                    confidence=0.98,
+                    source="hassil_fast",
+                    route_category="greeting",
+                    language=norm.language,
+                    input_script=norm.script,
+                    raw_text=raw_text,
+                ),
+                round((time.perf_counter() - t0) * 1000.0, 2),
+            )
+        if _SUPPORTED_LANGUAGES_RE.match(clean_low):
+            return (
+                TypedIntent(
+                    intent_name=IntentName.SUPPORTED_LANGUAGES,
+                    confidence=0.98,
                     source="hassil_fast",
                     route_category="greeting",
                     language=norm.language,

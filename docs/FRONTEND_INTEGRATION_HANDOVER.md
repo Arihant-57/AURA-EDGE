@@ -44,13 +44,16 @@ This note notifies the frontend developer (`feat/frontend-experience`) of all ne
 | Push-to-Talk Start | `POST /api/v1/voice/mic/start` | Optional `{"language": "auto"\|"en"\|"hi"\|"kn"}`. Returns `503` if no mic is connected. |
 | Push-to-Talk Stop | `POST /api/v1/voice/mic/stop` | Stops capture, runs STT -> Router/LLM -> Tool -> optional TTS (`{"speak": true}`). Returns `ProcessTurnOutput`. |
 | Upload WAV Audio | `POST /api/v1/voice/transcribe` | `multipart/form-data` (`file`, `language`, `speak`, `allow_llm_fallback`). Useful for browser MediaRecorder WAV testing. |
-| Text Command | `POST /api/v1/intent/process` | Same backend pipeline as voice (`{"text", "language", "source": "text_input", "speak": false}`). |
+| Text Command | `POST /api/v1/intent/process` | Same backend pipeline as voice (`{"text", "language": null\|"auto"\|"en"\|"hi"\|"kn", "source": "text_input", "speak": false}`). Omitting `language` honors `session_language`. |
 | Offline TTS Audio | `POST /api/v1/voice/synthesize` | Returns `audio/wav` stream (`en`, `hi`, `kn`) + cache headers (`X-Aura-TTS-Cached`). |
 | Cancel Active Turn | `POST /api/v1/voice/cancel` | Immediately aborts mic/playback and transitions FSM to `CANCELLED -> IDLE`. |
+| Continuous Mode & Mute | `POST /api/v1/voice/conversation/{start,stop}`, `PUT /api/v1/voice/mic/mute` | Half-duplex VAD continuous listening with acoustic cooldown & sticky user mute. |
+| Session History & Prewarm | `GET/DELETE /api/v1/conversation/history`, `POST /api/v1/voice/prewarm` | Inspect/clear bounded session turns (`max 12`) and warm EN/HI/KN TTS + Ollama. |
 | Language Switch | `PUT /api/v1/voice/language` | `{"language": "auto"\|"en"\|"hi"\|"kn"}`. |
 | Compute Mode Switch | `PUT /api/v1/voice/compute-mode` | `{"compute_mode": "auto"\|"cpu"\|"gpu"}` — returns honest `effective_mode` and `fallback_reason`. |
 | Persistent Timers | `GET/POST /api/v1/timers`, `POST /api/v1/timers/{id}/{pause,resume}`, `DELETE /api/v1/timers/{id}` | Authoritative PostgreSQL state; survives backend restarts. |
-| Real-Time Events | `WS /api/v1/ws/live` | Emits `assistant_state_change`, `audio_level`, `timer_updated`, `timer_completed`, `timer_missed`, `action_verified`, `clarification_required`, `error`. |
+| Smart-Home Simulator | `GET /api/v1/smart-home/{rooms,devices,activities,history,energy,routines}`, `POST /api/v1/smart-home/devices/{id}/command` | Phase 2 simulated home state (strict capability checks + `device_state_changed` WS events). |
+| Real-Time Events | `WS /api/v1/ws/live` | Emits `assistant_state_change`, `audio_level`, `transcript_ready`, `response_text_delta`, `response_completed`, `conversation_mode_change`, `mic_mute_change`, `conversation_history_updated`, `timer_*`, `action_verified`, `device_state_changed`, `clarification_required`, `error`. |
 
 ## 3. Recommended TypeScript Types for `frontend/src/api/types.ts`
 
@@ -85,8 +88,9 @@ export interface TimerView {
 export interface ProcessTurnOutput {
   turn_id: string;
   intent: string;
+  route_category: string;
   confidence: number;
-  intent_source: "hassil_fast" | "llm_tool" | "clarification" | "refusal" | "cancellation" | "error";
+  intent_source: "hassil_fast" | "llm_tool" | "llm_conversation" | "clarification" | "refusal" | "cancellation" | "error";
   detected_language: LanguageCode;
   slots: Record<string, unknown>;
   response_text: string;
@@ -98,10 +102,14 @@ export interface ProcessTurnOutput {
   latency_ms: number;
   stt_ms: number | null;
   router_ms: number | null;
+  llm_ttft_ms: number | null;
   llm_ms: number | null;
   tool_ms: number | null;
   tts_ms: number | null;
+  audio_startup_ms: number | null;
+  playback_ms: number | null;
   ttfa_ms: number | null;
+  tts_cache_hit: boolean;
   error: string | null;
   transcript: string | null;
 }

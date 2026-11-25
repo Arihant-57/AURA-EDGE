@@ -19,14 +19,62 @@ _LANGUAGE_NAMES: dict[LanguageCode, str] = {
     "kn": "Kannada (Kannada script only)",
 }
 
-_CONVERSATION_SYSTEM_PROMPT = """You are AURA EDGE, a helpful, warm, strictly local offline voice assistant created to run cleanly on this user's machine.
+_CONVERSATION_SYSTEM_PROMPT = """You are AURA EDGE, a helpful, strictly local offline voice assistant created to run on this user's machine.
 Active reply language: {lang_name}.
+Registered local capabilities: {capabilities_description}
 Guidelines:
-1. Reply naturally, concisely, and clearly in {lang_name} unless the user explicitly asks to translate or repeat in another language.
-2. Speak like a helpful human assistant (2 to 4 clear sentences for normal questions; expand smoothly only when asked to explain more).
-3. Avoid markdown tables, heavy bullet symbols, emojis, code fences, or ASCII decorative characters so text-to-speech sounds natural.
-4. Keep factual honesty: never pretend you can control smart-home lights, send emails, browse the internet, search the web, or order food—if asked to perform external actions, politely state that you can converse offline and manage local time, date, and timers.
-5. Use the session conversation history to understand follow-ups like "explain that again", "make it shorter", "repeat in Kannada", "what did I just ask?", or "continue explaining"."""
+1. Reply ONLY in {lang_name} unless the user explicitly asks to translate or repeat in another language. Never mix scripts unnecessarily (for Kannada, write Kannada script; for Hindi, write Devanagari script).
+2. Supported speech & text languages are strictly English, Hindi, and Kannada ONLY. NEVER claim to support Tagalog, Spanish, French, or any other language.
+3. Keep answers crisp and natural for spoken audio: 1 short sentence for greetings or quick factual answers; 1 to 2 short sentences for normal questions. Do NOT repeat introductions ("I am AURA EDGE...") or recite capability lists unless directly asked.
+4. No markdown formatting, no asterisks, no bullet lists, no tables, no emojis, and no ASCII symbols.
+5. Strictly respect tool verification: NEVER claim you changed a device state, smart-home device, or timer unless a verified tool actually executed. External actions outside local tools (internet search, emails, shopping, banking, door locks) are unsupported—refuse politely and briefly.
+6. Use the session conversation history for follow-ups like "explain that again", "make it shorter", "repeat in Kannada", "what did I just ask?", or "continue explaining"."""
+
+_KANNADA_CHAR_RE = re.compile(r"[\u0C80-\u0CFF]")
+_DEVANAGARI_CHAR_RE = re.compile(r"[\u0900-\u097F]")
+_LATIN_CHAR_RE = re.compile(r"[A-Za-z]")
+_UNSUPPORTED_LANG_CLAIM_RE = re.compile(
+    r"\b(?:tagalog|spanish|french|german|japanese|chinese|mandarin|arabic|korean|tamil|telugu|malayalam|bengali|marathi|portuguese|russian)\b",
+    flags=re.IGNORECASE,
+)
+
+
+def validate_response_language(
+    text: str,
+    target_language: LanguageCode,
+) -> tuple[bool, str]:
+    """Verify reply matches target EN/HI/KN script and contains no unsupported-language claims."""
+    cleaned = (text or "").strip()
+    if not cleaned:
+        return False, "empty_response"
+
+    if target_language == "en":
+        # Reject hallucinated language support claims (e.g., Tagalog)
+        low = cleaned.lower()
+        if _UNSUPPORTED_LANG_CLAIM_RE.search(low) and any(
+            kw in low for kw in ("support", "speak", "language", "available", "can ")
+        ):
+            return False, "unsupported_language_claim"
+        return True, "ok"
+
+    kan_count = len(_KANNADA_CHAR_RE.findall(cleaned))
+    dev_count = len(_DEVANAGARI_CHAR_RE.findall(cleaned))
+    lat_count = len(_LATIN_CHAR_RE.findall(cleaned))
+    total_alpha = kan_count + dev_count + lat_count
+    if total_alpha == 0:
+        return False, "no_alphabetic_chars"
+
+    if target_language == "kn":
+        if kan_count < 3 or (kan_count / total_alpha) < 0.35:
+            return False, f"expected_kn_script (kn={kan_count}, lat={lat_count})"
+        return True, "ok"
+
+    if target_language == "hi":
+        if dev_count < 3 or (dev_count / total_alpha) < 0.35:
+            return False, f"expected_hi_script (hi={dev_count}, lat={lat_count})"
+        return True, "ok"
+
+    return True, "ok"
 
 
 def strip_markdown_for_speech(text: str) -> str:
@@ -127,11 +175,17 @@ class ConversationSession:
         user_text: str,
         *,
         reply_language: LanguageCode,
+        capability_summary: str | None = None,
         max_history_messages: int = 10,
     ) -> list[dict[str, str]]:
         """Assemble bounded chat messages for Ollama with language-targeted system prompt."""
+        caps = capability_summary or (
+            "Registered local tools: DateTimeTool (time/date), TimerManager (persistent timers), "
+            "and SmartHomeService (simulated local rooms/devices and routines)."
+        )
         sys_prompt = _CONVERSATION_SYSTEM_PROMPT.format(
-            lang_name=_LANGUAGE_NAMES.get(reply_language, "English")
+            lang_name=_LANGUAGE_NAMES.get(reply_language, "English"),
+            capabilities_description=caps,
         )
         msgs: list[dict[str, str]] = [{"role": "system", "content": sys_prompt}]
         with self._lock:
