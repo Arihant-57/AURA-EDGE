@@ -54,6 +54,16 @@ npm run build
 
 Open `http://127.0.0.1:5173` in a local browser.
 
+## Documentation & Collaboration
+
+- **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **Decisions Log:** [docs/DECISIONS.md](docs/DECISIONS.md)
+- **Progress & Phases:** [docs/PROGRESS.md](docs/PROGRESS.md)
+- **Collaboration Workflow (Two-Developer Setup):** [docs/COLLABORATION.md](docs/COLLABORATION.md)
+- **API Contract (Frontend <-> Backend):** [docs/API_CONTRACT.md](docs/API_CONTRACT.md)
+- **Phase 0 Test Report:** [docs/TEST_REPORT.md](docs/TEST_REPORT.md)
+- **Third Party & Licenses:** [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md)
+
 ## Verification Commands
 
 ```powershell
