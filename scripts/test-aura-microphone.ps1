@@ -1,19 +1,39 @@
 param(
     [string]$BackendRoot = "$env:USERPROFILE/Desktop/AURA-EDGE",
-    [switch]$CheckSetup
+    [switch]$CheckSetup,
+    [switch]$RestartCheck
 )
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $python = Join-Path $BackendRoot ".venv/Scripts/python.exe"
-$port = 8035
-$dbPort = 55436
+$port = if ($RestartCheck) { 8036 } else { 8035 }
+$dbPort = if ($RestartCheck) { 55438 } else { 55436 }
 $id = [guid]::NewGuid().ToString("N")
 $container = "aura-microphone-$id"
 $marker = Join-Path $root ".runtime/microphone-stop-$id"
 $result = Join-Path $root ".runtime/human-acceptance-$id.json"
 $server = $null
 $started = $false
+if ($CheckSetup -and $RestartCheck) { throw "Choose one verification mode." }
+
+function Start-RehearsalBackend([string]$stopMarker) {
+    $serverArgs = @("-m", "qa.loopback_rehearsal", "`"$stopMarker`"", "$port")
+    if (-not $RestartCheck -and -not $CheckSetup) { $serverArgs += "--interactive-audio" }
+    Start-Process $python -ArgumentList $serverArgs -WorkingDirectory $root -WindowStyle Hidden -PassThru
+}
+
+function Wait-RehearsalBackend($process) {
+    for ($i = 0; $i -lt 75; $i++) {
+        if ($process.HasExited) { throw "The rehearsal backend exited." }
+        try {
+            $ready = Invoke-RestMethod "http://127.0.0.1:$port/api/v1/readiness" -TimeoutSec 3
+            if ($ready.database.connected) { return }
+        } catch {}
+        Start-Sleep -Seconds 1
+    }
+    throw "The rehearsal backend did not become ready."
+}
 $previous = @{}
 foreach ($name in @("AURA_EDGE_DATABASE_URL", "AURA_EDGE_MODELS_DIR", "AURA_EDGE_HINDI_SPECIALIST_DIR", "PYTHONPATH", "HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "PYTHONIOENCODING")) {
     $previous[$name] = [Environment]::GetEnvironmentVariable($name)
@@ -46,18 +66,25 @@ try {
     $env:PYTHONIOENCODING = "utf-8"
     & $python -m alembic -c backend/alembic.ini upgrade head
     if ($LASTEXITCODE) { throw "The rehearsal database migration failed." }
-    $serverArgs = @("-m", "qa.loopback_rehearsal", "`"$marker`"", "$port")
-    if (-not $CheckSetup) { $serverArgs += "--interactive-audio" }
-    $server = Start-Process $python -ArgumentList $serverArgs -WorkingDirectory $root -WindowStyle Hidden -PassThru
-    $ready = $null
-    for ($i = 0; $i -lt 75; $i++) {
-        if ($server.HasExited) { throw "The rehearsal backend exited." }
-        try { $ready = Invoke-RestMethod "http://127.0.0.1:$port/api/v1/readiness" -TimeoutSec 3 } catch {}
-        if ($ready.database.connected) { break }
-        Start-Sleep -Seconds 1
-    }
-    if (-not $ready.database.connected) { throw "The rehearsal backend did not become ready." }
+    $server = Start-RehearsalBackend $marker
+    Wait-RehearsalBackend $server
     if ($CheckSetup) { Write-Output "Rehearsal backend and disposable PostgreSQL ready." }
+    elseif ($RestartCheck) {
+        $report = Join-Path $root ".runtime/offline-restart-$id.json"
+        & $python -m qa.restart_rehearsal prepare --port $port --output $report
+        if ($LASTEXITCODE) { throw "Could not prepare offline restart checks." }
+        New-Item -ItemType File -Path $marker | Out-Null
+        if (-not $server.WaitForExit(30000)) { throw "The rehearsal backend did not stop within 30 seconds." }
+        if ($null -ne $server.ExitCode -and $server.ExitCode -ne 0) {
+            throw "The rehearsal backend exited with status $($server.ExitCode)."
+        }
+        $marker += "-restart"
+        $server = Start-RehearsalBackend $marker
+        Wait-RehearsalBackend $server
+        & $python -m qa.restart_rehearsal verify --port $port --output $report
+        if ($LASTEXITCODE) { throw "Offline restart checks failed. Results: $report" }
+        Write-Output "Restart checks passed. Results: $report"
+    }
     else {
         Write-Output "The rehearsal dashboard is http://127.0.0.1:$port/app/. Use this instance during the session."
         & $python -m qa.live_acceptance --port $port --samples 16 --rehearsal --include-text --output $result

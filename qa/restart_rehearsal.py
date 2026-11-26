@@ -77,3 +77,5 @@ if __name__ == "__main__":
             report["after_restart"] = probe(client, report["ids"])
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf8")
     print(report)
+    if not all(all(report[section].values()) for section in ("checks", "before_restart", "after_restart") if section in report):
+        raise SystemExit(1)

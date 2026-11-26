@@ -11,6 +11,8 @@ Use the isolated joint acceptance runner below for all 24 public prompts.
 
 ## Physical disconnection
 
+From a separate PowerShell window in the integration checkout, run `./scripts/test-aura-microphone.ps1 -RestartCheck` after you disconnect the adapters yourself. The script uses a disposable database, restarts its own backend and writes its before/after checks under `.runtime`. It requires Docker and the local models to be available already.
+
 - [ ] With local models installed and PostgreSQL and Ollama running, note the current network adapter settings. Disconnect Wi-Fi and any Ethernet connection when the operator is ready.
 - [ ] Open the local dashboard, ask the time, set a short timer, operate a pretend light, ask a general question and hear an English and Hindi or Kannada reply. Confirm completion, history and correct state after a refresh.
 - [ ] Restart AURA while disconnected and repeat the clock and device-state checks. Restore the original connection. Enter date, results and individual failures here.

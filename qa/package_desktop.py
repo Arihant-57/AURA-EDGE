@@ -26,7 +26,7 @@ def main():
              "docs/VOICE_COMMAND_ACCURACY_REPORT.md", "docs/AGENTIC_INTELLIGENCE_REPORT.md",
              "docs/MULTILINGUAL_ACCEPTANCE_REPORT.md", "docs/NOISE_ROBUSTNESS_REPORT.md", "docs/SIMULATOR_GUIDE.md",
              "qa/screenshots/mini-island.png", "qa/screenshots/simulator.png", "qa/results/final-*.json",
-             "scripts/test-aura-microphone.ps1", "qa/live_acceptance.py", "qa/loopback_rehearsal.py"]
+             "scripts/test-aura-microphone.ps1", "qa/live_acceptance.py", "qa/loopback_rehearsal.py", "qa/restart_rehearsal.py"]
     listed = subprocess.check_output(["git", "ls-files", "-z", "--", *paths], cwd=root)
     tracked = [root / name.decode("utf8") for name in listed.split(b"\0") if name]
     if (root / "desktop/shutdown_request.py") not in tracked:
