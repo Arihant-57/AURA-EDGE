@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 
 import numpy as np
+import pytest
 
 from aura_edge.config import Settings
 from aura_edge.intelligence.schemas import LanguageCode
@@ -121,3 +122,19 @@ def test_sentence_splitting_pronunciation_and_playback_barge_in() -> None:
 
     wav = pcm_float32_to_wav_bytes(np.zeros(1600, dtype=np.float32), 16000)
     assert wav[:4] == b"RIFF"
+
+
+
+def test_disabled_output_synthesizes_without_opening_speaker(monkeypatch) -> None:
+    router = TTSRouter(Settings(_env_file=None))
+    playback = AudioPlayback(router, output_enabled=False)
+
+    def unexpected_output(*args, **kwargs):
+        pytest.fail("A silent rehearsal tried to open a speaker stream")
+
+    monkeypatch.setattr(playback, "_open_stream_blocking", unexpected_output)
+    try:
+        clips, metrics = asyncio.run(playback.speak_text_with_metrics("Test.", play_to_speaker=True))
+        assert clips and metrics.first_non_silent_callback_mono is None
+    finally:
+        playback.close()

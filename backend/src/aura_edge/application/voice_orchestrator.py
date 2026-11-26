@@ -205,6 +205,7 @@ class VoiceOrchestrator:
         self.playback = AudioPlayback(
             self.tts_router,
             output_device=settings.audio_output_device,
+            output_enabled=settings.audio_output_enabled,
         )
 
         # Intelligence & Execution components
@@ -289,6 +290,8 @@ class VoiceOrchestrator:
 
     async def speak_notification(self, phrase: str, lang: LanguageCode) -> bool:
         """Speak proactive notification under _turn_lock without colliding or clearing user mute."""
+        if not self.settings.proactive_audio_enabled or not self.settings.audio_output_enabled:
+            return False
         async with self._turn_lock:
             if self.fsm.state != AssistantState.IDLE or self.playback.is_playing:
                 return False

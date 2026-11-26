@@ -1,0 +1,126 @@
+{
+  "qa_backend_port": 8034,
+  "qa_database": "aura_voice_verify",
+  "production_backend_port": 8000,
+  "production_timer_notification_matches": 0,
+  "production_timer_status_counts": {
+    "cancelled": 40
+  },
+  "sources_during_incident": {
+    "qa": {
+      "audio_upload": 60,
+      "text_input": 11
+    },
+    "production": {}
+  },
+  "rows": [
+    {
+      "timer_id": "04261f24-a9d9-4173-a6f1-1ed96fd0cfa4",
+      "status": "completed",
+      "language": "en",
+      "completed_at_utc": "2026-11-26 01:18:30.215348+00",
+      "notification_id": "0c80c0e3-e2d1-49a1-9faf-9cfb52b31327",
+      "created_at_utc": "2026-11-26 01:18:30.228806+00",
+      "spoken_delivered": true
+    },
+    {
+      "timer_id": "e866bf26-c617-4d6e-8998-8175db08e1d2",
+      "status": "completed",
+      "language": "hi",
+      "completed_at_utc": "2026-11-26 01:18:34.055366+00",
+      "notification_id": "26c92714-30b0-47d2-a101-71e2222cf9e0",
+      "created_at_utc": "2026-11-26 01:18:34.066546+00",
+      "spoken_delivered": true
+    },
+    {
+      "timer_id": "03a2e9df-9da5-4208-bcf3-269fd2e15c0f",
+      "status": "completed",
+      "language": "en",
+      "completed_at_utc": "2026-11-26 01:18:50.51315+00",
+      "notification_id": "5ff7486a-5f85-4f36-b9b5-a6e7c5827efa",
+      "created_at_utc": "2026-11-26 01:18:50.534037+00",
+      "spoken_delivered": true
+    },
+    {
+      "timer_id": "2f90b584-4364-4294-a315-cc71908d150b",
+      "status": "missed",
+      "language": "kn",
+      "completed_at_utc": "2026-11-26 01:19:38.864876+00",
+      "notification_id": "dced19e6-bf37-4ccf-9693-2bfaeeb10390",
+      "created_at_utc": "2026-11-26 01:19:38.8777+00",
+      "spoken_delivered": true
+    },
+    {
+      "timer_id": "9ca6060c-f590-42de-9426-bf5ebfef9d47",
+      "status": "missed",
+      "language": "hi",
+      "completed_at_utc": "2026-11-26 01:19:38.908699+00",
+      "notification_id": "c4219a63-9d00-465b-8250-f42367a3a4e1",
+      "created_at_utc": "2026-11-26 01:19:38.918008+00",
+      "spoken_delivered": true
+    },
+    {
+      "timer_id": "282fa093-6c4e-4848-8fbe-b7539dddef00",
+      "status": "missed",
+      "language": "en",
+      "completed_at_utc": "2026-11-26 01:19:38.937229+00",
+      "notification_id": "47de506f-b358-42f3-b6a3-112d688de7cd",
+      "created_at_utc": "2026-11-26 01:19:38.945797+00",
+      "spoken_delivered": true
+    },
+    {
+      "timer_id": "15c8c348-de33-4e43-b6e3-ff78643ee333",
+      "status": "completed",
+      "language": "en",
+      "completed_at_utc": "2026-11-26 01:20:54.910911+00",
+      "notification_id": "c90810e5-8581-466f-9115-368f8107a786",
+      "created_at_utc": "2026-11-26 01:20:54.922046+00",
+      "spoken_delivered": true
+    },
+    {
+      "timer_id": "029b0f5a-eee6-4dc6-87d6-2578c0ddda7e",
+      "status": "completed",
+      "language": "hi",
+      "completed_at_utc": "2026-11-26 01:20:59.420064+00",
+      "notification_id": "853d0755-8b5b-4692-8fa0-8374022c0c48",
+      "created_at_utc": "2026-11-26 01:20:59.431364+00",
+      "spoken_delivered": true
+    },
+    {
+      "timer_id": "47358c83-a432-46b6-96fa-cb7b919e6842",
+      "status": "completed",
+      "language": "en",
+      "completed_at_utc": "2026-11-26 01:21:15.200816+00",
+      "notification_id": "74c07c4d-2cea-4b44-990c-a3cd66526f60",
+      "created_at_utc": "2026-11-26 01:21:15.208731+00",
+      "spoken_delivered": true
+    },
+    {
+      "timer_id": "a83143f9-3c2a-4539-a4e7-cee452a9707b",
+      "status": "completed",
+      "language": "en",
+      "completed_at_utc": "2026-11-26 01:21:45.474456+00",
+      "notification_id": "bfe05abc-2be0-4e91-ad0a-4b2d8de5817f",
+      "created_at_utc": "2026-11-26 01:21:45.481099+00",
+      "spoken_delivered": true
+    },
+    {
+      "timer_id": "61a5ee4d-b7e9-4e3c-8bcd-6e74add8eb99",
+      "status": "completed",
+      "language": "hi",
+      "completed_at_utc": "2026-11-26 01:21:50.19148+00",
+      "notification_id": "15f3343f-0db4-4dbf-9e06-cb812ef77efe",
+      "created_at_utc": "2026-11-26 01:21:50.204658+00",
+      "spoken_delivered": false
+    },
+    {
+      "timer_id": "d6e0c84b-3adc-4151-9dcf-90c9b4c78312",
+      "status": "completed",
+      "language": "kn",
+      "completed_at_utc": "2026-11-26 01:22:00.102529+00",
+      "notification_id": "719942d5-88f3-4787-920f-38ad34cdb38b",
+      "created_at_utc": "2026-11-26 01:22:00.114568+00",
+      "spoken_delivered": false
+    }
+  ]
+}

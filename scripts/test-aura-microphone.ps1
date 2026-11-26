@@ -46,7 +46,9 @@ try {
     $env:PYTHONIOENCODING = "utf-8"
     & $python -m alembic -c backend/alembic.ini upgrade head
     if ($LASTEXITCODE) { throw "The rehearsal database migration failed." }
-    $server = Start-Process $python -ArgumentList @("-m", "qa.loopback_rehearsal", "`"$marker`"", "$port") -WorkingDirectory $root -WindowStyle Hidden -PassThru
+    $serverArgs = @("-m", "qa.loopback_rehearsal", "`"$marker`"", "$port")
+    if (-not $CheckSetup) { $serverArgs += "--interactive-audio" }
+    $server = Start-Process $python -ArgumentList $serverArgs -WorkingDirectory $root -WindowStyle Hidden -PassThru
     $ready = $null
     for ($i = 0; $i -lt 75; $i++) {
         if ($server.HasExited) { throw "The rehearsal backend exited." }

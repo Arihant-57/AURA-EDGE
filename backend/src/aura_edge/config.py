@@ -101,6 +101,8 @@ class Settings(BaseSettings):
     audio_preroll_sec: float = 3.0
     audio_input_device: int | str | None = None
     audio_output_device: int | str | None = None
+    audio_output_enabled: bool = True
+    proactive_audio_enabled: bool = True
     vad_threshold: float = 0.45
     vad_initial_timeout_sec: float = 3.0
     vad_trailing_silence_sec: float = 1.2

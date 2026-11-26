@@ -183,7 +183,8 @@ class NotificationService:
             },
         )
 
-        if speak and prefs.spoken_enabled and not is_in_quiet_hours(prefs, now_utc):
+        if (speak and self.settings.proactive_audio_enabled and self.settings.audio_output_enabled
+                and prefs.spoken_enabled and not is_in_quiet_hours(prefs, now_utc)):
             try:
                 self._audio_queue.put_nowait((row.id, message, language))
             except asyncio.QueueFull:
