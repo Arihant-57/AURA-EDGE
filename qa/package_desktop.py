@@ -22,6 +22,10 @@ def main():
              "docs/FINAL_VOICE_ACCEPTANCE.md", "docs/FINAL_BENCHMARK_REPORT.md", "docs/TESTING_TODO.md",
              "backend/tests", "qa/results/audit-*", "qa/screenshots/independent-*", "qa/screenshots/audit-*",
              "docs/ASR_MODEL_COMPARISON.md", "docs/KNOWN_LIMITATIONS.md", "docs/PROBLEM_STATEMENT_COMPLIANCE.md",
+             "docs/CPU_GPU_BENCHMARK_REPORT.md", "docs/VOICE_ACCURACY_REPORT.md", "docs/MULTILINGUAL_TEST_REPORT.md",
+             "docs/VOICE_COMMAND_ACCURACY_REPORT.md", "docs/AGENTIC_INTELLIGENCE_REPORT.md",
+             "docs/MULTILINGUAL_ACCEPTANCE_REPORT.md", "docs/NOISE_ROBUSTNESS_REPORT.md", "docs/SIMULATOR_GUIDE.md",
+             "qa/screenshots/mini-island.png", "qa/screenshots/simulator.png", "qa/results/final-*.json",
              "scripts/test-aura-microphone.ps1", "qa/live_acceptance.py", "qa/loopback_rehearsal.py"]
     listed = subprocess.check_output(["git", "ls-files", "-z", "--", *paths], cwd=root)
     tracked = [root / name.decode("utf8") for name in listed.split(b"\0") if name]
