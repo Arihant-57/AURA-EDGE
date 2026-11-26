@@ -1677,9 +1677,10 @@ class VoiceOrchestrator:
             capability_summary=caps,
             memory_context=mem_context,
         )
-        low_u = user_text.lower()
-        want_detail = any(
-            kw in low_u for kw in ("explain", "continue", "detail", "more", "why", "how", "विस्तार", "ವಿವರ")
+        want_detail = re.search(
+            r"\b(?:continue|details?|in depth|elaborate)\b|विस्तार|ವಿವರ",
+            user_text,
+            flags=re.IGNORECASE,
         )
         token_budget = 220 if want_detail else 120
         sentence_buf = SentenceStreamBuffer(min_chars=24, split_long_phrases=False)

@@ -1,0 +1,288 @@
+{
+  "baseline": [
+    {
+      "response_text": "The sky appears blue because sunlight scatters off molecules in the atmosphere, and blue light scatters more than other colors. This effect is called Rayleigh scattering.",
+      "stage_timestamps": {
+        "speech_end": null,
+        "stt_start": null,
+        "stt_completion": null,
+        "routing_completion": 74150.1518306,
+        "tool_completion": null,
+        "llm_first_token": 74156.0523368,
+        "validated_response_text": 74156.7511904,
+        "first_valid_speech_chunk": 74156.5730613,
+        "tts_completion": 74157.0170168,
+        "first_non_silent_output_callback": 74157.3012025,
+        "playback_completion": 74165.9764299
+      },
+      "llm_ttft_ms": 5043.47,
+      "time_to_first_audio_output_ms": 7185.82,
+      "tts_ms": 257.32
+    },
+    {
+      "response_text": "The sky appears blue because sunlight scatters more easily off molecules in the atmosphere when hitting shorter wavelengths, like blue light. This scattered blue light reaches your eyes from all directions, making the sky look that way.",
+      "stage_timestamps": {
+        "speech_end": null,
+        "stt_start": null,
+        "stt_completion": null,
+        "routing_completion": 74166.8510645,
+        "tool_completion": null,
+        "llm_first_token": 74167.322773,
+        "validated_response_text": 74168.2461929,
+        "first_valid_speech_chunk": 74167.854545,
+        "tts_completion": 74168.5960597,
+        "first_non_silent_output_callback": 74168.6681197,
+        "playback_completion": 74180.7634875
+      },
+      "llm_ttft_ms": 266.31,
+      "time_to_first_audio_output_ms": 1818.76,
+      "tts_ms": 341.75
+    },
+    {
+      "response_text": "The sky appears blue because sunlight scatters off Earth's atmosphere, with shorter blue wavelengths scattering more than longer red ones. This scattered blue light reaches your eyes from all directions, making the sky look blue during the day.",
+      "stage_timestamps": {
+        "speech_end": null,
+        "stt_start": null,
+        "stt_completion": null,
+        "routing_completion": 74181.6237658,
+        "tool_completion": null,
+        "llm_first_token": 74182.0915021,
+        "validated_response_text": 74183.0664031,
+        "first_valid_speech_chunk": 74182.6354237,
+        "tts_completion": 74183.4580118,
+        "first_non_silent_output_callback": 74183.5320699,
+        "playback_completion": 74195.9244633
+      },
+      "llm_ttft_ms": 273.52,
+      "time_to_first_audio_output_ms": 1909.81,
+      "tts_ms": 380.99
+    },
+    {
+      "response_text": "The sky appears blue because sunlight scatters off molecules in the atmosphere, and blue light scatters more than other colors. This effect is called Rayleigh scattering.",
+      "stage_timestamps": {
+        "speech_end": null,
+        "stt_start": null,
+        "stt_completion": null,
+        "routing_completion": 74196.7874763,
+        "tool_completion": null,
+        "llm_first_token": 74197.2906851,
+        "validated_response_text": 74198.0476539,
+        "first_valid_speech_chunk": 74197.8657663,
+        "tts_completion": 74198.0483222,
+        "first_non_silent_output_callback": 74198.1223244,
+        "playback_completion": 74206.8095927
+      },
+      "llm_ttft_ms": 289.27,
+      "time_to_first_audio_output_ms": 1336.42,
+      "tts_ms": 0.0
+    }
+  ],
+  "candidate_silent": [
+    {
+      "response_text": "The sky appears blue because Earth's atmosphere scatters sunlight more effectively at shorter blue wavelengths.",
+      "stage_timestamps": {
+        "speech_end": null,
+        "stt_start": null,
+        "stt_completion": null,
+        "routing_completion": 74862.9602307,
+        "tool_completion": null,
+        "llm_first_token": 74863.9201883,
+        "validated_response_text": 74864.3219475,
+        "first_valid_speech_chunk": 74864.3219086,
+        "tts_completion": 74865.5176407,
+        "first_non_silent_output_callback": null,
+        "playback_completion": null
+      },
+      "llm_ttft_ms": 572.72,
+      "time_to_first_audio_output_ms": null,
+      "time_to_first_synthesized_audio_ms": 2648.63,
+      "tts_ms": 1186.88
+    },
+    {
+      "response_text": "The sky appears blue because sunlight scatters off air molecules, with blue light scattering more than other colors. This effect is called Rayleigh scattering.",
+      "stage_timestamps": {
+        "speech_end": null,
+        "stt_start": null,
+        "stt_completion": null,
+        "routing_completion": 74865.5364185,
+        "tool_completion": null,
+        "llm_first_token": 74866.3225336,
+        "validated_response_text": 74866.9526606,
+        "first_valid_speech_chunk": 74866.7780409,
+        "tts_completion": 74867.4108851,
+        "first_non_silent_output_callback": null,
+        "playback_completion": null
+      },
+      "llm_ttft_ms": 415.1,
+      "time_to_first_audio_output_ms": null,
+      "time_to_first_synthesized_audio_ms": 1876.93,
+      "tts_ms": 447.83
+    },
+    {
+      "response_text": "The sky appears blue because sunlight scatters off air molecules, with blue light scattering more than other colors. This scattered blue light reaches your eyes from all directions.",
+      "stage_timestamps": {
+        "speech_end": null,
+        "stt_start": null,
+        "stt_completion": null,
+        "routing_completion": 74867.4284189,
+        "tool_completion": null,
+        "llm_first_token": 74868.2596056,
+        "validated_response_text": 74868.9522015,
+        "first_valid_speech_chunk": 74868.7138122,
+        "tts_completion": 74869.5132365,
+        "first_non_silent_output_callback": null,
+        "playback_completion": null
+      },
+      "llm_ttft_ms": 406.63,
+      "time_to_first_audio_output_ms": null,
+      "time_to_first_synthesized_audio_ms": 2087.33,
+      "tts_ms": 548.73
+    },
+    {
+      "response_text": "The sky appears blue because sunlight scatters off Earth's atmosphere more when hitting shorter blue wavelengths. This happens due to a process called Rayleigh scattering.",
+      "stage_timestamps": {
+        "speech_end": null,
+        "stt_start": null,
+        "stt_completion": null,
+        "routing_completion": 74869.5282682,
+        "tool_completion": null,
+        "llm_first_token": 74870.2907957,
+        "validated_response_text": 74870.9399117,
+        "first_valid_speech_chunk": 74870.7013331,
+        "tts_completion": 74871.4360421,
+        "first_non_silent_output_callback": null,
+        "playback_completion": null
+      },
+      "llm_ttft_ms": 402.46,
+      "time_to_first_audio_output_ms": null,
+      "time_to_first_synthesized_audio_ms": 1910.17,
+      "tts_ms": 485.23
+    }
+  ],
+  "factual": [
+    {
+      "id": "sky",
+      "question": "Why is the sky blue?",
+      "reply": "The sky appears blue because Earth's atmosphere scatters sunlight more effectively at shorter wavelengths, which correspond to the color blue.",
+      "intent": "Conversation",
+      "criteria": [
+        "scatter",
+        "blue"
+      ],
+      "checks": {
+        "concepts": true,
+        "response_language": true,
+        "route": true
+      },
+      "passed": true
+    },
+    {
+      "id": "shorter",
+      "question": "Make that explanation shorter.",
+      "reply": "Sunlight scatters off our atmosphere, making the sky look blue.",
+      "intent": "Conversation",
+      "criteria": [
+        "scatter",
+        "blue"
+      ],
+      "checks": {
+        "concepts": true,
+        "response_language": true,
+        "route": true
+      },
+      "passed": true
+    },
+    {
+      "id": "arithmetic",
+      "question": "What is seventeen multiplied by six?",
+      "reply": "The answer is 102.",
+      "intent": "Calculate",
+      "criteria": [
+        "102|one hundred (and )?two"
+      ],
+      "checks": {
+        "concepts": true,
+        "response_language": true,
+        "route": true
+      },
+      "passed": true
+    },
+    {
+      "id": "reasoning",
+      "question": "Which is heavier, one kilogram of steel or one kilogram of cotton?",
+      "reply": "They are both exactly one kilogram, so they weigh the same.",
+      "intent": "Conversation",
+      "criteria": [
+        "same|equal|both weigh"
+      ],
+      "checks": {
+        "concepts": true,
+        "response_language": true,
+        "route": true
+      },
+      "passed": true
+    },
+    {
+      "id": "hindi",
+      "question": "पृथ्वी का प्राकृतिक उपग्रह कौन सा है?",
+      "reply": "पृथ्वी का प्राकृतिक उपग्रह चंद्रमा है।",
+      "intent": "Conversation",
+      "criteria": [
+        "चंद्रमा|चन्द्रमा|चाँद|चांद"
+      ],
+      "checks": {
+        "concepts": true,
+        "response_language": true,
+        "route": true
+      },
+      "passed": true
+    },
+    {
+      "id": "kannada",
+      "question": "ನೀರಿನ ರಾಸಾಯನಿಕ ಸೂತ್ರ ಯಾವುದು?",
+      "reply": "ನೀರದ ರಾಸಾಯನಿಕ ಸೂತ್ರ H2O.",
+      "intent": "Conversation",
+      "criteria": [
+        "h₂o|h2o|ಎಚ್.*ಒ"
+      ],
+      "checks": {
+        "concepts": true,
+        "response_language": true,
+        "route": true
+      },
+      "passed": true
+    },
+    {
+      "id": "capabilities",
+      "question": "What can you do?",
+      "reply": "I can tell the time and date, set timers, do simple arithmetic, control simulated appliances and routines, remember preferences, set reminders and schedule actions, manage tasks, manage your calendar, summarize your day, check groceries, inventory and recipes, record expenses and check saved deliveries.",
+      "intent": "Help",
+      "criteria": [
+        "timer",
+        "reminder",
+        "expense"
+      ],
+      "checks": {
+        "concepts": true,
+        "response_language": true,
+        "route": true
+      },
+      "passed": true
+    },
+    {
+      "id": "weather",
+      "question": "Is it raining in Mumbai right now?",
+      "reply": "I cannot check the weather or access external data like current rain status.",
+      "intent": "Conversation",
+      "criteria": [
+        "offline|real.time|live|internet|cannot|can't|unable"
+      ],
+      "checks": {
+        "concepts": true,
+        "response_language": true,
+        "route": true
+      },
+      "passed": true
+    }
+  ]
+}
