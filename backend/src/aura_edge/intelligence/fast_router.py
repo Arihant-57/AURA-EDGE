@@ -49,11 +49,6 @@ _COMPOUND_SPLIT_RE = re.compile(
     flags=re.IGNORECASE | re.UNICODE,
 )
 
-_TIME_UNIT_START_RE = re.compile(
-    r"^\s*\d+\s*(?:hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s|"
-    r"घंट[ाे]|मिनट|सेकंड|ನಿಮಿಷ|ಸೆಕೆಂಡ್|ಗಂಟೆ)",
-    flags=re.IGNORECASE | re.UNICODE,
-)
 
 # Standalone greetings, acknowledgments, farewells, and language switches (Phase 1.5)
 _GREETING_RE = re.compile(
@@ -1178,7 +1173,7 @@ class MultilingualFastRouter:
 
             slots: dict[str, object] = {}
             if intent_enum == IntentName.SET_TIMER:
-                dur = extract_duration_seconds(norm.normalized)
+                dur = extract_duration_seconds(norm.normalized, require_all_quantities=True)
                 if dur is None:
                     continue
                 slots["duration_seconds"] = dur
@@ -1250,7 +1245,7 @@ class MultilingualFastRouter:
         if not has_timer_word:
             return None
 
-        dur = extract_duration_seconds(text)
+        dur = extract_duration_seconds(text, require_all_quantities=True)
         if dur is not None and _TIMER_ACTION_KEYWORDS["set"].search(text):
             slots: dict[str, object] = {"duration_seconds": dur}
             lbl = _extract_label_from_timer_text(text)
@@ -1335,9 +1330,13 @@ class MultilingualFastRouter:
                                raw_text=raw_text), round((time.perf_counter() - t0) * 1000.0, 2)
 
         # Split compound commands safely (preserving "1 minute and 30 seconds")
-        clauses = [c.strip() for c in _COMPOUND_SPLIT_RE.split(norm.normalized) if c.strip()]
-        if len(clauses) > 1 and any(_TIME_UNIT_START_RE.match(c) for c in clauses[1:]):
-            clauses = [norm.normalized]
+        clauses = []
+        for segment in _COMPOUND_SPLIT_RE.split(norm.normalized):
+            segment = segment.strip()
+            if segment and clauses and segment[0].isdigit():
+                clauses[-1] += " " + segment
+            elif segment:
+                clauses.append(segment)
 
         # Keep free-form reminder messages and shopping item names intact. A leading
         # device instruction or briefing followed by another instruction is a plan.
@@ -1349,10 +1348,11 @@ class MultilingualFastRouter:
             _TEMPORARY_POWER_RE.search(norm.normalized)
             or (_AFTER_RE.search(norm.normalized) and _extract_delay_from_phrase(norm.normalized)[0] is None)
         )
-        invalid_timer = (
-            re.search(r"\b(?:set|start|create)\b.*?\btimer\b", norm.normalized, re.IGNORECASE)
-            and re.search(r"\d", norm.normalized)
-            and extract_duration_seconds(norm.normalized) is None
+        invalid_timer = any(
+            re.search(r"\b(?:set|start|create)\b.*?\btimer\b", clause, re.IGNORECASE)
+            and re.search(r"\d", clause)
+            and extract_duration_seconds(clause, require_all_quantities=True) is None
+            for clause in clauses
         )
         if (len(clauses) > 4 or unsafe_power_timing or invalid_timer or _NEGATED_REQUEST.search(norm.normalized)
                 or any(pattern.search(norm.normalized) for pattern in _AMBIGUOUS_PATTERNS)):
@@ -1375,7 +1375,7 @@ class MultilingualFastRouter:
             return mem_intent, round((time.perf_counter() - t0) * 1000.0, 2)
 
         # Preserve explicit Phase 1 Hassil countdown timers ("Remind me in 45 seconds", etc.)
-        if "to " not in norm.normalized.lower() and not re.search(
+        if len(clauses) == 1 and "to " not in norm.normalized.lower() and not re.search(
             r"\b(?:light|fan|ac|tv|curtain|washer|vacuum|routine|reminder|शेड्यूल|रिमाइंडर|ಜ್ಞಾಪನೆ|ರಿಮೈಂಡರ್)\b",
             norm.normalized.lower(),
             flags=re.UNICODE,

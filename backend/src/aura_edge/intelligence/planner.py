@@ -344,7 +344,7 @@ class HybridPlanner:
         if intent_enum == IntentName.SET_TIMER:
             dur = data.get("duration_seconds")
             if (isinstance(dur, bool) or not isinstance(dur, int) or not 1 <= dur <= 86400
-                    or dur != extract_duration_seconds(raw_text)):
+                    or dur != extract_duration_seconds(raw_text, require_all_quantities=True)):
                 return TypedIntent(
                     intent_name=IntentName.CLARIFY,
                     confidence=0.5,

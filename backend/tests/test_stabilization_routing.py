@@ -52,6 +52,8 @@ def test_delayed_power_resolves_only_from_verified_context():
     ("one hundred and five seconds", None),
     ("one minute and two milliseconds", None),
     ("3 2 minutes", None),
+    ("two boxes and one minute", None),
+    ("one minute and two apples", None),
 ])
 def test_countdown_does_not_silently_drop_part_of_a_quantity(phrase, seconds):
     result, _ = MultilingualFastRouter().route(f"Set a timer for {phrase}")
@@ -60,6 +62,15 @@ def test_countdown_does_not_silently_drop_part_of_a_quantity(phrase, seconds):
     else:
         assert result.intent_name == IntentName.SET_TIMER
         assert result.slots["duration_seconds"] == seconds
+
+
+def test_two_duration_units_and_an_independent_device_action():
+    result, _ = MultilingualFastRouter().route(
+        "Set a timer for one minute and five seconds and set the bedroom AC to 24 degrees"
+    )
+    assert [a.intent_name for a in result.sub_actions] == [IntentName.SET_TIMER, IntentName.DEVICE_CONTROL]
+    assert result.sub_actions[0].slots["duration_seconds"] == 65
+    assert result.sub_actions[1].slots["value"] == 24
 
 
 def test_strict_hindi_ac_temperature_transcript_keeps_exact_room_and_quantity():

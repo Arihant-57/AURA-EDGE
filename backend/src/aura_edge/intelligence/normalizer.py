@@ -446,9 +446,15 @@ def _replace_number_words(text: str, *, language: LanguageCode = "en") -> str:
     return out
 
 
-def extract_duration_seconds(text: str) -> int | None:
+def extract_duration_seconds(text: str, *, require_all_quantities: bool = False) -> int | None:
     """Extract positive total duration in seconds from EN/HI/KN text, or None if absent."""
     prepared = _replace_number_words(text.translate(_DIGIT_TRANSLATION))
+    if require_all_quantities:
+        # Named timers may contain a number in their label. All quantities in
+        # the actual countdown must belong to a recognized duration unit.
+        prepared = re.sub(r"\b(?:named|called)\s+\w+", "", prepared, flags=re.IGNORECASE)
+        if re.search(r"(?<!\w)\d+", _DURATION_CHUNK_RE.sub(" ", prepared)):
+            return None
     if re.search(
         r"[-−]\s*\d|\d[.,]\d|\d\s+\d|"
         r"\b\d+\s*[- ]?\s*(?:milliseconds?|days?|weeks?|months?|years?|hundred|thousand)\b",
