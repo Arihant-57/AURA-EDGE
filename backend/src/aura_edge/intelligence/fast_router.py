@@ -285,7 +285,9 @@ def _try_smart_home_action(text: str) -> TypedAction | None:
         r"चालू\s*(?:करो|कर\s+दो|कीजिए)|ಚಾಲು\s*(?:ಮಾಡು|ಮಾಡಿ)|ಆನ್\s+ಮಾಡು|ಆನ್\s+ಮಾಡಿ|"
         r"(?<![\w\u0C80-\u0CFF])ಆನ್(?![\w\u0C80-\u0CFF])",
         low,
-    ):
+    ) or (room is not None and kind is not None and re.search(
+        r"(?<![\w\u0C80-\u0CFF])ಅನ್\s+ಮಾಡ[ುಿ](?![\w\u0C80-\u0CFF])", low
+    )):
         slots.update(action="power", value=True)
     elif re.search(
         r"\b(?:turn|switch)\s+off\b|\boff\s+(?:karo|kijiye|maad[iu])\b|"

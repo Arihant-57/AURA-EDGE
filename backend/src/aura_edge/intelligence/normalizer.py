@@ -483,7 +483,14 @@ def extract_duration_seconds(text: str, *, require_all_quantities: bool = False)
 
 def _normalize_kannada_asr_variants(text: str) -> str:
     """Normalize known IndicConformer Kannada CTC character slips on timer/time commands."""
-    out = re.sub(r"(?:ತೈಮರಿ+|ಟೈಮರಿ+)ಡು", "ಟೈಮರ್ ಇಡು", text)
+    # Restore token boundaries without inferring a missing duration or action.
+    out = re.sub(
+        r"(ನಿಮಿಷದ|ಸೆಕೆಂಡಿನ|ಗಂಟೆಯ)(?=(?:ಟೈಮರ್|ತೈಮರ್)(?![\w\u0C80-\u0CFF]))",
+        r"\1 ",
+        text,
+    )
+    out = re.sub(r"(?<![\w\u0C80-\u0CFF])ಟೈಮರ್ತ್(?=\s+(?:ಇಡು|ಹಾಕು)\b)", "ಟೈಮರ್", out)
+    out = re.sub(r"(?:ತೈಮರಿ+|ಟೈಮರಿ+)ಡು", "ಟೈಮರ್ ಇಡು", out)
     # Preserve ಟೈಮ್ ("time", followed by Kannada virama \u0CCD) while normalizing slipped ಟೈಮ / ತೈಮರ್.
     out = re.sub(
         r"(?:ತ?ತೈಮರ್|ಟೈಮ(?!\u0CCD|ರ್|[\w\u0C80-\u0CFF])|ತೈಮ(?!\u0CCD|ರ್|[\w\u0C80-\u0CFF]))",

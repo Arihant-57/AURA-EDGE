@@ -270,3 +270,28 @@ async def test_exact_arithmetic_uses_registered_tool(question, answer):
 def test_discussion_and_negation_cannot_select_tools(phrase, expected):
     intent, _ = MultilingualFastRouter().route(phrase)
     assert intent and intent.intent_name == expected and not intent.sub_actions
+
+
+def test_kannada_timer_compound_boundary_preserves_action_and_duration():
+    router = MultilingualFastRouter()
+    for phrase, expected in (
+        ("ಮೂರು ನಿಮಿಷದಟೈಮರ್ ಇಡು", 180),
+        ("ಏಳು ಸೆಕೆಂಡಿನ ಟೈಮರ್ತ್ ಹಾಕು", 7),
+        ("ಮೂರು ನಿಮಿಷದಟೈಮರ್ ಇದು", None),
+    ):
+        action, _ = router.route(phrase, requested_language="kn")
+        if expected is None:
+            assert not action or action.intent_name.value != "SetTimer"
+        else:
+            assert action is not None and action.intent_name.value == "SetTimer"
+            assert action.slots["duration_seconds"] == expected
+
+
+def test_kannada_short_vowel_on_requires_target_and_affirmative_action():
+    router = MultilingualFastRouter()
+    accepted, _ = router.route("ಅಡುಗೆ ಮನೆ ಫ್ಯಾನ್ ಅನ್ ಮಾಡಿ", requested_language="kn")
+    assert accepted is not None
+    assert accepted.slots == {"room": "kitchen", "device_type": "fan", "action": "power", "value": True}
+    for phrase in ("ಫ್ಯಾನ್ ಅನ್ ಮಾಡಿ", "ಅಡುಗೆ ಮನೆ ಫ್ಯಾನ್ ಅನ್ ಮಾಡಬೇಡ", "ಅಡುಗೆ ಮನೆ ಫ್ಯಾನ್ ಅನ್ ಆಗಿದೆಯಾ"):
+        action, _ = router.route(phrase, requested_language="kn")
+        assert not action or action.slots.get("action") != "power"
