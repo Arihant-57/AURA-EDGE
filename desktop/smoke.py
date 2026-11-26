@@ -12,7 +12,8 @@ from urllib.request import Request, urlopen
 from companion import CAPSULE_WIDTH
 from local_server import start_server
 from main import ROOT, Desktop
-from PySide6.QtCore import QPoint, QProcess, QRect, QSettings, Qt
+from PySide6.QtCore import QPoint, QProcess, QRect, QSettings, Qt, QTimer
+from PySide6.QtGui import QContextMenuEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QWidget
 
@@ -158,6 +159,41 @@ def run(port, read_only, capture_dir=None, exercise_mic=False):
         wait_for(lambda: desktop.voice_model.online and desktop.voice_model.available, "Native voice snapshot unavailable")
         assert pet.isVisible() and desktop.mode == "PET_ONLY"
         assert pet.grab().toImage().pixelColor(0, 0).alpha() == 0, "Pet corner is not transparent"
+        # Exercise the actual context event and menu actions in the isolated
+        # smoke profile without relying on a human to dismiss the popup.
+        menu_labels = []
+        def inspect_menu():
+            if desktop.menu:
+                menu_labels.extend(a.text() for a in desktop.menu.actions())
+                desktop.menu.close()
+        QTimer.singleShot(180, inspect_menu)
+        point = QPoint(30, 30)
+        QApplication.sendEvent(pet, QContextMenuEvent(QContextMenuEvent.Reason.Mouse, point, pet.mapToGlobal(point)))
+        assert {"Talk to AURA", "Always on top", "Size", "Reduce motion"} <= set(menu_labels)
+        root = pet.pet.rootObject()
+        desktop.preference("reducedMotion", "false")
+        if desktop.voice_model.mood == "IDLE":
+            wait_for(lambda: root.property("motionStep") > 0, "Idle animation did not advance")
+            wait_for(lambda: root.property("blink"), "Idle eyes did not blink", timeout=7)
+        desktop.preference("reducedMotion", "true")
+        step = root.property("motionStep")
+        QTest.qWait(420)
+        assert root.property("reducedMotion") and root.property("motionStep") == step
+        desktop.preference("size", "large")
+        assert pet.width() == 108
+        desktop.preference("size", "medium")
+        desktop.preference("onTop", "true")
+        assert pet.windowFlags() & Qt.WindowType.WindowStaysOnTopHint
+        if desktop.tray.isVisible():
+            desktop.show_mode("HIDDEN")
+            assert not pet.isVisible()
+        for _ in range(3):
+            desktop.show_mode("MINI_ISLAND")
+            desktop.show_mode("PET_ONLY")
+        assert sum(w.windowTitle() == "AURA EDGE Companion" for w in app.topLevelWidgets()) == 1
+        assert backend("/voice/status")["active_state"] == "IDLE"
+        desktop.preference("reducedMotion", "false")
+        print("PASS context menu, idle and reduced motion, size, on-top and rapid transitions without capture", flush=True)
         if capture_dir:
             desktop.place_free(QRect(130, 104, pet.width(), pet.height()))
         capture("01-pet.png", pet)

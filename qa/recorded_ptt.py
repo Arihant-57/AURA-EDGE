@@ -25,11 +25,13 @@ def wait_for(condition, message, timeout=8):
     raise AssertionError(message)
 
 
-def run(output, study_fan):
+def run(output, study_fan, test_database_port=55434):
     cfg = Settings()
     database = make_url(cfg.database_url)
-    if database.host != "127.0.0.1" or database.port != 55434:
-        raise SystemExit("Set AURA_EDGE_DATABASE_URL to the dedicated disposable database on port 55434.")
+    if database.host != "127.0.0.1" or database.port != test_database_port:
+        raise SystemExit(f"Set AURA_EDGE_DATABASE_URL to the dedicated disposable database on port {test_database_port}.")
+    if test_database_port != 55434 and not (database.database or "").startswith("audit_"):
+        raise SystemExit("Use a separate audit_ database for alternate test ports.")
     app = create_app(cfg)
     events = []
     with TestClient(app) as client:
@@ -99,5 +101,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--study-fan", action="store_true")
+    parser.add_argument("--test-database-port", type=int, choices=range(55000, 56000), default=55434,
+                        metavar="PORT", help="Loopback port of the dedicated test database.")
     options = parser.parse_args()
-    run(options.output, options.study_fan)
+    run(options.output, options.study_fan, options.test_database_port)

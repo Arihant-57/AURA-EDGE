@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from companion import CAPSULE_HEIGHT, CAPSULE_WIDTH, Companion, clamp
 from local_server import start_server
+from shutdown_request import install_shutdown_request
 from PySide6.QtCore import (
     QDir,
     QEvent,
@@ -491,6 +492,7 @@ def main():
         return 0
     server = start_server(build, args.backend_port)
     controller = Desktop(args, server)
+    install_shutdown_request(runtime, app, controller)
     app.aboutToQuit.connect(lock.unlock)
     result = app.exec()
     del controller
