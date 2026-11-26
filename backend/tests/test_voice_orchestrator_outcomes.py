@@ -775,3 +775,35 @@ def test_concurrent_turn_cancellation_and_audio_callback_timing(monkeypatch: Any
             assert orch.fsm.state == AssistantState.IDLE
 
         asyncio.run(_verify_callback_and_concurrency())
+
+
+def test_auto_hindi_retry_preserves_negation_and_mixed_speech(monkeypatch, tmp_path):
+    app = _make_offline_app()
+    (tmp_path / "model.int8.onnx").touch()
+    (tmp_path / "tokens.txt").touch()
+    with TestClient(app) as client:
+        orch = app.state.orchestrator
+        monkeypatch.setattr(orch.settings, "hindi_specialist_dir", tmp_path)
+        pcm = np.ones(16000, dtype=np.float32) * 0.1
+        for heard, probability, second_pass in (
+            ("आ भी कित ने बज हे", 0.94, True),
+            ("बेडरूम की लाइट चालू मत करो", 0.95, False),
+            ("Bedroom की light", 0.96, False),
+            ("आ भी कित ने बज हे", 0.45, False),
+        ):
+            calls = []
+            def transcribe(_samples, **options):
+                strict = options["strict_language"]
+                calls.append(strict)
+                return TranscriptionResult(text="अभी कितने बजे हैं" if strict else heard,
+                    detected_language="hi", model_size="indic-conformer-hi" if strict else "small",
+                    language_probability=None if strict else probability, latency_ms=12,
+                    device="cpu", compute_type="int8")
+            monkeypatch.setattr(orch.stt, "transcribe", transcribe)
+            result = asyncio.run(orch.process_audio_samples(pcm, speak=False, allow_llm_fallback=False))
+            assert calls == ([False, True] if second_pass else [False])
+            if second_pass:
+                assert result.intent == "GetTime" and result.recognition_mode == "multilingual"
+                assert result.language_probability == probability
+            else:
+                assert not result.action_executed

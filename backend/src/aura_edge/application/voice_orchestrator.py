@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 import inspect
 import logging
+import re
 import time
 from collections import deque
 from collections.abc import Callable
@@ -38,6 +39,7 @@ from aura_edge.intelligence.conversation import (
     validate_response_language,
 )
 from aura_edge.intelligence.fast_router import MultilingualFastRouter
+from aura_edge.intelligence.normalizer import normalize_utterance
 from aura_edge.intelligence.ollama_client import OllamaClient, OllamaUnavailableError
 from aura_edge.intelligence.planner import HybridPlanner
 from aura_edge.intelligence.response_catalog import get_phrase
@@ -821,6 +823,41 @@ class VoiceOrchestrator:
                 })
         return primary.model_copy(update={"latency_ms": primary.latency_ms + candidate.latency_ms})
 
+    def _retry_hindi(
+        self, samples: np.ndarray, primary: TranscriptionResult, preferred: RequestedLanguage,
+        voiced_ms: float | None, noise_floor: float | None,
+    ) -> TranscriptionResult:
+        directory = self.settings.hindi_specialist_dir
+        if directory is None or not all((directory / f).is_file() for f in ("model.int8.onnx", "tokens.txt")):
+            return primary
+        original, _ = self.fast_router.route(primary.text, requested_language="hi")
+        if original is not None:
+            return primary
+        try:
+            candidate = self._invoke_stt(samples, stt_language="hi", preferred_reply_language=preferred,
+                recognition_mode="strict", strict_language=True, fallback_language="hi",
+                vad_voiced_ms=voiced_ms, noise_floor_rms=noise_floor)
+        except (OSError, ValueError, RuntimeError):
+            logger.warning("Optional Hindi second pass unavailable", exc_info=True)
+            return primary
+        metrics = {"latency_ms": primary.latency_ms + candidate.latency_ms}
+        if candidate.quality_ok and not candidate.is_empty and candidate.model_size == "indic-conformer-hi":
+            interpretation, _ = self.fast_router.route(candidate.text, requested_language="hi")
+            if interpretation and len(interpretation.sub_actions) <= 1:
+                # Keep the first hypothesis if the second changes a recognizable
+                # number, reverses polarity or converts a question into a mutation.
+                first = normalize_utterance(primary.text, requested_language="hi").normalized
+                second = normalize_utterance(candidate.text, requested_language="hi").normalized
+                numbers = re.findall(r"\d+", first)
+                conflict = ((numbers and numbers != re.findall(r"\d+", second))
+                            or ("बंद" in first and "चालू" in second)
+                            or ("चालू" in first and "बंद" in second))
+                read_only = interpretation.intent_name in {IntentName.GET_TIME, IntentName.GET_DATE, IntentName.CLARIFY}
+                if not conflict and (read_only or "?" not in primary.text):
+                    return candidate.model_copy(update={**metrics, "recognition_mode": "multilingual",
+                        "language_probability": primary.language_probability})
+        return primary.model_copy(update=metrics)
+
     async def _process_audio_with_turn(
         self,
         ctx: TurnContext,
@@ -889,6 +926,12 @@ class VoiceOrchestrator:
                         vad_voiced_ms=vad_voiced_ms, noise_floor_rms=noise_floor_rms,
                     ),
                 )
+            elif (not ctx.is_cancelled and rec_mode == "multilingual" and stt_res.detected_language == "hi"
+                  and stt_res.quality_ok and not stt_res.is_empty and (stt_res.language_probability or 0) >= 0.85
+                  and stt_res.model_size != "base" and any("\u0900" <= c <= "\u097f" for c in stt_res.text)
+                  and all(not c.isalpha() or "\u0900" <= c <= "\u097f" for c in stt_res.text)):
+                stt_res = await loop.run_in_executor(None, self._retry_hindi, audio_f32, stt_res,
+                                                     preferred_reply_lang, vad_voiced_ms, noise_floor_rms)
             timestamps["stt_completion"] = time.perf_counter()
 
             if ctx.is_cancelled:
