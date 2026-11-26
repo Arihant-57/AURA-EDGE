@@ -698,6 +698,7 @@ class VoiceOrchestrator:
         try:
             await self.audio_capture.start_ptt_capture(
                 use_vad_endpointing=True, on_level=on_level, open_hardware_stream=True,
+                initial_timeout_sec=max(6.0, self.settings.vad_initial_timeout_sec),
             )
         except (AudioDeviceUnavailableError, OSError) as exc:
             code, message = "mic_unavailable", f"Could not open the microphone: {exc}"

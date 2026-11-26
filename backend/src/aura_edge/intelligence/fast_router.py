@@ -1084,7 +1084,7 @@ def _try_phase4_action(norm: NormalizedText) -> TypedIntent | None:
         )
 
     m_task_add = re.search(
-        r"(?:add|create)\s+(?:a\s+)?(?:new\s+)?task(?:\s+to)?\s+(.+)|"
+        r"(?:add|create)\s+(?:a\s+)?(?:new\s+)?task(?:\s+(?:to|called|named))?\s+(.+)|"
         r"टास्क\s+(?:जोड़ो|बनाओ)\s*(?::)?\s*(.+)|"
         r"ಟಾಸ್ಕ್\s+(?:ಸೇರಿಸು|ಸೇರಿಸಿ|ರಚಿಸು)\s*(?::)?\s*(.+)",
         text,
@@ -1234,8 +1234,8 @@ class MultilingualFastRouter:
             r"(?:\btoday(?:'s)?\s+date\b|\bdate\s+today\b|\bwhat(?:'s|\s+is)?\s+(?:the\s+|today(?:'s)?\s+)?(?:date|day)\b|"
             r"(?:तारी[खक]|डेट)\s*(?:क्या|कितनी|बता)|आज\s*(?:की\s+)?(?:तारी[खक]|डेट)\s*(?:क्या|बता)?|आज\s+(?:क्या|क[ौो]न\s*सा|कोंसा)\s+दिन|"
             r"aaj\s+(?:ki\s+)?(?:kya\s+)?(?:tareekh|tarikh|date)|"
-            r"(?:ಇವತ್ತ\w*|ಇಂದು).*?(?:ಡೇಟ್|ದಿನಾಂಕ|ತಾರೀಖು).*?(?:ಏನು|ಎಷ್ಟು)|"
-            r"(?:ಡೇಟ್|ದಿನಾಂಕ|ತಾರೀಖು)\s*(?:ಏನು|ಎಷ್ಟು|ಹೇಳು)|ಯಾವ\s*(?:ದಿನ|ತಾರೀಖು)|"
+            r"(?:ಇವತ್ತ\w*|ಇಂದು).*?(?:ಡೇಟ(?:್)?|ದಿನಾಂಕ|ತಾರೀಖು|\bdate\b).*?(?:ಏನು|ಎಷ್ಟು)|"
+            r"(?:ಡೇಟ(?:್)?|ದಿನಾಂಕ|ತಾರೀಖು)\s*(?:ಏನು|ಎಷ್ಟು|ಹೇಳು)|ಯಾವ\s*(?:ದಿನ|ತಾರೀಖು)|"
             r"dinanka\s+(?:enu|eshtu)|tareekhu\s+eshtu|(?:ivatt\w*|indu)\s+(?:date|dinanka|tareekhu)\s*(?:enu|eshtu)?)",
             low,
             flags=re.UNICODE,

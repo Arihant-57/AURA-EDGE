@@ -246,12 +246,17 @@ class TTSRouter:
         speed: float | None = None,
     ) -> SynthesizedAudio:
         """Synthesize offline speech with LRU caching keyed by language/model/voice/speed/text."""
-        raw_spd = float(speed if speed is not None else self._settings.tts_default_speed)
+        default_speed = self._settings.tts_default_speed
+        if language == "kn" and default_speed == 1.0:
+            default_speed = 0.90
+        raw_spd = float(speed if speed is not None else default_speed)
         spd = round(max(0.5, min(2.0, raw_spd)), 2)
-        normalized = normalize_for_pronunciation(text, language)
         backend = self._select_backend(language)
+        # Sherpa owns Kannada normalization so direct and routed calls use the same rules.
+        prepared = (text.strip() if language == "kn" and isinstance(backend, SherpaOnnxBackend)
+                    else normalize_for_pronunciation(text, language))
         model_name, voice_name = backend.model_info(language)
-        cache_key = (language, backend.name, model_name, voice_name, spd, normalized)
+        cache_key = (language, backend.name, model_name, voice_name, spd, prepared)
 
         with self._cache_lock:
             cached = self._cache.get(cache_key)
@@ -269,7 +274,7 @@ class TTSRouter:
                     cached=True,
                 )
 
-        audio = backend.synthesize(normalized, language=language, speed=spd)
+        audio = backend.synthesize(prepared, language=language, speed=spd)
 
         with self._cache_lock:
             self.cache_misses += 1

@@ -55,6 +55,25 @@ _MONTHS_KN = [
 ]
 
 
+_KN_SMALL_NUMBERS = (
+    "ಸೊನ್ನೆ", "ಒಂದು", "ಎರಡು", "ಮೂರು", "ನಾಲ್ಕು", "ಐದು", "ಆರು", "ಏಳು", "ಎಂಟು", "ಒಂಬತ್ತು",
+    "ಹತ್ತು", "ಹನ್ನೊಂದು", "ಹನ್ನೆರಡು", "ಹದಿಮೂರು", "ಹದಿನಾಲ್ಕು", "ಹದಿನೈದು",
+    "ಹದಿನಾರು", "ಹದಿನೇಳು", "ಹದಿನೆಂಟು", "ಹತ್ತೊಂಬತ್ತು",
+)
+_KN_TENS = ("", "", "ಇಪ್ಪತ್ತು", "ಮೂವತ್ತು", "ನಲವತ್ತು", "ಐವತ್ತು", "ಅರವತ್ತು", "ಎಪ್ಪತ್ತು", "ಎಂಬತ್ತು", "ತೊಂಬತ್ತು")
+
+
+def _kn_clock_number(value: int) -> str:
+    if value < 20:
+        return _KN_SMALL_NUMBERS[value]
+    tens, units = divmod(value, 10)
+    prefix = _KN_TENS[tens]
+    if not units:
+        return prefix
+    suffixes = ("", "ೊಂದು", "ೆರಡು", "ಮೂರು", "ನಾಲ್ಕು", "ೈದು", "ಾರು", "ೇಳು", "ೆಂಟು", "ೊಂಬತ್ತು")
+    return prefix[:-1] + suffixes[units]
+
+
 class DateTimeTool:
     """Reads actual host system clock & timezone."""
 
@@ -70,7 +89,11 @@ class DateTimeTool:
             msg = f"अभी {period} के {hour_12} बजकर {minute} मिनट हुए हैं।"
         elif lang == "kn":
             period = "ಬೆಳಿಗ್ಗೆ" if now.hour < 12 else ("ಮಧ್ಯಾಹ್ನ" if now.hour < 17 else "ಸಂಜೆ")
-            msg = f"ಈಗ {period} {hour_12} ಗಂಟೆ {minute} ನಿಮಿಷ ಆಗಿದೆ."
+            hour_word = _kn_clock_number(int(hour_12))
+            minute_word = _kn_clock_number(int(minute))
+            msg = f"ಈಗ {period} {hour_word} ಗಂಟೆ."
+            if int(minute):
+                msg = f"ಈಗ {period} {hour_word} ಗಂಟೆ {minute_word} ನಿಮಿಷ."
         else:
             msg = f"The time is {hour_12}:{minute} {ampm} ({tz_name})."
 
@@ -95,7 +118,12 @@ class DateTimeTool:
         if lang == "hi":
             msg = f"आज { _WEEKDAYS_HI[wd] }, {now.day} {_MONTHS_HI[mo]} {now.year} है।"
         elif lang == "kn":
-            msg = f"ಇಂದು {_WEEKDAYS_KN[wd]}, {_MONTHS_KN[mo]} {now.day}, {now.year}."
+            year = str(now.year)
+            if 2000 <= now.year < 2100:
+                year = "ಎರಡು ಸಾವಿರ"
+                if now.year != 2000:
+                    year = f"{year}ದ {_kn_clock_number(now.year - 2000)}"
+            msg = f"ಇಂದು {_WEEKDAYS_KN[wd]}. {_MONTHS_KN[mo]} {_kn_clock_number(now.day)}, {year}."
         else:
             msg = f"Today is {now.strftime('%A, %B %d, %Y')}."
 

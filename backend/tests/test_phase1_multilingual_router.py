@@ -295,3 +295,22 @@ def test_kannada_short_vowel_on_requires_target_and_affirmative_action():
     for phrase in ("ಫ್ಯಾನ್ ಅನ್ ಮಾಡಿ", "ಅಡುಗೆ ಮನೆ ಫ್ಯಾನ್ ಅನ್ ಮಾಡಬೇಡ", "ಅಡುಗೆ ಮನೆ ಫ್ಯಾನ್ ಅನ್ ಆಗಿದೆಯಾ"):
         action, _ = router.route(phrase, requested_language="kn")
         assert not action or action.slots.get("action") != "power"
+
+
+def test_kannada_spoken_date_variant_routes_without_matching_data():
+    router = MultilingualFastRouter()
+    action, _ = router.route("ಇವತ್ತು ಡೇಟ ಏನು", requested_language="kn")
+    assert action is not None and action.intent_name == IntentName.GET_DATE
+
+    action, _ = router.route("ಡೇಟಾ ಬಳಕೆ ಎಷ್ಟು", requested_language="kn")
+    assert action is None or action.intent_name != IntentName.GET_DATE
+
+
+
+def test_named_task_does_not_save_the_introductory_word():
+    router = MultilingualFastRouter()
+    for phrase, title in (("Create a task called inspect the demo", "inspect the demo"),
+                          ("Add a task named pack the charger", "pack the charger")):
+        action, _ = router.route(phrase)
+        assert action is not None and action.intent_name == IntentName.CREATE_TASK
+        assert action.slots["title"] == title
