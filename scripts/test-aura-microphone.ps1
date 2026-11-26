@@ -1,7 +1,8 @@
 param(
     [string]$BackendRoot = "$env:USERPROFILE/Desktop/AURA-EDGE",
     [switch]$CheckSetup,
-    [switch]$RestartCheck
+    [switch]$RestartCheck,
+    [switch]$KannadaCheck
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,7 +16,7 @@ $marker = Join-Path $root ".runtime/microphone-stop-$id"
 $result = Join-Path $root ".runtime/human-acceptance-$id.json"
 $server = $null
 $started = $false
-if ($CheckSetup -and $RestartCheck) { throw "Choose one verification mode." }
+if (($CheckSetup -and $RestartCheck) -or ($KannadaCheck -and ($CheckSetup -or $RestartCheck))) { throw "Choose one verification mode." }
 
 function Start-RehearsalBackend([string]$stopMarker) {
     $serverArgs = @("-m", "qa.loopback_rehearsal", "`"$stopMarker`"", "$port")
@@ -87,7 +88,8 @@ try {
     }
     else {
         Write-Output "The rehearsal dashboard is http://127.0.0.1:$port/app/. Use this instance during the session."
-        & $python -m qa.live_acceptance --port $port --samples 16 --rehearsal --include-text --output $result
+        $checks = if ($KannadaCheck) { @("--kannada-check") } else { @("--samples", "16", "--rehearsal") }
+        & $python -m qa.live_acceptance --port $port --include-text --output $result @checks
         if ($LASTEXITCODE) { throw "Session interrupted. Completed checks are saved in $result." }
     }
 } finally {

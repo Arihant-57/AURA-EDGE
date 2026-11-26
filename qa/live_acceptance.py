@@ -28,6 +28,14 @@ SAMPLES = [
 ]
 
 
+KANNADA_CHECKS = [
+    ("Kannada", "ಇಂದಿನ ದಿನಾಂಕ ಏನು?", "GetDate", None),
+    ("Kannada", "ಇವತ್ತು ಯಾವ ದಿನ?", "GetDate", None),
+    ("Kannada", "ಈಗ ಎಷ್ಟು ಗಂಟೆ ಆಗಿದೆ?", "GetTime", None),
+    ("Kannada-English", "ಇವತ್ತಿನ date ಏನು?", "GetDate", None),
+]
+
+
 DEMO_CASES = [
     ("English", "Turn on the bedroom light.", "DeviceControl", ("light.bedroom_main", "power", True)),
     ("English", "Set its brightness to fifty percent.", "DeviceControl", ("light.bedroom_main", "brightness", 50)),
@@ -47,11 +55,13 @@ def save_results(output, rows):
     pending.replace(output)
 
 
-def run(port, output, sample_count, include_text=False, rehearsal=False):
-    if rehearsal and not 8010 <= port <= 8099:
+def run(port, output, sample_count, include_text=False, rehearsal=False, kannada_check=False):
+    if (rehearsal or kannada_check) and not 8010 <= port <= 8099:
         raise SystemExit("Use the dedicated rehearsal backend for simulated mutations.")
     cases = [(*case, None) for case in SAMPLES[:sample_count]]
-    if rehearsal:
+    if kannada_check:
+        cases = KANNADA_CHECKS
+    elif rehearsal:
         cases.extend(DEMO_CASES)
     rows = []
     with httpx.Client(base_url=f"http://127.0.0.1:{port}/api/v1", trust_env=False, timeout=120) as client:
@@ -63,15 +73,34 @@ def run(port, output, sample_count, include_text=False, rehearsal=False):
             raise SystemExit("Connect the microphone and speaker and unmute AURA.")
         print("Local audio acceptance. Use only the public test phrases. Audio is never saved.")
         print("Transcript and reply text logging:", include_text)
+        if kannada_check:
+            input("\nPress Enter to hear a Kannada date reply generated from typed text.")
+            control = call("POST", "/intent/process", {
+                "text": "ಇಂದಿನ ದಿನಾಂಕ ಏನು?", "language": "kn", "speak": True,
+            })
+            understandable = input("Could you clearly understand the complete Kannada reply? [y/N] ").strip().lower() == "y"
+            callback = bool((control.get("stage_timestamps") or {}).get("first_non_silent_output_callback"))
+            rows.append({"control": "kannada_typed_playback", "reply_language": control["response_language"],
+                         "intent": control["intent"], "output_callback": callback,
+                         "human_audible_understandable": understandable,
+                         "passed": control["intent"] == "GetDate" and control["response_language"] == "kn"
+                         and callback and understandable})
+            save_results(output, rows)
         for index, (language, phrase, expected, check) in enumerate(cases, 1):
-            input(f"\n{language}: {phrase}\nPress Enter when ready to speak.")
+            use_strict_kn = kannada_check and language == "Kannada"
+            selected_language = "kn" if use_strict_kn else "auto"
+            recognition_mode = "strict" if use_strict_kn else "multilingual"
+            mode_label = f" ({recognition_mode})" if kannada_check else ""
+            input(f"\n{language}{mode_label}: {phrase}\nPress Enter when ready to speak.")
             status = call("GET", "/voice/status")
             if status["active_state"] != "IDLE" or status["conversation_active"] or status["mic_muted"]:
                 raise SystemExit("The existing session is busy or muted. Finish it before testing.")
             before_history = call("GET", "/smart-home/history?limit=1") if check == "history" else None
             before = time.time()
             try:
-                started = call("POST", "/voice/mic/start", {"language": "auto"})
+                if kannada_check:
+                    call("PUT", "/voice/language", {"language": selected_language, "recognition_mode": recognition_mode})
+                started = call("POST", "/voice/mic/start", {"language": selected_language})
             except httpx.HTTPStatusError as exc:
                 if exc.response.status_code != 503:
                     raise
@@ -130,6 +159,7 @@ def run(port, output, sample_count, include_text=False, rehearsal=False):
                     "language": language, "expected_intent": expected, "actual_intent": result["intent"],
                     "detected_language": result["detected_language"], "stt_model": result["stt_model"],
                     "reply_language": result["response_language"], "status": result["status"],
+                    "recognition_mode": result["recognition_mode"], "rejection_reason": result.get("rejection_reason"),
                     "verified": result["action_executed"] and result["status"] == "verified",
                     "readback": readback,
                     "output_callback": callback, "human_audible_understandable": audible,
@@ -140,7 +170,7 @@ def run(port, output, sample_count, include_text=False, rehearsal=False):
                 save_results(output, rows)
                 if call("GET", "/voice/status")["active_turn_id"] == turn_id:
                     call("POST", "/voice/cancel", {"turn_id": turn_id})
-        if rehearsal:
+        if rehearsal and not kannada_check:
             print(f"Open http://127.0.0.1:{port}/app/ in the rehearsal dashboard.")
             input("Mute the microphone there, then press Enter here.")
             confirmed_mute = call("GET", "/voice/status")["mic_muted"]
@@ -166,5 +196,6 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, default=Path(".runtime/human-microphone-check.json"))
     parser.add_argument("--include-text", action="store_true", help="Save transcript, slots and reply locally for this session.")
     parser.add_argument("--rehearsal", action="store_true", help="Add simulated device and timer readbacks on a disposable backend.")
+    parser.add_argument("--kannada-check", action="store_true", help="Run the short Kannada microphone and playback check.")
     options = parser.parse_args()
-    run(options.port, options.output, options.samples, options.include_text, options.rehearsal)
+    run(options.port, options.output, options.samples, options.include_text, options.rehearsal, options.kannada_check)
