@@ -8,6 +8,24 @@ from aura_edge.config import Settings
 from aura_edge.main import create_app
 
 
+def test_voice_refuses_external_bookings_and_clarifies_invalid_device_values():
+    with TestClient(create_app(Settings(_env_file=None))) as client:
+        def history():
+            return client.get("/api/v1/smart-home/history?limit=1").json()
+
+        before = history()
+        for phrase, outcome in (
+            ("Reserve a train ticket for tomorrow", "refusal"),
+            ("Set the study fan speed to 99", "clarification"),
+            ("Set the bedroom AC to 100 degrees", "clarification"),
+        ):
+            result = client.post("/api/v1/intent/process", json={
+                "text": phrase, "speak": False, "allow_llm_fallback": False,
+            }).raise_for_status().json()
+            assert result["outcome"] == outcome and not result["action_executed"]
+            assert history() == before
+
+
 def test_seeded_home_validation_persistence_and_websocket() -> None:
     app = create_app(Settings(_env_file=None))
     with TestClient(app) as client:

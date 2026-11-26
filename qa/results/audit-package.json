@@ -1,0 +1,31 @@
+{
+  "archive_commit": "ee0fa99",
+  "archive_entries": 271,
+  "launcher_present": true,
+  "backend_requirements": true,
+  "desktop_requirements": true,
+  "database_template": true,
+  "contains_dotenv": false,
+  "contains_model_binaries": false,
+  "frontend_build_in_archive": false,
+  "installed_model_files_bytes": {
+    "vad/silero_vad.onnx": 2204103,
+    "tts/kn_piper/kn_IN-syspin_male-medium.onnx": 63516051,
+    "tts/kn/vits-mms-kan/model.onnx": 114051312,
+    "tts/hi/vits-piper-hi_IN-rohan-medium/hi_IN-rohan-medium.onnx": 62946428,
+    "tts/en/vits-piper-en_US-lessac-medium/en_US-lessac-medium.onnx": 63149198,
+    "stt/faster-whisper-base/model.bin": 145217532,
+    "stt/faster-whisper-small/model.bin": 483546902,
+    "stt/indic-conformer-kn/model.int8.onnx": 197595728
+  },
+  "hindi_specialist_sha256": "915c71e04dd7e5378a4057fdebb252b3a587188e4e99db6d7ce0909ad5ad05fa",
+  "installed_versions": {
+    "fastapi": "0.165.0",
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "sherpa-onnx": "1.13.8",
+    "onnxruntime": "1.32.0",
+    "psycopg": "3.3.9",
+    "sounddevice": "0.5.6"
+  }
+}

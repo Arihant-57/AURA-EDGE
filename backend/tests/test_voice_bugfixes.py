@@ -362,3 +362,13 @@ def test_cli_ws_event_worker_handles_all_terminal_outcomes(monkeypatch: Any, cap
     assert out.count("ದಯವಿಟ್ಟು ಮತ್ತೊಮ್ಮೆ ಹೇಳಿ.") == 1  # No duplicate print for clarification_required + response_completed
     assert "[AURA (en)]: \n" not in out  # Silent ignored turn prints nothing
     assert "[ERROR]: Mic unavailable" in out
+
+def test_spoken_help_uses_wired_services():
+    registry = create_app(Settings(_env_file=None)).state.orchestrator.tool_registry
+    for lang in ("en", "hi", "kn"):
+        full = registry.describe_capabilities(lang, spoken=True)
+        assert "Service" not in full
+        expenses = registry.expense_service
+        registry.expense_service = None
+        assert registry.describe_capabilities(lang, spoken=True) != full
+        registry.expense_service = expenses

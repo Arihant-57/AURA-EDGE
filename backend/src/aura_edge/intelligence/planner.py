@@ -10,7 +10,7 @@ from aura_edge.intelligence.fast_router import (
     MultilingualFastRouter,
     extract_requested_target_language,
 )
-from aura_edge.intelligence.normalizer import normalize_utterance
+from aura_edge.intelligence.normalizer import extract_duration_seconds, normalize_utterance
 from aura_edge.intelligence.ollama_client import OllamaClient, OllamaUnavailableError
 from aura_edge.intelligence.response_catalog import get_phrase
 from aura_edge.intelligence.schemas import (
@@ -343,7 +343,8 @@ class HybridPlanner:
 
         if intent_enum == IntentName.SET_TIMER:
             dur = data.get("duration_seconds")
-            if isinstance(dur, bool) or not isinstance(dur, int) or dur <= 0 or dur > 86400:
+            if (isinstance(dur, bool) or not isinstance(dur, int) or not 1 <= dur <= 86400
+                    or dur != extract_duration_seconds(raw_text, require_all_quantities=True)):
                 return TypedIntent(
                     intent_name=IntentName.CLARIFY,
                     confidence=0.5,

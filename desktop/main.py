@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from companion import CAPSULE_HEIGHT, CAPSULE_WIDTH, Companion, clamp
 from local_server import start_server
+from shutdown_request import install_shutdown_request
 from PySide6.QtCore import (
     QDir,
     QEvent,
@@ -214,7 +215,8 @@ class Desktop(QObject):
         self.child = QProcess(self)
         self.child.setWorkingDirectory(str(args.backend_root))
         env = QProcessEnvironment.systemEnvironment()
-        env.insert("PYTHONPATH", str(args.backend_root / "backend" / "src"))
+        env.insert("PYTHONPATH", str(ROOT / "backend" / "src"))
+        env.insert("AURA_DESKTOP_MODELS_FALLBACK", str(args.backend_root / "models"))
         env.insert("HF_HUB_OFFLINE", "1")
         env.insert("TRANSFORMERS_OFFLINE", "1")
         self.child.setProcessEnvironment(env)
@@ -490,6 +492,7 @@ def main():
         return 0
     server = start_server(build, args.backend_port)
     controller = Desktop(args, server)
+    install_shutdown_request(runtime, app, controller)
     app.aboutToQuit.connect(lock.unlock)
     result = app.exec()
     del controller

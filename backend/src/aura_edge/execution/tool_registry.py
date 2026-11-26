@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import operator
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -24,8 +25,13 @@ from aura_edge.intelligence.schemas import (
     VerifiedActionResult,
 )
 
+_ARITHMETIC = {"+": operator.add, "plus": operator.add, "-": operator.sub, "−": operator.sub,
+               "minus": operator.sub, "*": operator.mul, "×": operator.mul,
+               "times": operator.mul, "multiplied by": operator.mul}
+
 # Phase 1 allowlisted intents that mutate or inspect local state.
 _PHASE1_EXECUTABLE_INTENTS = {
+    IntentName.CALCULATE,
     IntentName.GET_TIME,
     IntentName.GET_DATE,
     IntentName.SET_TIMER,
@@ -179,51 +185,35 @@ class ToolRegistry:
     def register_extension(self, intent_name: str, handler: Any) -> None:
         self._phase2_hooks[intent_name] = handler
 
-    def describe_capabilities(self, language: LanguageCode = "en") -> str:
-        """Return an accurate factual capability summary derived from wired services."""
-        has_home = self.smart_home is not None
-        has_mem = self.memory_service is not None
-        has_sched = self.scheduler_service is not None
-        has_p4 = self.task_service is not None or self.calendar_service is not None
+    def describe_capabilities(self, language: LanguageCode = "en", *, spoken: bool = False) -> str:
+        """Share the service inventory between spoken help and the model prompt."""
+        index = {"en": 0, "hi": 1, "kn": 2}[language]
+        groups = [
+            (self.smart_home, ("control simulated appliances and routines", "घरेलू उपकरण और रूटीन चला", "ಮನೆಯ ಸಾಧನ ಮತ್ತು ದಿನಚರಿಗಳನ್ನು ನಿಯಂತ್ರಿಸ")),
+            (self.memory_service, ("remember preferences", "पसंद याद रख", "ಆದ್ಯತೆಗಳನ್ನು ನೆನಪಿಡ")),
+            (self.scheduler_service, ("set reminders and schedule actions", "रिमाइंडर और शेड्यूल बना", "ಜ್ಞಾಪನೆ ಮತ್ತು ವೇಳಾಪಟ್ಟಿ ರಚಿಸ")),
+            (self.task_service, ("manage tasks", "कामों की सूची बना", "ಕೆಲಸಗಳ ಪಟ್ಟಿ ಮಾಡ")),
+            (self.calendar_service, ("manage your calendar", "कैलेंडर संभाल", "ಕ್ಯಾಲೆಂಡರ್ ನಿರ್ವಹಿಸ")),
+            (self.briefing_service, ("summarize your day", "दिन का सार बता", "ದಿನದ ಸಾರಾಂಶ ನೀಡ")),
+            (self.grocery_service, ("check groceries, inventory and recipes", "किराना, स्टॉक और रेसिपी देख", "ದಿನಸಿ, ದಾಸ್ತಾನು ಮತ್ತು ಅಡುಗೆ ವಿಧಾನಗಳನ್ನು ತೋರಿಸ")),
+            (self.expense_service, ("record expenses", "खर्च दर्ज कर", "ಖರ್ಚು ದಾಖಲಿಸ")),
+            (self.parcel_service, ("check saved deliveries", "सहेजी हुई डिलीवरी देख", "ಉಳಿಸಿದ ವಿತರಣೆಯ ವಿವರ ತೋರಿಸ")),
+        ]
+        items = [("tell the time and date", "समय और तारीख बता", "ಸಮಯ ಮತ್ತು ದಿನಾಂಕ ಹೇಳ")[index],
+                 ("set timers", "टाइमर लगा", "ಟೈಮರ್ ಇಡ")[index],
+                 ("do simple arithmetic", "गणना कर", "ಲೆಕ್ಕ ಮಾಡ")[index]]
+        items.extend(labels[index] for service, labels in groups if service is not None)
         if language == "hi":
-            parts = ["पंजीकृत स्थानीय टूल्स: समय व तारीख (DateTimeTool), और स्थायी टाइमर (TimerManager)।"]
-            if has_home:
-                parts.append(
-                    "सिमुलेटेड स्मार्ट होम (SmartHomeService) सक्रिय है: लाइट, पंखा, एसी, टीवी, पर्दे, वॉशिंग मशीन, रोबोट वैक्यूम और रूटीन।"
-                )
-            if has_mem:
-                parts.append("स्थायी व्यक्तिगत मेमोरी (MemoryService) और वरीयताएँ सक्रिय हैं।")
-            if has_sched:
-                parts.append("स्थायी रिमाइंडर, शेड्यूल्ड कार्य और नोटिफिकेशन सक्रिय हैं।")
-            if has_p4:
-                parts.append("व्यक्तिगत सहायक टूल्स (टास्क, कैलेंडर, दैनिक ब्रीफिंग, किराना, खर्च और पार्सल) सक्रिय हैं।")
-            return " ".join(parts)
-        if language == "kn":
-            parts = ["ನೋಂದಾಯಿತ ಸ್ಥಳೀಯ ಟೂಲ್‌ಗಳು: ಸಮಯ ಮತ್ತು ದಿನಾಂಕ (DateTimeTool), ಮತ್ತು ಟೈಮರ್‌ಗಳು (TimerManager)."]
-            if has_home:
-                parts.append(
-                    "ಸಿಮ್ಯುಲೇಟೆಡ್ ಸ್ಮಾರ್ಟ್ ಹೋಮ್ (SmartHomeService) ಸಕ್ರಿಯವಾಗಿದೆ: ಲೈಟ್, ಫ್ಯಾನ್, ಏಸಿ, ಟಿವಿ, ಪರದೆ, ವಾಷಿಂಗ್ ಮೆಷಿನ್, ರೋಬೋಟ್ ವ್ಯಾಕ್ಯೂಮ್ ಮತ್ತು ದಿನಚರಿಗಳು."
-                )
-            if has_mem:
-                parts.append("ಶಾಶ್ವತ ವೈಯಕ್ತಿಕ ನೆನಪು ಮತ್ತು ಆದ್ಯತೆಗಳು (MemoryService) ಸಕ್ರಿಯವಾಗಿವೆ.")
-            if has_sched:
-                parts.append("ಶಾಶ್ವತ ಜ್ಞಾಪನೆಗಳು, ವೇಳಾಪಟ್ಟಿಗಳು ಮತ್ತು ಅಧಿಸೂಚನೆಗಳು ಸಕ್ರಿಯವಾಗಿವೆ.")
-            if has_p4:
-                parts.append("ವೈಯಕ್ತಿಕ ಸಹಾಯಕ ಟೂಲ್‌ಗಳು (ಟಾಸ್ಕ್‌ಗಳು, ಕ್ಯಾಲೆಂಡರ್, ದೈನಂದಿನ ಬ್ರೀಫಿಂಗ್, ದಿನಸಿ, ಖರ್ಚು ಮತ್ತು ಪಾರ್ಸೆಲ್) ಸಕ್ರಿಯವಾಗಿವೆ.")
-            return " ".join(parts)
-        parts = ["Registered local tools: current time and date (DateTimeTool), and persistent timers (TimerManager)."]
-        if has_home:
-            parts.append(
-                "Simulated smart-home control (SmartHomeService) is active for lights, fans, AC, TV, curtains, "
-                "air purifier, washing machine, robot vacuum, water heater, water pump, and custom routines."
-            )
-        if has_mem:
-            parts.append("Persistent personal memory and appliance preferences (MemoryService) are active.")
-        if has_sched:
-            parts.append("Persistent reminders, scheduled appliance actions, and proactive notifications (SchedulerService) are active.")
-        if has_p4:
-            parts.append("Offline personal secretary (tasks, local calendar, daily briefing, grocery inventory & recipes, expense totals, cached parcels) is active.")
-        return " ".join(parts)
+            summary = "मैं " + ", ".join(items[:-1]) + " और " + items[-1] + " सकती हूँ।"
+        elif language == "kn":
+            summary = ", ".join(item + "ಬಹುದು" for item in items) + "."
+        else:
+            summary = "I can " + ", ".join(items[:-1]) + " and " + items[-1] + "."
+        if spoken:
+            return summary
+        services = ["DateTimeTool", "TimerManager"]
+        services.extend(type(service).__name__ for service, _ in groups if service is not None)
+        return summary + " (" + ", ".join(services) + ")"
 
     def validate_intent(self, intent: TypedIntent) -> tuple[bool, str | None]:
         """Validate primary intent and every sub-action in a compound request."""
@@ -234,10 +224,25 @@ class ToolRegistry:
                 confidence=intent.confidence,
             )
         ]
+        if len(actions) > 4:
+            return False, "A request can contain at most four actions."
         for action in actions:
             if action.intent_name in (IntentName.CLARIFY, IntentName.UNSUPPORTED):
                 continue
             if action.intent_name == IntentName.DEVICE_CONTROL and self.smart_home is not None:
+                if len(actions) > 1 and action.slots.get("action") != "routine":
+                    slots = action.slots
+                    candidates = [d for d in self.smart_home.list_devices(slots.get("room"))
+                                  if d.device_type == slots.get("device_type")]
+                    if len(candidates) != 1 or not candidates[0].available:
+                        return False, "A compound step needs a unique available device."
+                    if slots.get("use_preferred"):
+                        return False, "Apply a saved preference in a separate request."
+                    if slots.get("action") != "status":
+                        try:
+                            self.smart_home.validate_device_command(candidates[0].id, slots["action"], slots.get("value"))
+                        except (KeyError, LookupError, ValueError) as exc:
+                            return False, str(exc)
                 continue
             if action.intent_name in _MEMORY_INTENTS and self.memory_service is not None:
                 continue
@@ -259,6 +264,11 @@ class ToolRegistry:
                 continue
             if action.intent_name not in _PHASE1_EXECUTABLE_INTENTS:
                 return False, f"Intent '{action.intent_name.value}' is not enabled."
+            if action.intent_name == IntentName.CALCULATE:
+                operands = [action.slots.get(key) for key in ("left", "right")]
+                if (action.slots.get("operator") not in _ARITHMETIC or
+                        any(type(n) is not int or abs(n) > 999_999_999 for n in operands)):
+                    return False, "Unsupported arithmetic expression."
             if action.intent_name == IntentName.SET_TIMER:
                 dur = action.slots.get("duration_seconds")
                 if not isinstance(dur, int) or dur <= 0 or dur > 86400:
@@ -310,8 +320,10 @@ class ToolRegistry:
         for act in actions:
             res = await self._execute_single(act, lang=lang)
             results.append(res)
+            if not res.success:
+                break
 
-        if len(results) == 1:
+        if len(actions) == 1:
             return results[0]
 
         all_ok = all(r.success for r in results)
@@ -326,7 +338,7 @@ class ToolRegistry:
             success=all_ok,
             action="CompoundAction",
             status=status,
-            data={"sub_results": [r.model_dump() for r in results]},
+            data={"sub_results": [r.model_dump() for r in results], "steps_skipped": len(actions) - len(results)},
             message=combined_msg,
             error=None if all_ok else "; ".join(r.error for r in results if r.error),
         )
@@ -1253,6 +1265,12 @@ class ToolRegistry:
         slots = action.slots
         name = action.intent_name
 
+        if name == IntentName.CALCULATE:
+            value = _ARITHMETIC[slots["operator"]](slots["left"], slots["right"])
+            message = {"en": f"The answer is {value}.", "hi": f"उत्तर {value} है।",
+                       "kn": f"ಉತ್ತರ {value}."}[lang]
+            return VerifiedActionResult(success=True, action="Calculate", status="verified",
+                                        message=message, data={"value": value})
         if name == IntentName.GET_TIME:
             return self.datetime_tool.get_time(lang=lang)
         if name == IntentName.GET_DATE:
@@ -1296,7 +1314,7 @@ class ToolRegistry:
                 success=True,
                 action="Help",
                 status="verified",
-                message=get_phrase("help", lang),
+                message=self.describe_capabilities(lang, spoken=True),
             )
         if name == IntentName.STOP_ASSISTANT:
             return VerifiedActionResult(

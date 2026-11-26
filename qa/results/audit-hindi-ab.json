@@ -1,0 +1,917 @@
+[
+  {
+    "id": "turn-38",
+    "input": "अभी कितने बजे हैं?",
+    "build": "baseline",
+    "mode": "multilingual",
+    "transcript": "अभी कितने मुजह हैं",
+    "language": "hi",
+    "probability": 0.9883,
+    "model": "small",
+    "intent": "Unsupported",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "host_clock": false
+    },
+    "passed": false
+  },
+  {
+    "id": "turn-38",
+    "input": "अभी कितने बजे हैं?",
+    "build": "current",
+    "mode": "multilingual",
+    "transcript": "अभी कितने बजे हैं",
+    "language": "hi",
+    "probability": 0.9883,
+    "model": "indic-conformer-hi",
+    "intent": "GetTime",
+    "slots": {},
+    "action_executed": true,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-38",
+    "input": "अभी कितने बजे हैं?",
+    "build": "current",
+    "mode": "strict",
+    "transcript": "अभी कितने बजे हैं",
+    "language": "hi",
+    "probability": null,
+    "model": "indic-conformer-hi",
+    "intent": "GetTime",
+    "slots": {},
+    "action_executed": true,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-40",
+    "input": "आज तारीख क्या है?",
+    "build": "baseline",
+    "mode": "multilingual",
+    "transcript": "आज तारीक क्या है?",
+    "language": "hi",
+    "probability": 0.9712,
+    "model": "small",
+    "intent": "GetDate",
+    "slots": {},
+    "action_executed": true,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-40",
+    "input": "आज तारीख क्या है?",
+    "build": "current",
+    "mode": "multilingual",
+    "transcript": "आज तारीक क्या है?",
+    "language": "hi",
+    "probability": 0.9712,
+    "model": "small",
+    "intent": "GetDate",
+    "slots": {},
+    "action_executed": true,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-40",
+    "input": "आज तारीख क्या है?",
+    "build": "current",
+    "mode": "strict",
+    "transcript": "आज तारीख क्या है",
+    "language": "hi",
+    "probability": null,
+    "model": "indic-conformer-hi",
+    "intent": "GetDate",
+    "slots": {},
+    "action_executed": true,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-41",
+    "input": "आज कौन सा दिन है?",
+    "build": "baseline",
+    "mode": "multilingual",
+    "transcript": "आज कोंसा दिन है?",
+    "language": "hi",
+    "probability": 0.9819,
+    "model": "small",
+    "intent": "GetDate",
+    "slots": {},
+    "action_executed": true,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-41",
+    "input": "आज कौन सा दिन है?",
+    "build": "current",
+    "mode": "multilingual",
+    "transcript": "आज कोंसा दिन है?",
+    "language": "hi",
+    "probability": 0.9819,
+    "model": "small",
+    "intent": "GetDate",
+    "slots": {},
+    "action_executed": true,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-41",
+    "input": "आज कौन सा दिन है?",
+    "build": "current",
+    "mode": "strict",
+    "transcript": "आज कौन सा दिन है",
+    "language": "hi",
+    "probability": null,
+    "model": "indic-conformer-hi",
+    "intent": "GetDate",
+    "slots": {},
+    "action_executed": true,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-42",
+    "input": "दस सेकंड का टाइमर लगाओ।",
+    "build": "baseline",
+    "mode": "multilingual",
+    "transcript": "10 सेकंद का तैमर लगाो",
+    "language": "hi",
+    "probability": 0.8291,
+    "model": "small",
+    "intent": "SetTimer",
+    "slots": {
+      "duration_seconds": 10
+    },
+    "action_executed": true,
+    "device_history_changed": false,
+    "new_timer_count": 1,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "duration": true,
+      "persisted_timer": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-42",
+    "input": "दस सेकंड का टाइमर लगाओ।",
+    "build": "current",
+    "mode": "multilingual",
+    "transcript": "10 सेकंद का तैमर लगाो",
+    "language": "hi",
+    "probability": 0.8291,
+    "model": "small",
+    "intent": "SetTimer",
+    "slots": {
+      "duration_seconds": 10
+    },
+    "action_executed": true,
+    "device_history_changed": false,
+    "new_timer_count": 1,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "duration": true,
+      "persisted_timer": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-42",
+    "input": "दस सेकंड का टाइमर लगाओ।",
+    "build": "current",
+    "mode": "strict",
+    "transcript": "दस सेकंड का टाइमर लगाओ",
+    "language": "hi",
+    "probability": null,
+    "model": "indic-conformer-hi",
+    "intent": "SetTimer",
+    "slots": {
+      "duration_seconds": 10
+    },
+    "action_executed": true,
+    "device_history_changed": false,
+    "new_timer_count": 1,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "duration": true,
+      "persisted_timer": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-43",
+    "input": "एक मिनट का टाइमर शुरू करो।",
+    "build": "baseline",
+    "mode": "multilingual",
+    "transcript": "एक मिनेद का तामर, सुधो करो.",
+    "language": "hi",
+    "probability": 0.9624,
+    "model": "small",
+    "intent": "Unsupported",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "duration": false
+    },
+    "passed": false
+  },
+  {
+    "id": "turn-43",
+    "input": "एक मिनट का टाइमर शुरू करो।",
+    "build": "current",
+    "mode": "multilingual",
+    "transcript": "एक मिनट का टाइमर शुरू करो",
+    "language": "hi",
+    "probability": 0.9624,
+    "model": "indic-conformer-hi",
+    "intent": "SetTimer",
+    "slots": {
+      "duration_seconds": 60
+    },
+    "action_executed": true,
+    "device_history_changed": false,
+    "new_timer_count": 1,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "duration": true,
+      "persisted_timer": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-43",
+    "input": "एक मिनट का टाइमर शुरू करो।",
+    "build": "current",
+    "mode": "strict",
+    "transcript": "एक मिनट का टाइमर शुरू करो",
+    "language": "hi",
+    "probability": null,
+    "model": "indic-conformer-hi",
+    "intent": "SetTimer",
+    "slots": {
+      "duration_seconds": 60
+    },
+    "action_executed": true,
+    "device_history_changed": false,
+    "new_timer_count": 1,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "duration": true,
+      "persisted_timer": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-44",
+    "input": "बेडरूम की लाइट चालू करो।",
+    "build": "baseline",
+    "mode": "multilingual",
+    "transcript": "बेद्रुम की लाइत चालो करो",
+    "language": "hi",
+    "probability": 0.9854,
+    "model": "small",
+    "intent": "Unsupported",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "persisted_state": false
+    },
+    "passed": false
+  },
+  {
+    "id": "turn-44",
+    "input": "बेडरूम की लाइट चालू करो।",
+    "build": "current",
+    "mode": "multilingual",
+    "transcript": "बेडरूम की लाइट चालू करो",
+    "language": "hi",
+    "probability": 0.9854,
+    "model": "indic-conformer-hi",
+    "intent": "DeviceControl",
+    "slots": {
+      "room": "bedroom",
+      "device_type": "light",
+      "action": "power",
+      "value": true
+    },
+    "action_executed": true,
+    "device_history_changed": true,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "persisted_state": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-44",
+    "input": "बेडरूम की लाइट चालू करो।",
+    "build": "current",
+    "mode": "strict",
+    "transcript": "बेडरूम की लाइट चालू करो",
+    "language": "hi",
+    "probability": null,
+    "model": "indic-conformer-hi",
+    "intent": "DeviceControl",
+    "slots": {
+      "room": "bedroom",
+      "device_type": "light",
+      "action": "power",
+      "value": true
+    },
+    "action_executed": true,
+    "device_history_changed": true,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "persisted_state": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-45",
+    "input": "बेडरूम की लाइट बंद करो।",
+    "build": "baseline",
+    "mode": "multilingual",
+    "transcript": "बेद्रूम की लाइत बन्द करो",
+    "language": "hi",
+    "probability": 0.9492,
+    "model": "small",
+    "intent": "Unsupported",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "persisted_state": false
+    },
+    "passed": false
+  },
+  {
+    "id": "turn-45",
+    "input": "बेडरूम की लाइट बंद करो।",
+    "build": "current",
+    "mode": "multilingual",
+    "transcript": "बेडरूम की लाइट बंद करो",
+    "language": "hi",
+    "probability": 0.9492,
+    "model": "indic-conformer-hi",
+    "intent": "DeviceControl",
+    "slots": {
+      "room": "bedroom",
+      "device_type": "light",
+      "action": "power",
+      "value": false
+    },
+    "action_executed": true,
+    "device_history_changed": true,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "persisted_state": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-45",
+    "input": "बेडरूम की लाइट बंद करो।",
+    "build": "current",
+    "mode": "strict",
+    "transcript": "बेडरूम की लाइट बंद करो",
+    "language": "hi",
+    "probability": null,
+    "model": "indic-conformer-hi",
+    "intent": "DeviceControl",
+    "slots": {
+      "room": "bedroom",
+      "device_type": "light",
+      "action": "power",
+      "value": false
+    },
+    "action_executed": true,
+    "device_history_changed": true,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "persisted_state": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-47",
+    "input": "बेडरूम का एसी चौबीस डिग्री पर सेट करो।",
+    "build": "baseline",
+    "mode": "multilingual",
+    "transcript": "बेद्रुम का, एसी चो भीस दिग्री पर सेत करो.",
+    "language": "hi",
+    "probability": 0.978,
+    "model": "small",
+    "intent": "Unsupported",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "persisted_state": false
+    },
+    "passed": false
+  },
+  {
+    "id": "turn-47",
+    "input": "बेडरूम का एसी चौबीस डिग्री पर सेट करो।",
+    "build": "current",
+    "mode": "multilingual",
+    "transcript": "बेडरूम का एसी चौबीस डिग्री पर सेट करो",
+    "language": "hi",
+    "probability": 0.978,
+    "model": "indic-conformer-hi",
+    "intent": "DeviceControl",
+    "slots": {
+      "room": "bedroom",
+      "device_type": "air_conditioner",
+      "action": "temperature",
+      "value": 24
+    },
+    "action_executed": true,
+    "device_history_changed": true,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "persisted_state": true
+    },
+    "passed": true
+  },
+  {
+    "id": "turn-47",
+    "input": "बेडरूम का एसी चौबीस डिग्री पर सेट करो।",
+    "build": "current",
+    "mode": "strict",
+    "transcript": "बेडरूम का एसी चौबीस डिग्री पर सेट करो",
+    "language": "hi",
+    "probability": null,
+    "model": "indic-conformer-hi",
+    "intent": "DeviceControl",
+    "slots": {
+      "room": "bedroom",
+      "device_type": "air_conditioner",
+      "action": "temperature",
+      "value": 24
+    },
+    "action_executed": true,
+    "device_history_changed": true,
+    "new_timer_count": 0,
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "persisted_state": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-1",
+    "input": "बेडरूम की लाइट चालू मत करो।",
+    "build": "baseline",
+    "mode": "multilingual",
+    "transcript": "बेद्रूम की लाइत, चालो मत करो",
+    "language": "hi",
+    "probability": 0.9893,
+    "model": "small",
+    "intent": "Clarify",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-1",
+    "input": "बेडरूम की लाइट चालू मत करो।",
+    "build": "current",
+    "mode": "multilingual",
+    "transcript": "बेद्रूम की लाइत, चालो मत करो",
+    "language": "hi",
+    "probability": 0.9893,
+    "model": "small",
+    "intent": "Clarify",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-1",
+    "input": "बेडरूम की लाइट चालू मत करो।",
+    "build": "current",
+    "mode": "strict",
+    "transcript": "बेडरूम की लाइट चालू मत करो",
+    "language": "hi",
+    "probability": null,
+    "model": "indic-conformer-hi",
+    "intent": "Clarify",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-2",
+    "input": "बेडरूम की लाइट बंद नहीं करनी है।",
+    "build": "baseline",
+    "mode": "multilingual",
+    "transcript": "बेदुम की लाइत बन्द नहीं करनि है",
+    "language": "hi",
+    "probability": 0.9546,
+    "model": "small",
+    "intent": "Clarify",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-2",
+    "input": "बेडरूम की लाइट बंद नहीं करनी है।",
+    "build": "current",
+    "mode": "multilingual",
+    "transcript": "बेदुम की लाइत बन्द नहीं करनि है",
+    "language": "hi",
+    "probability": 0.9546,
+    "model": "small",
+    "intent": "Clarify",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-2",
+    "input": "बेडरूम की लाइट बंद नहीं करनी है।",
+    "build": "current",
+    "mode": "strict",
+    "transcript": "बेडरूम की लाइट बंद नहीं करनी है",
+    "language": "hi",
+    "probability": null,
+    "model": "indic-conformer-hi",
+    "intent": "Clarify",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-3",
+    "input": "दस सेकंड का टाइमर मत लगाओ।",
+    "build": "baseline",
+    "mode": "multilingual",
+    "transcript": "10 सेक्ट का तैमर मत लगाो",
+    "language": "hi",
+    "probability": 0.9878,
+    "model": "small",
+    "intent": "Clarify",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-3",
+    "input": "दस सेकंड का टाइमर मत लगाओ।",
+    "build": "current",
+    "mode": "multilingual",
+    "transcript": "10 सेक्ट का तैमर मत लगाो",
+    "language": "hi",
+    "probability": 0.9878,
+    "model": "small",
+    "intent": "Clarify",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-3",
+    "input": "दस सेकंड का टाइमर मत लगाओ।",
+    "build": "current",
+    "mode": "strict",
+    "transcript": "दस सेकेंड का टाइमर मत लगाओ",
+    "language": "hi",
+    "probability": null,
+    "model": "indic-conformer-hi",
+    "intent": "Clarify",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-4",
+    "input": "स्टडी का पंखा चालू मत करो।",
+    "build": "baseline",
+    "mode": "multilingual",
+    "transcript": "वहाँ स्तरी के पंका चालू मत करो",
+    "language": "hi",
+    "probability": 0.9629,
+    "model": "small",
+    "intent": "Clarify",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-4",
+    "input": "स्टडी का पंखा चालू मत करो।",
+    "build": "current",
+    "mode": "multilingual",
+    "transcript": "वहाँ स्तरी के पंका चालू मत करो",
+    "language": "hi",
+    "probability": 0.9629,
+    "model": "small",
+    "intent": "Clarify",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-4",
+    "input": "स्टडी का पंखा चालू मत करो।",
+    "build": "current",
+    "mode": "strict",
+    "transcript": "स्टडी का पंखा चालू मत करो",
+    "language": "hi",
+    "probability": null,
+    "model": "indic-conformer-hi",
+    "intent": "Clarify",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-5",
+    "input": "बेडरूम का एसी चौबीस डिग्री पर सेट मत करो।",
+    "build": "baseline",
+    "mode": "multilingual",
+    "transcript": "बेद्रुम का, एसी चो भीस दिक्री पर सेत मत करो.",
+    "language": "hi",
+    "probability": 0.9844,
+    "model": "small",
+    "intent": "Clarify",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-5",
+    "input": "बेडरूम का एसी चौबीस डिग्री पर सेट मत करो।",
+    "build": "current",
+    "mode": "multilingual",
+    "transcript": "बेद्रुम का, एसी चो भीस दिक्री पर सेत मत करो.",
+    "language": "hi",
+    "probability": 0.9844,
+    "model": "small",
+    "intent": "Clarify",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-5",
+    "input": "बेडरूम का एसी चौबीस डिग्री पर सेट मत करो।",
+    "build": "current",
+    "mode": "strict",
+    "transcript": "बेडरूम का एसी चौबीस डिग्री पर सेट मत करो",
+    "language": "hi",
+    "probability": null,
+    "model": "indic-conformer-hi",
+    "intent": "Clarify",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-6",
+    "input": "मुझे बताओ कि पंखा कैसे काम करता है।",
+    "build": "baseline",
+    "mode": "multilingual",
+    "transcript": "मुजे बताो की पन्कह कैसे काम करता है?",
+    "language": "hi",
+    "probability": 0.9878,
+    "model": "small",
+    "intent": "Unsupported",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-6",
+    "input": "मुझे बताओ कि पंखा कैसे काम करता है।",
+    "build": "current",
+    "mode": "multilingual",
+    "transcript": "मुजे बताो की पन्कह कैसे काम करता है?",
+    "language": "hi",
+    "probability": 0.9878,
+    "model": "small",
+    "intent": "Unsupported",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  },
+  {
+    "id": "guard-6",
+    "input": "मुझे बताओ कि पंखा कैसे काम करता है।",
+    "build": "current",
+    "mode": "strict",
+    "transcript": "मुझे बताओ कि पंखा कैसे काम करता है",
+    "language": "hi",
+    "probability": null,
+    "model": "indic-conformer-hi",
+    "intent": "Unsupported",
+    "slots": {},
+    "action_executed": false,
+    "device_history_changed": false,
+    "new_timer_count": 0,
+    "checks": {
+      "no_mutation": true
+    },
+    "passed": true
+  }
+]

@@ -1,0 +1,51 @@
+{
+  "input": "synthetic PCM injected before VAD",
+  "hardware_microphone_exercised": false,
+  "expected_transcript": "Switch off the study fan.",
+  "actual_transcript": "Switch off the study fan.",
+  "states": [
+    "LISTENING",
+    "TRANSCRIBING",
+    "UNDERSTANDING",
+    "EXECUTING",
+    "VERIFYING",
+    "SPEAKING",
+    "IDLE"
+  ],
+  "events": [
+    "assistant_state_change",
+    "ptt_capture_ready",
+    "assistant_state_change",
+    "transcript_ready",
+    "assistant_state_change",
+    "assistant_state_change",
+    "assistant_state_change",
+    "action_verified",
+    "assistant_state_change",
+    "assistant_state_change",
+    "response_completed"
+  ],
+  "checks": {
+    "captured_voiced_audio": true,
+    "detected_english": true,
+    "verified_device": true,
+    "speaker_callback": true,
+    "playback_completed": true,
+    "returned_to_idle": true,
+    "stages_observed": true
+  },
+  "timing": {
+    "speech_end": 70608.3114183,
+    "stt_start": 70608.3448302,
+    "stt_completion": 70611.3117417,
+    "routing_completion": 70611.3564539,
+    "tool_completion": 70611.3759418,
+    "llm_first_token": null,
+    "validated_response_text": null,
+    "first_valid_speech_chunk": 70611.3760491,
+    "tts_completion": 70611.438714,
+    "first_non_silent_output_callback": 70611.5276407,
+    "playback_completion": 70613.4667964
+  },
+  "passed": true
+}

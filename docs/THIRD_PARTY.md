@@ -61,3 +61,7 @@ Kept strictly outside `AURA-EDGE`; zero source code copied verbatim without attr
 - `home-assistant/core` (`80f9e44`, Apache-2.0) — timer restore & intent grammar pattern ideas only.
 - `aleostudio/andromeda` (`abd0193`, MIT) — audio ring-buffer & prefetch architecture ideas only.
 - `Arihant-57/AURA-V4` (`0a1635c`, MIT) — untouched; read-only audit only.
+
+## Hindi offline recognizer
+
+The release optionally uses the Hindi INT8 model from the same Sherpa-compatible IndicConformer export as Kannada. The desktop launcher looks for the previously verified weights under `models/stt/indic-conformer-hi`; standalone backends can point `AURA_EDGE_HINDI_SPECIALIST_DIR` at a local directory containing `model.int8.onnx` and `tokens.txt`. The weights are excluded from source control. The model file has SHA-256 `915c71e04dd7e5378a4057fdebb252b3a587188e4e99db6d7ce0909ad5ad05fa`. The export card lists Apache-2.0. [Pinned distribution and attribution](https://huggingface.co/NiranjanYadavIN/indicconformer-sherpa-onnx/tree/dc0fe4b4f11c4970a76b2935a4191d7da3d128cc)

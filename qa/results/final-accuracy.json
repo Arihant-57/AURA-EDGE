@@ -1,0 +1,4930 @@
+{
+  "kind": "accuracy",
+  "turns": [
+    {
+      "id": "turn-01",
+      "expected": {
+        "id": "turn-01",
+        "language": "en",
+        "text": "What time is it?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What time is it?",
+        "response_text": "The time is 4:48 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 32.68,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.09,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 32.87,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-02",
+      "expected": {
+        "id": "turn-02",
+        "language": "en",
+        "text": "Tell me the current time please.",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Tell me the current time please.",
+        "response_text": "The time is 4:48 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 6.22,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.1,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 6.41,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-03",
+      "expected": {
+        "id": "turn-03",
+        "language": "en",
+        "text": "What's the time now?",
+        "category": "time",
+        "intent": "GetTime"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What's the time now?",
+        "response_text": "The time is 4:48 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.77,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.07,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 0.9,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-04",
+      "expected": {
+        "id": "turn-04",
+        "language": "en",
+        "text": "Tell me today's date.",
+        "category": "date",
+        "intent": "GetDate",
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetDate",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Tell me today's date.",
+        "response_text": "Today is Thursday, November 26, 2026.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.88,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.07,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 1.01,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-05",
+      "expected": {
+        "id": "turn-05",
+        "language": "en",
+        "text": "What day is it today?",
+        "category": "date",
+        "intent": "GetDate"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetDate",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What day is it today?",
+        "response_text": "Today is Thursday, November 26, 2026.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.83,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.07,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 0.96,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-06",
+      "expected": {
+        "id": "turn-06",
+        "language": "en",
+        "text": "Set a timer for ten seconds.",
+        "category": "timer",
+        "intent": "SetTimer",
+        "check": 10,
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "SetTimer",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Set a timer for ten seconds.",
+        "response_text": "Timer set for 10 seconds.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 61.2,
+          "llm_ttft_ms": null,
+          "tool_ms": 9.06,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 70.32,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "duration": true,
+        "persisted_timer": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-07",
+      "expected": {
+        "id": "turn-07",
+        "language": "en",
+        "text": "Start a thirty-second timer.",
+        "category": "timer",
+        "intent": "SetTimer",
+        "check": 30,
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "SetTimer",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Start a thirty-second timer.",
+        "response_text": "Timer \"second\" set for 30 seconds.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 3.02,
+          "llm_ttft_ms": null,
+          "tool_ms": 6.32,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 9.4,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "duration": true,
+        "persisted_timer": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-08",
+      "expected": {
+        "id": "turn-08",
+        "language": "en",
+        "text": "Give me a one-minute timer.",
+        "category": "timer",
+        "intent": "SetTimer",
+        "check": 60,
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "SetTimer",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Give me a one-minute timer.",
+        "response_text": "Timer \"minute\" set for 1 minute.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.3,
+          "llm_ttft_ms": null,
+          "tool_ms": 5.81,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 7.17,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "duration": true,
+        "persisted_timer": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-09",
+      "expected": {
+        "id": "turn-09",
+        "language": "en",
+        "text": "Turn on the bedroom light.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Turn on the bedroom light.",
+        "response_text": "Updated bedroom light.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.41,
+          "llm_ttft_ms": null,
+          "tool_ms": 18.23,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 19.7,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-10",
+      "expected": {
+        "id": "turn-10",
+        "language": "en",
+        "text": "Switch off the study fan.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "fan.study",
+          "power",
+          false
+        ],
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Switch off the study fan.",
+        "response_text": "Updated study room fan.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.48,
+          "llm_ttft_ms": null,
+          "tool_ms": 13.24,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 15.16,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-11",
+      "expected": {
+        "id": "turn-11",
+        "language": "en",
+        "text": "Set the bedroom AC to twenty-four degrees.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "ac.bedroom",
+          "temperature",
+          24
+        ],
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Set the bedroom AC to twenty-four degrees.",
+        "response_text": "Updated bedroom AC.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.13,
+          "llm_ttft_ms": null,
+          "tool_ms": 13.19,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 14.39,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-12",
+      "expected": {
+        "id": "turn-12",
+        "language": "en",
+        "text": "Dim the bedroom light to 40 percent.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "brightness",
+          40
+        ],
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Dim the bedroom light to 40 percent.",
+        "response_text": "Updated bedroom light.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.93,
+          "llm_ttft_ms": null,
+          "tool_ms": 13.82,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 14.83,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-13",
+      "expected": {
+        "id": "turn-13",
+        "language": "en",
+        "text": "Set the living room TV volume to 20.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "tv.living",
+          "volume",
+          20
+        ]
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Set the living room TV volume to 20.",
+        "response_text": "Updated living room TV.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.03,
+          "llm_ttft_ms": null,
+          "tool_ms": 13.18,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 14.28,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-14",
+      "expected": {
+        "id": "turn-14",
+        "language": "en",
+        "text": "Close the bedroom curtains.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "curtain.bedroom",
+          "position",
+          0
+        ]
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Close the bedroom curtains.",
+        "response_text": "Updated bedroom curtain.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.99,
+          "llm_ttft_ms": null,
+          "tool_ms": 15.14,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 16.21,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-15",
+      "expected": {
+        "id": "turn-15",
+        "language": "en",
+        "text": "Turn on the bedroom AC.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "ac.bedroom",
+          "power",
+          true
+        ]
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Turn on the bedroom AC.",
+        "response_text": "Updated bedroom AC.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.71,
+          "llm_ttft_ms": null,
+          "tool_ms": 13.1,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 13.88,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-16",
+      "expected": {
+        "id": "turn-16",
+        "language": "en",
+        "text": "Set it to 24 degrees.",
+        "category": "follow-up",
+        "intent": "DeviceControl",
+        "check": [
+          "ac.bedroom",
+          "temperature",
+          24
+        ]
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Set it to 24 degrees.",
+        "response_text": "Updated bedroom AC.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.67,
+          "llm_ttft_ms": null,
+          "tool_ms": 13.72,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 15.48,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-17",
+      "expected": {
+        "id": "turn-17",
+        "language": "en",
+        "text": "Make it 25 instead.",
+        "category": "follow-up",
+        "intent": "DeviceControl",
+        "check": [
+          "ac.bedroom",
+          "temperature",
+          25
+        ]
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Make it 25 instead.",
+        "response_text": "Updated bedroom AC.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.92,
+          "llm_ttft_ms": null,
+          "tool_ms": 13.1,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 14.09,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-18",
+      "expected": {
+        "id": "turn-18",
+        "language": "en",
+        "text": "Turn it off after one minute.",
+        "category": "follow-up",
+        "intent": "ScheduleDeviceAction"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "ScheduleDeviceAction",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Turn it off after one minute.",
+        "response_text": "Scheduled Ac Bedroom for 04:49 AM.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.72,
+          "llm_ttft_ms": null,
+          "tool_ms": 15.58,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 17.37,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "tool_result": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-19",
+      "expected": {
+        "id": "turn-19",
+        "language": "en",
+        "text": "Turn off the bedroom AC for one minute.",
+        "category": "negative"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Clarify",
+        "outcome": "clarification",
+        "status": "clarification_required",
+        "route_category": "clarification",
+        "action_executed": false,
+        "transcript": "Turn off the bedroom AC for one minute.",
+        "response_text": "Could you clarify what you would like me to do?",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.55,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 0.62,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "safe": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-20",
+      "expected": {
+        "id": "turn-20",
+        "language": "en",
+        "text": "Set the bedroom AC to 85 degrees.",
+        "category": "negative"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "runtime_failure",
+        "status": "failed",
+        "route_category": "tool",
+        "action_executed": false,
+        "transcript": "Set the bedroom AC to 85 degrees.",
+        "response_text": "temperature must be in 16..30.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": "temperature must be in 16..30.",
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.8,
+          "llm_ttft_ms": null,
+          "tool_ms": 5.94,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 6.81,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "safe": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-21",
+      "expected": {
+        "id": "turn-21",
+        "language": "en",
+        "text": "Set the ceiling fan speed to 99.",
+        "category": "negative"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "clarification",
+        "status": "clarification_required",
+        "route_category": "tool",
+        "action_executed": false,
+        "transcript": "Set the ceiling fan speed to 99.",
+        "response_text": "Which room or device do you mean?",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.84,
+          "llm_ttft_ms": null,
+          "tool_ms": 5.77,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 6.67,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "safe": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-22",
+      "expected": {
+        "id": "turn-22",
+        "language": "en",
+        "text": "Turn it on.",
+        "category": "negative"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Clarify",
+        "outcome": "clarification",
+        "status": "clarification_required",
+        "route_category": "clarification",
+        "action_executed": false,
+        "transcript": "Turn it on.",
+        "response_text": "Could you clarify what you would like me to do?",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.47,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 0.54,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "safe": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-23",
+      "expected": {
+        "id": "turn-23",
+        "language": "en",
+        "text": "Transfer one hundred rupees to a stranger.",
+        "category": "negative"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Unsupported",
+        "outcome": "refusal",
+        "status": "refused",
+        "route_category": "refusal",
+        "action_executed": false,
+        "transcript": "Transfer one hundred rupees to a stranger.",
+        "response_text": "Sorry, I cannot do that. I can handle time, date, timers, local smart-home devices, and offline conversation.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.05,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 1.13,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "safe": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-24",
+      "expected": {
+        "id": "turn-24",
+        "language": "en",
+        "text": "Set the bedroom light to banana degrees.",
+        "category": "negative"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Clarify",
+        "outcome": "clarification",
+        "status": "clarification_required",
+        "route_category": "clarification",
+        "action_executed": false,
+        "transcript": "Set the bedroom light to banana degrees.",
+        "response_text": "Could you clarify what you would like me to do?",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.84,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 20280.12,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "safe": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-25",
+      "expected": {
+        "id": "turn-25",
+        "language": "en",
+        "text": "Turn the bedroom light on and off at the same time.",
+        "category": "negative"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Clarify",
+        "outcome": "clarification",
+        "status": "clarification_required",
+        "route_category": "clarification",
+        "action_executed": false,
+        "transcript": "Turn the bedroom light on and off at the same time.",
+        "response_text": "Could you clarify what you would like me to do?",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.76,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 20125.07,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "safe": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-26",
+      "expected": {
+        "id": "turn-26",
+        "language": "en",
+        "text": "Remind me in ten seconds to drink water.",
+        "category": "reminder",
+        "intent": "CreateReminder"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "CreateReminder",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Remind me in ten seconds to drink water.",
+        "response_text": "Reminder set for 04:49 AM: drink water.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.91,
+          "llm_ttft_ms": null,
+          "tool_ms": 9.58,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 11.67,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "tool_result": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-27",
+      "expected": {
+        "id": "turn-27",
+        "language": "en",
+        "text": "Show my reminders.",
+        "category": "reminder",
+        "intent": "ListReminders"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "ListReminders",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Show my reminders.",
+        "response_text": "Upcoming reminders: drink water.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.66,
+          "llm_ttft_ms": null,
+          "tool_ms": 5.87,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 6.92,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-28",
+      "expected": {
+        "id": "turn-28",
+        "language": "en",
+        "text": "Remember that I prefer the bedroom AC at 24 degrees.",
+        "category": "memory",
+        "intent": "SaveMemory"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "SaveMemory",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Remember that I prefer the bedroom AC at 24 degrees.",
+        "response_text": "Saved to memory: I prefer the bedroom AC at 24 degrees.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.74,
+          "llm_ttft_ms": null,
+          "tool_ms": 245.78,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 246.81,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "tool_result": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-29",
+      "expected": {
+        "id": "turn-29",
+        "language": "en",
+        "text": "What is my preferred AC temperature?",
+        "category": "memory",
+        "intent": "RetrieveMemory"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "RetrieveMemory",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What is my preferred AC temperature?",
+        "response_text": "Your preferred temperature for ac bedroom is 24°C.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.68,
+          "llm_ttft_ms": null,
+          "tool_ms": 15.71,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 16.62,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-30",
+      "expected": {
+        "id": "turn-30",
+        "language": "en",
+        "text": "Forget my preferred AC temperature.",
+        "category": "memory",
+        "intent": "DeleteMemory"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeleteMemory",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Forget my preferred AC temperature.",
+        "response_text": "Deleted 1 matching memory item(s).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.62,
+          "llm_ttft_ms": null,
+          "tool_ms": 23.38,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 24.2,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "tool_result": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-31",
+      "expected": {
+        "id": "turn-31",
+        "language": "en",
+        "text": "Add a task to review notes tomorrow.",
+        "category": "task",
+        "intent": "CreateTask"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "CreateTask",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Add a task to review notes tomorrow.",
+        "response_text": "Added task: review notes tomorrow.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.77,
+          "llm_ttft_ms": null,
+          "tool_ms": 8.69,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 9.68,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "tool_result": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-32",
+      "expected": {
+        "id": "turn-32",
+        "language": "en",
+        "text": "Show my tasks.",
+        "category": "task",
+        "intent": "ListTasks"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "ListTasks",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Show my tasks.",
+        "response_text": "Pending tasks (2): review notes tomorrow; review notes tomorrow.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.71,
+          "llm_ttft_ms": null,
+          "tool_ms": 7.05,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 7.97,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-33",
+      "expected": {
+        "id": "turn-33",
+        "language": "en",
+        "text": "Show my calendar.",
+        "category": "calendar",
+        "intent": "ListCalendarEvents"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "ListCalendarEvents",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Show my calendar.",
+        "response_text": "You have no calendar events (upcoming).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.84,
+          "llm_ttft_ms": null,
+          "tool_ms": 3.99,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 5.02,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-34",
+      "expected": {
+        "id": "turn-34",
+        "language": "en",
+        "text": "Add milk to my grocery list.",
+        "category": "household",
+        "intent": "AddGroceryItem"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "AddGroceryItem",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Add milk to my grocery list.",
+        "response_text": "Added milk to your grocery list.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.62,
+          "llm_ttft_ms": null,
+          "tool_ms": 10.36,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 11.17,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "tool_result": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-35",
+      "expected": {
+        "id": "turn-35",
+        "language": "en",
+        "text": "Show my grocery list.",
+        "category": "household",
+        "intent": "ListGroceryList"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "ListGroceryList",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Show my grocery list.",
+        "response_text": "Grocery list (1): milk.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.77,
+          "llm_ttft_ms": null,
+          "tool_ms": 4.69,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 5.73,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-36",
+      "expected": {
+        "id": "turn-36",
+        "language": "en",
+        "text": "Hello AURA.",
+        "category": "greeting"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Greeting",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "greeting",
+        "action_executed": false,
+        "transcript": "Hello AURA.",
+        "response_text": "Hello! How can I help?",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.82,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 1.06,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "outcome": true,
+        "no_action": true,
+        "reply": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-37",
+      "expected": {
+        "id": "turn-37",
+        "language": "en",
+        "text": "Why do leaves change color?",
+        "category": "conversation"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Conversation",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "conversation",
+        "action_executed": false,
+        "transcript": "Why do leaves change color?",
+        "response_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins. This happens as trees prepare for winter to conserve energy.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.93,
+          "llm_ttft_ms": 5603.64,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 9610.42,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "outcome": true,
+        "no_action": true,
+        "reply": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-38",
+      "expected": {
+        "id": "turn-38",
+        "language": "hi",
+        "text": "अभी कितने बजे हैं?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "अभी कितने बजे हैं?",
+        "response_text": "अभी सुबह के 4 बजकर 50 मिनट हुए हैं।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 2.53,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.33,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 3.15,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-39",
+      "expected": {
+        "id": "turn-39",
+        "language": "hi",
+        "text": "कृपया समय बताइए।",
+        "category": "time",
+        "intent": "GetTime"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "कृपया समय बताइए।",
+        "response_text": "अभी सुबह के 4 बजकर 50 मिनट हुए हैं।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.01,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.21,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 1.49,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-40",
+      "expected": {
+        "id": "turn-40",
+        "language": "hi",
+        "text": "आज तारीख क्या है?",
+        "category": "date",
+        "intent": "GetDate",
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetDate",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "आज तारीख क्या है?",
+        "response_text": "आज गुरुवार, 26 नवंबर 2026 है।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.31,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.2,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 1.74,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-41",
+      "expected": {
+        "id": "turn-41",
+        "language": "hi",
+        "text": "आज कौन सा दिन है?",
+        "category": "date",
+        "intent": "GetDate",
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetDate",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "आज कौन सा दिन है?",
+        "response_text": "आज गुरुवार, 26 नवंबर 2026 है।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.39,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.14,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 1.84,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-42",
+      "expected": {
+        "id": "turn-42",
+        "language": "hi",
+        "text": "दस सेकंड का टाइमर लगाओ।",
+        "category": "timer",
+        "intent": "SetTimer",
+        "check": 10,
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "SetTimer",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "दस सेकंड का टाइमर लगाओ।",
+        "response_text": "10 सेकंड का टाइमर सेट कर दिया गया है।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 9.45,
+          "llm_ttft_ms": null,
+          "tool_ms": 10.24,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 19.93,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "duration": true,
+        "persisted_timer": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-43",
+      "expected": {
+        "id": "turn-43",
+        "language": "hi",
+        "text": "एक मिनट का टाइमर शुरू करो।",
+        "category": "timer",
+        "intent": "SetTimer",
+        "check": 60,
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "SetTimer",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "एक मिनट का टाइमर शुरू करो।",
+        "response_text": "1 मिनट का टाइमर सेट कर दिया गया है।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 3.71,
+          "llm_ttft_ms": null,
+          "tool_ms": 10.16,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 14.2,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "duration": true,
+        "persisted_timer": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-44",
+      "expected": {
+        "id": "turn-44",
+        "language": "hi",
+        "text": "बेडरूम की लाइट चालू करो।",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "बेडरूम की लाइट चालू करो।",
+        "response_text": "बेडरूम का लाइट अपडेट हो गया।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.88,
+          "llm_ttft_ms": null,
+          "tool_ms": 19.88,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 22.05,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-45",
+      "expected": {
+        "id": "turn-45",
+        "language": "hi",
+        "text": "बेडरूम की लाइट बंद करो।",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          false
+        ],
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "बेडरूम की लाइट बंद करो।",
+        "response_text": "बेडरूम का लाइट अपडेट हो गया।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.01,
+          "llm_ttft_ms": null,
+          "tool_ms": 16.65,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 17.89,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-46",
+      "expected": {
+        "id": "turn-46",
+        "language": "hi",
+        "text": "नमस्ते।",
+        "category": "greeting"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Greeting",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "greeting",
+        "action_executed": false,
+        "transcript": "नमस्ते।",
+        "response_text": "नमस्ते! बताइए, क्या मदद करूँ?",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.81,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 1.29,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "outcome": true,
+        "no_action": true,
+        "reply": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-47",
+      "expected": {
+        "id": "turn-47",
+        "language": "hi",
+        "text": "बेडरूम का एसी चौबीस डिग्री पर सेट करो।",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "ac.bedroom",
+          "temperature",
+          24
+        ],
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "बेडरूम का एसी चौबीस डिग्री पर सेट करो।",
+        "response_text": "बेडरूम का एसी अपडेट हो गया।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.22,
+          "llm_ttft_ms": null,
+          "tool_ms": 14.5,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 15.94,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-48",
+      "expected": {
+        "id": "turn-48",
+        "language": "kn",
+        "text": "ಈಗ ಎಷ್ಟು ಗಂಟೆ ಆಗಿದೆ?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "ಈಗ ಎಷ್ಟು ಗಂಟೆ ಆಗಿದೆ?",
+        "response_text": "ಈಗ ಬೆಳಿಗ್ಗೆ 4 ಗಂಟೆ 50 ನಿಮಿಷ ಆಗಿದೆ.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.45,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.16,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 1.82,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-49",
+      "expected": {
+        "id": "turn-49",
+        "language": "kn",
+        "text": "ಈಗಿನ ಸಮಯ ಹೇಳು.",
+        "category": "time",
+        "intent": "GetTime"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "ಈಗಿನ ಸಮಯ ಹೇಳು.",
+        "response_text": "ಈಗ ಬೆಳಿಗ್ಗೆ 4 ಗಂಟೆ 50 ನಿಮಿಷ ಆಗಿದೆ.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.96,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.17,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 1.33,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-50",
+      "expected": {
+        "id": "turn-50",
+        "language": "kn",
+        "text": "ಇವತ್ತು ಯಾವ ದಿನ?",
+        "category": "date",
+        "intent": "GetDate",
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetDate",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "ಇವತ್ತು ಯಾವ ದಿನ?",
+        "response_text": "ಇಂದು ಗುರುವಾರ, ನವೆಂಬರ್ 26, 2026.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.91,
+          "llm_ttft_ms": null,
+          "tool_ms": 1.05,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 3.97,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-51",
+      "expected": {
+        "id": "turn-51",
+        "language": "kn",
+        "text": "ಇಂದಿನ ದಿನಾಂಕ ಏನು?",
+        "category": "date",
+        "intent": "GetDate",
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetDate",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "ಇಂದಿನ ದಿನಾಂಕ ಏನು?",
+        "response_text": "ಇಂದು ಗುರುವಾರ, ನವೆಂಬರ್ 26, 2026.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.08,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.17,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 1.46,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-52",
+      "expected": {
+        "id": "turn-52",
+        "language": "kn",
+        "text": "ಹತ್ತು ಸೆಕೆಂಡಿನ ಟೈಮರ್ ಇಡು.",
+        "category": "timer",
+        "intent": "SetTimer",
+        "check": 10,
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "SetTimer",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "ಹತ್ತು ಸೆಕೆಂಡಿನ ಟೈಮರ್ ಇಡು.",
+        "response_text": "\"ಸೆಕೆಂಡಿನ\" 10 ಸೆಕೆಂಡ್ ಟೈಮರ್ ಇಡಲಾಗಿದೆ.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.75,
+          "llm_ttft_ms": null,
+          "tool_ms": 7.22,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 9.17,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "duration": true,
+        "persisted_timer": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-53",
+      "expected": {
+        "id": "turn-53",
+        "language": "kn",
+        "text": "ಒಂದು ನಿಮಿಷದ ಟೈಮರ್ ಇಡು.",
+        "category": "timer",
+        "intent": "SetTimer",
+        "check": 60,
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "SetTimer",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "ಒಂದು ನಿಮಿಷದ ಟೈಮರ್ ಇಡು.",
+        "response_text": "1 ನಿಮಿಷ ಟೈಮರ್ ಇಡಲಾಗಿದೆ.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 2.77,
+          "llm_ttft_ms": null,
+          "tool_ms": 6.47,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 9.43,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "duration": true,
+        "persisted_timer": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-54",
+      "expected": {
+        "id": "turn-54",
+        "language": "kn",
+        "text": "ಬೆಡ್‌ರೂಮ್ ಲೈಟ್ ಆನ್ ಮಾಡು.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "ಬೆಡ್‌ರೂಮ್ ಲೈಟ್ ಆನ್ ಮಾಡು.",
+        "response_text": "ಬೆಡ್‌ರೂಮ್ ಲೈಟ್ ನವೀಕರಿಸಲಾಗಿದೆ.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.44,
+          "llm_ttft_ms": null,
+          "tool_ms": 13.93,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 15.81,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-55",
+      "expected": {
+        "id": "turn-55",
+        "language": "kn",
+        "text": "ಬೆಡ್‌ರೂಮ್ ಲೈಟ್ ಆಫ್ ಮಾಡು.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          false
+        ],
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "ಬೆಡ್‌ರೂಮ್ ಲೈಟ್ ಆಫ್ ಮಾಡು.",
+        "response_text": "ಬೆಡ್‌ರೂಮ್ ಲೈಟ್ ನವೀಕರಿಸಲಾಗಿದೆ.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.0,
+          "llm_ttft_ms": null,
+          "tool_ms": 13.97,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 15.19,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-56",
+      "expected": {
+        "id": "turn-56",
+        "language": "kn",
+        "text": "ನಮಸ್ಕಾರ.",
+        "category": "greeting"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Greeting",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "greeting",
+        "action_executed": false,
+        "transcript": "ನಮಸ್ಕಾರ.",
+        "response_text": "ನಮಸ್ಕಾರ! ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.86,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 1.21,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "outcome": true,
+        "no_action": true,
+        "reply": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-57",
+      "expected": {
+        "id": "turn-57",
+        "language": "hinglish",
+        "text": "Bedroom की light चालू करो.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Bedroom की light चालू करो.",
+        "response_text": "बेडरूम का लाइट अपडेट हो गया।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.08,
+          "llm_ttft_ms": null,
+          "tool_ms": 14.42,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 15.71,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-58",
+      "expected": {
+        "id": "turn-58",
+        "language": "hinglish",
+        "text": "AC को twenty-four degrees पर set करो.",
+        "category": "negative",
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "clarification",
+        "status": "clarification_required",
+        "route_category": "tool",
+        "action_executed": false,
+        "transcript": "AC को twenty-four degrees पर set करो.",
+        "response_text": "कौन सा कमरा या उपकरण?",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.99,
+          "llm_ttft_ms": null,
+          "tool_ms": 5.21,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 6.46,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "safe": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-59",
+      "expected": {
+        "id": "turn-59",
+        "language": "hinglish",
+        "text": "मुझे thirty seconds के बाद पानी पीने का reminder देना.",
+        "category": "reminder",
+        "intent": "CreateReminder",
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "CreateReminder",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "मुझे thirty seconds के बाद पानी पीने का reminder देना.",
+        "response_text": "04:50 AM के लिए रिमाइंडर सेट कर दिया गया है: पानी पीने।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.28,
+          "llm_ttft_ms": null,
+          "tool_ms": 14.44,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 16.09,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "tool_result": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-60",
+      "expected": {
+        "id": "turn-60",
+        "language": "hinglish",
+        "text": "aaj ki date kya hai",
+        "category": "date",
+        "intent": "GetDate"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetDate",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "aaj ki date kya hai",
+        "response_text": "आज गुरुवार, 26 नवंबर 2026 है।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.12,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.17,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 1.56,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-61",
+      "expected": {
+        "id": "turn-61",
+        "language": "hinglish",
+        "text": "bedroom ki light off karo",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          false
+        ]
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "bedroom ki light off karo",
+        "response_text": "बेडरूम का लाइट अपडेट हो गया।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.89,
+          "llm_ttft_ms": null,
+          "tool_ms": 15.75,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 16.84,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-62",
+      "expected": {
+        "id": "turn-62",
+        "language": "kanglish",
+        "text": "ಬೆಡ್‌ರೂಮ್ light on ಮಾಡಿ.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "ಬೆಡ್‌ರೂಮ್ light on ಮಾಡಿ.",
+        "response_text": "ಬೆಡ್‌ರೂಮ್ ಲೈಟ್ ನವೀಕರಿಸಲಾಗಿದೆ.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.86,
+          "llm_ttft_ms": null,
+          "tool_ms": 24.77,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 25.84,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-63",
+      "expected": {
+        "id": "turn-63",
+        "language": "kanglish",
+        "text": "AC temperature twenty-four ಗೆ set ಮಾಡಿ.",
+        "category": "negative"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "clarification",
+        "status": "clarification_required",
+        "route_category": "tool",
+        "action_executed": false,
+        "transcript": "AC temperature twenty-four ಗೆ set ಮಾಡಿ.",
+        "response_text": "ಯಾವ ಕೊಠಡಿ ಅಥವಾ ಸಾಧನ?",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.92,
+          "llm_ttft_ms": null,
+          "tool_ms": 5.19,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 6.32,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "safe": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-64",
+      "expected": {
+        "id": "turn-64",
+        "language": "kanglish",
+        "text": "ನನಗೆ thirty seconds ಆದ್ಮೇಲೆ reminder ಕೊಡಿ.",
+        "category": "reminder",
+        "intent": "CreateReminder",
+        "audio": true
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "CreateReminder",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "ನನಗೆ thirty seconds ಆದ್ಮೇಲೆ reminder ಕೊಡಿ.",
+        "response_text": "04:50 AM ಕ್ಕೆ ಜ್ಞಾಪನೆ ಸೆಟ್ ಮಾಡಲಾಗಿದೆ: ಜ್ಞಾಪನೆ.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.08,
+          "llm_ttft_ms": null,
+          "tool_ms": 9.21,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 10.54,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "tool_result": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-65",
+      "expected": {
+        "id": "turn-65",
+        "language": "kanglish",
+        "text": "ivattu tareekhu eshtu",
+        "category": "date",
+        "intent": "GetDate"
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetDate",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "ivattu tareekhu eshtu",
+        "response_text": "ಇಂದು ಗುರುವಾರ, ನವೆಂಬರ್ 26, 2026.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.96,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.22,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 1.99,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-66",
+      "expected": {
+        "id": "turn-66",
+        "language": "kanglish",
+        "text": "bedroom fan off maadu",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "fan.bedroom_ceiling",
+          "power",
+          false
+        ]
+      },
+      "input": "text",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "bedroom fan off maadu",
+        "response_text": "ಬೆಡ್‌ರೂಮ್ ಫ್ಯಾನ್ ನವೀಕರಿಸಲಾಗಿದೆ.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 0.91,
+          "llm_ttft_ms": null,
+          "tool_ms": 14.31,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 15.42,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-01",
+      "expected": {
+        "id": "turn-01",
+        "language": "en",
+        "text": "What time is it?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What time is it?",
+        "response_text": "The time is 4:50 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 912.38,
+          "router_ms": 1.23,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.21,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 2258.08,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-02",
+      "expected": {
+        "id": "turn-02",
+        "language": "en",
+        "text": "Tell me the current time please.",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Tell me the current time please.",
+        "response_text": "The time is 4:50 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 230.92,
+          "router_ms": 1.11,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.18,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 234.1,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-04",
+      "expected": {
+        "id": "turn-04",
+        "language": "en",
+        "text": "Tell me today's date.",
+        "category": "date",
+        "intent": "GetDate",
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetDate",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Tell me today's date.",
+        "response_text": "Today is Thursday, November 26, 2026.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 215.22,
+          "router_ms": 0.97,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.19,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 217.62,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-06",
+      "expected": {
+        "id": "turn-06",
+        "language": "en",
+        "text": "Set a timer for ten seconds.",
+        "category": "timer",
+        "intent": "SetTimer",
+        "check": 10,
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "SetTimer",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Set a timer for 10 seconds.",
+        "response_text": "Timer set for 10 seconds.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 211.67,
+          "router_ms": 2.13,
+          "llm_ttft_ms": null,
+          "tool_ms": 8.58,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 223.48,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.1667,
+        "cer": 0.1364,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "duration": true,
+        "persisted_timer": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-07",
+      "expected": {
+        "id": "turn-07",
+        "language": "en",
+        "text": "Start a thirty-second timer.",
+        "category": "timer",
+        "intent": "SetTimer",
+        "check": 30,
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "SetTimer",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Start a 30 second timer.",
+        "response_text": "Timer set for 30 seconds.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 210.48,
+          "router_ms": 2.29,
+          "llm_ttft_ms": null,
+          "tool_ms": 8.51,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 222.83,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.2,
+        "cer": 0.2609,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "duration": true,
+        "persisted_timer": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-08",
+      "expected": {
+        "id": "turn-08",
+        "language": "en",
+        "text": "Give me a one-minute timer.",
+        "category": "timer",
+        "intent": "SetTimer",
+        "check": 60,
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "SetTimer",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Give me a one minute timer.",
+        "response_text": "Timer set for 1 minute.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 228.23,
+          "router_ms": 1.41,
+          "llm_ttft_ms": null,
+          "tool_ms": 8.6,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 239.94,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "duration": true,
+        "persisted_timer": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-09",
+      "expected": {
+        "id": "turn-09",
+        "language": "en",
+        "text": "Turn on the bedroom light.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Turn on the bedroom light.",
+        "response_text": "Updated bedroom light.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 220.77,
+          "router_ms": 0.81,
+          "llm_ttft_ms": null,
+          "tool_ms": 17.55,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 240.78,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-10",
+      "expected": {
+        "id": "turn-10",
+        "language": "en",
+        "text": "Switch off the study fan.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "fan.study",
+          "power",
+          false
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Switch off the study fan.",
+        "response_text": "Updated study room fan.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 233.4,
+          "router_ms": 0.83,
+          "llm_ttft_ms": null,
+          "tool_ms": 16.33,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 251.82,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-11",
+      "expected": {
+        "id": "turn-11",
+        "language": "en",
+        "text": "Set the bedroom AC to twenty-four degrees.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "ac.bedroom",
+          "temperature",
+          24
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Set the bedroom AC to 24 degrees.",
+        "response_text": "Updated bedroom AC.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 253.33,
+          "router_ms": 0.99,
+          "llm_ttft_ms": null,
+          "tool_ms": 21.23,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 277.23,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.25,
+        "cer": 0.2941,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-12",
+      "expected": {
+        "id": "turn-12",
+        "language": "en",
+        "text": "Dim the bedroom light to 40 percent.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "brightness",
+          40
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "dim the bedroom light to 40%.",
+        "response_text": "Updated bedroom light.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 237.14,
+          "router_ms": 1.55,
+          "llm_ttft_ms": null,
+          "tool_ms": 16.42,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 256.74,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.2857,
+        "cer": 0.2414,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-38",
+      "expected": {
+        "id": "turn-38",
+        "language": "hi",
+        "text": "अभी कितने बजे हैं?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "अभी कितने बजे है?",
+        "response_text": "अभी सुबह के 4 बजकर 50 मिनट हुए हैं।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 273.71,
+          "router_ms": 0.89,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.17,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 276.39,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.25,
+        "cer": 0.0714,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-40",
+      "expected": {
+        "id": "turn-40",
+        "language": "hi",
+        "text": "आज तारीख क्या है?",
+        "category": "date",
+        "intent": "GetDate",
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetDate",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "आज तारीक क्या है?",
+        "response_text": "आज गुरुवार, 26 नवंबर 2026 है।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 268.82,
+          "router_ms": 1.66,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.17,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 272.04,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.25,
+        "cer": 0.0769,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-41",
+      "expected": {
+        "id": "turn-41",
+        "language": "hi",
+        "text": "आज कौन सा दिन है?",
+        "category": "date",
+        "intent": "GetDate",
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Unsupported",
+        "outcome": "refusal",
+        "status": "refused",
+        "route_category": "refusal",
+        "action_executed": false,
+        "transcript": "आज कोन सा दिन है",
+        "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 250.13,
+          "router_ms": 1.08,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 253.39,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.2,
+        "cer": 0.0833,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": false,
+        "outcome": false,
+        "verified": false,
+        "host_clock": false
+      },
+      "passed": false
+    },
+    {
+      "id": "turn-42",
+      "expected": {
+        "id": "turn-42",
+        "language": "hi",
+        "text": "दस सेकंड का टाइमर लगाओ।",
+        "category": "timer",
+        "intent": "SetTimer",
+        "check": 10,
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Unsupported",
+        "outcome": "refusal",
+        "status": "refused",
+        "route_category": "refusal",
+        "action_executed": false,
+        "transcript": "10 सेकंद का तैमर लगाो",
+        "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 276.44,
+          "router_ms": 1.16,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 279.38,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.8,
+        "cer": 0.3889,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": false,
+        "outcome": false,
+        "verified": false,
+        "duration": false
+      },
+      "passed": false
+    },
+    {
+      "id": "turn-43",
+      "expected": {
+        "id": "turn-43",
+        "language": "hi",
+        "text": "एक मिनट का टाइमर शुरू करो।",
+        "category": "timer",
+        "intent": "SetTimer",
+        "check": 60,
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Unsupported",
+        "outcome": "refusal",
+        "status": "refused",
+        "route_category": "refusal",
+        "action_executed": false,
+        "transcript": "तेए निन्त का टायमर सूँभो करो",
+        "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 318.95,
+          "router_ms": 2.08,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 323.15,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.6667,
+        "cer": 0.6,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": false,
+        "outcome": false,
+        "verified": false,
+        "duration": false
+      },
+      "passed": false
+    },
+    {
+      "id": "turn-44",
+      "expected": {
+        "id": "turn-44",
+        "language": "hi",
+        "text": "बेडरूम की लाइट चालू करो।",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Unsupported",
+        "outcome": "refusal",
+        "status": "refused",
+        "route_category": "refusal",
+        "action_executed": false,
+        "transcript": "बेद्रुम की लाईत चालों करो",
+        "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 321.54,
+          "router_ms": 1.88,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 325.89,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.6,
+        "cer": 0.3684,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": false,
+        "outcome": false,
+        "verified": false,
+        "persisted_state": false
+      },
+      "passed": false
+    },
+    {
+      "id": "turn-45",
+      "expected": {
+        "id": "turn-45",
+        "language": "hi",
+        "text": "बेडरूम की लाइट बंद करो।",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          false
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Clarify",
+        "outcome": "clarification",
+        "status": "clarification_required",
+        "route_category": "clarification",
+        "action_executed": false,
+        "transcript": "बेद्रुम की लाइत बंद करो",
+        "response_text": "कृपया स्पष्ट बताएं कि आप क्या करवाना चाहते हैं?",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 312.77,
+          "router_ms": 1.07,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 316.07,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.4,
+        "cer": 0.2222,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": false,
+        "outcome": false,
+        "verified": false,
+        "persisted_state": false
+      },
+      "passed": false
+    },
+    {
+      "id": "turn-47",
+      "expected": {
+        "id": "turn-47",
+        "language": "hi",
+        "text": "बेडरूम का एसी चौबीस डिग्री पर सेट करो।",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "ac.bedroom",
+          "temperature",
+          24
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Unsupported",
+        "outcome": "refusal",
+        "status": "refused",
+        "route_category": "refusal",
+        "action_executed": false,
+        "transcript": "बेद्रुम का, AC24 सीक्योंगे पर सेत करो.",
+        "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 347.92,
+          "router_ms": 1.33,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 351.51,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.625,
+        "cer": 0.5667,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": false,
+        "outcome": false,
+        "verified": false,
+        "persisted_state": false
+      },
+      "passed": false
+    },
+    {
+      "id": "turn-48",
+      "expected": {
+        "id": "turn-48",
+        "language": "kn",
+        "text": "ಈಗ ಎಷ್ಟು ಗಂಟೆ ಆಗಿದೆ?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "ಈಗ ಎಷ್ಟು ಗಂಟೆ ಆಗಿದೆ",
+        "response_text": "ಈಗ ಬೆಳಿಗ್ಗೆ 4 ಗಂಟೆ 50 ನಿಮಿಷ ಆಗಿದೆ.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 1934.13,
+          "router_ms": 2.05,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.46,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 2953.79,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-50",
+      "expected": {
+        "id": "turn-50",
+        "language": "kn",
+        "text": "ಇವತ್ತು ಯಾವ ದಿನ?",
+        "category": "date",
+        "intent": "GetDate",
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetDate",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "ಇವತ್ತು ಯಾವ ದಿನ್",
+        "response_text": "ಇಂದು ಗುರುವಾರ, ನವೆಂಬರ್ 26, 2026.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 358.27,
+          "router_ms": 2.11,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.29,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 363.42,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.3333,
+        "cer": 0.0833,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-51",
+      "expected": {
+        "id": "turn-51",
+        "language": "kn",
+        "text": "ಇಂದಿನ ದಿನಾಂಕ ಏನು?",
+        "category": "date",
+        "intent": "GetDate",
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "GetDate",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "ಇಂದಿನ ದಿನಾಂಕ ಏನು",
+        "response_text": "ಇಂದು ಗುರುವಾರ, ನವೆಂಬರ್ 26, 2026.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 1834.21,
+          "router_ms": 1.92,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.28,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 1839.71,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-52",
+      "expected": {
+        "id": "turn-52",
+        "language": "kn",
+        "text": "ಹತ್ತು ಸೆಕೆಂಡಿನ ಟೈಮರ್ ಇಡು.",
+        "category": "timer",
+        "intent": "SetTimer",
+        "check": 10,
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Unsupported",
+        "outcome": "refusal",
+        "status": "refused",
+        "route_category": "refusal",
+        "action_executed": false,
+        "transcript": "ಹತ್ತು ಸೆಕೆಂಡಿನ ತೈಮಲು ಏಡು",
+        "response_text": "ಕ್ಷಮಿಸಿ, ನನಗೆ ಅದನ್ನು ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ. ನಾನು ಸಮಯ, ದಿನಾಂಕ, ಟೈಮರ್, ಸ್ಮಾರ್ಟ್ ಹೋಮ್ ಸಾಧನಗಳು ಮತ್ತು ಮಾತುಕತೆಗೆ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 2593.55,
+          "router_ms": 1.69,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 2599.19,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.5,
+        "cer": 0.1905,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": false,
+        "outcome": false,
+        "verified": false,
+        "duration": false
+      },
+      "passed": false
+    },
+    {
+      "id": "turn-53",
+      "expected": {
+        "id": "turn-53",
+        "language": "kn",
+        "text": "ಒಂದು ನಿಮಿಷದ ಟೈಮರ್ ಇಡು.",
+        "category": "timer",
+        "intent": "SetTimer",
+        "check": 60,
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Unsupported",
+        "outcome": "refusal",
+        "status": "refused",
+        "route_category": "refusal",
+        "action_executed": false,
+        "transcript": "ಒಂದು ನಿಮಿಷದ ಥೈಮ ಇಡು",
+        "response_text": "ಕ್ಷಮಿಸಿ, ನನಗೆ ಅದನ್ನು ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ. ನಾನು ಸಮಯ, ದಿನಾಂಕ, ಟೈಮರ್, ಸ್ಮಾರ್ಟ್ ಹೋಮ್ ಸಾಧನಗಳು ಮತ್ತು ಮಾತುಕತೆಗೆ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 469.58,
+          "router_ms": 1.25,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 473.7,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.25,
+        "cer": 0.1667,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": false,
+        "outcome": false,
+        "verified": false,
+        "duration": false
+      },
+      "passed": false
+    },
+    {
+      "id": "turn-54",
+      "expected": {
+        "id": "turn-54",
+        "language": "kn",
+        "text": "ಬೆಡ್‌ರೂಮ್ ಲೈಟ್ ಆನ್ ಮಾಡು.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Unsupported",
+        "outcome": "refusal",
+        "status": "refused",
+        "route_category": "refusal",
+        "action_executed": false,
+        "transcript": "ಬೆಡ್ ರೂವ್ ಲೈಟ್ ಅನ್ ಮಾಡು",
+        "response_text": "ಕ್ಷಮಿಸಿ, ನನಗೆ ಅದನ್ನು ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ. ನಾನು ಸಮಯ, ದಿನಾಂಕ, ಟೈಮರ್, ಸ್ಮಾರ್ಟ್ ಹೋಮ್ ಸಾಧನಗಳು ಮತ್ತು ಮಾತುಕತೆಗೆ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 446.18,
+          "router_ms": 1.19,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 450.57,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.75,
+        "cer": 0.15,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": false,
+        "outcome": false,
+        "verified": false,
+        "persisted_state": false
+      },
+      "passed": false
+    },
+    {
+      "id": "turn-55",
+      "expected": {
+        "id": "turn-55",
+        "language": "kn",
+        "text": "ಬೆಡ್‌ರೂಮ್ ಲೈಟ್ ಆಫ್ ಮಾಡು.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          false
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Unsupported",
+        "outcome": "refusal",
+        "status": "refused",
+        "route_category": "refusal",
+        "action_executed": false,
+        "transcript": "बेट्रुम लाएक आन्त माडो",
+        "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 393.26,
+          "router_ms": 1.4,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 397.51,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 1.0,
+        "cer": 1.0,
+        "language_identification_match": false
+      },
+      "checks": {
+        "intent": false,
+        "outcome": false,
+        "verified": false,
+        "persisted_state": false
+      },
+      "passed": false
+    },
+    {
+      "id": "turn-57",
+      "expected": {
+        "id": "turn-57",
+        "language": "hinglish",
+        "text": "Bedroom की light चालू करो.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Unsupported",
+        "outcome": "refusal",
+        "status": "refused",
+        "route_category": "refusal",
+        "action_executed": false,
+        "transcript": "बेदूं की लैट्चालो करो",
+        "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 341.0,
+          "router_ms": 2.32,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 346.68,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.6,
+        "cer": 0.619,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": false,
+        "outcome": false,
+        "verified": false,
+        "persisted_state": false
+      },
+      "passed": false
+    },
+    {
+      "id": "turn-58",
+      "expected": {
+        "id": "turn-58",
+        "language": "hinglish",
+        "text": "AC को twenty-four degrees पर set करो.",
+        "category": "negative",
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "clarification",
+        "status": "clarification_required",
+        "route_category": "tool",
+        "action_executed": false,
+        "transcript": "AC को 20 फण्ती पर साथ करो",
+        "response_text": "कौन सा कमरा या उपकरण?",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 331.62,
+          "router_ms": 1.58,
+          "llm_ttft_ms": null,
+          "tool_ms": 75.21,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 410.86,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.5,
+        "cer": 0.6897,
+        "language_identification_match": true
+      },
+      "checks": {
+        "safe": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-59",
+      "expected": {
+        "id": "turn-59",
+        "language": "hinglish",
+        "text": "मुझे thirty seconds के बाद पानी पीने का reminder देना.",
+        "category": "reminder",
+        "intent": "CreateReminder",
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Unsupported",
+        "outcome": "refusal",
+        "status": "refused",
+        "route_category": "refusal",
+        "action_executed": false,
+        "transcript": "मुजे सेती सیکंस के बात पानि तीनेका भीमान्द देना",
+        "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 563.04,
+          "router_ms": 2.33,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 568.62,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.8,
+        "cer": 0.5682,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": false,
+        "outcome": false,
+        "verified": false,
+        "tool_result": false
+      },
+      "passed": false
+    },
+    {
+      "id": "turn-62",
+      "expected": {
+        "id": "turn-62",
+        "language": "kanglish",
+        "text": "ಬೆಡ್‌ರೂಮ್ light on ಮಾಡಿ.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Unsupported",
+        "outcome": "refusal",
+        "status": "refused",
+        "route_category": "refusal",
+        "action_executed": false,
+        "transcript": "बेद्रूम लाईत अन्माडी",
+        "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 567.42,
+          "router_ms": 1.59,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 572.3,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 1.0,
+        "cer": 1.0,
+        "language_identification_match": false
+      },
+      "checks": {
+        "intent": false,
+        "outcome": false,
+        "verified": false,
+        "persisted_state": false
+      },
+      "passed": false
+    },
+    {
+      "id": "turn-64",
+      "expected": {
+        "id": "turn-64",
+        "language": "kanglish",
+        "text": "ನನಗೆ thirty seconds ಆದ್ಮೇಲೆ reminder ಕೊಡಿ.",
+        "category": "reminder",
+        "intent": "CreateReminder",
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "Unsupported",
+        "outcome": "refusal",
+        "status": "refused",
+        "route_category": "refusal",
+        "action_executed": false,
+        "transcript": "ನನಗೆ ತಿರ್ತಿ ಸೆಕೊಂಡಸ್ ಆದ್ಮೇಲೆ ರೆಮ್ಮಿನೇರ್ ಕೊಡಿ",
+        "response_text": "ಕ್ಷಮಿಸಿ, ನನಗೆ ಅದನ್ನು ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ. ನಾನು ಸಮಯ, ದಿನಾಂಕ, ಟೈಮರ್, ಸ್ಮಾರ್ಟ್ ಹೋಮ್ ಸಾಧನಗಳು ಮತ್ತು ಮಾತುಕತೆಗೆ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 4805.49,
+          "router_ms": 2.84,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.0,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 4813.25,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.5,
+        "cer": 0.6667,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": false,
+        "outcome": false,
+        "verified": false,
+        "tool_result": false
+      },
+      "passed": false
+    },
+    {
+      "id": "silence",
+      "expected": {
+        "id": "silence",
+        "text": "",
+        "language": "en",
+        "category": "silence"
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "NoSpeech",
+        "outcome": "success",
+        "status": "ignored_silence",
+        "route_category": "silence",
+        "action_executed": false,
+        "transcript": "",
+        "response_text": "",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 0.0,
+          "router_ms": null,
+          "llm_ttft_ms": null,
+          "tool_ms": null,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 1.63,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false
+      },
+      "checks": {
+        "safe": true
+      },
+      "passed": true
+    },
+    {
+      "id": "noise",
+      "expected": {
+        "id": "noise",
+        "text": "",
+        "language": "en",
+        "category": "silence"
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "NoSpeech",
+        "outcome": "success",
+        "status": "ignored_silence",
+        "route_category": "silence",
+        "action_executed": false,
+        "transcript": "",
+        "response_text": "",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 0.0,
+          "router_ms": null,
+          "llm_ttft_ms": null,
+          "tool_ms": null,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 2.38,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false
+      },
+      "checks": {
+        "safe": true
+      },
+      "passed": true
+    },
+    {
+      "id": "saved-en",
+      "expected": {
+        "id": "saved-en",
+        "intent": "SetTimer",
+        "language": "en",
+        "text": "Set a timer for five minutes and tell me the current time.",
+        "check": 300,
+        "category": "timer"
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "SetTimer",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Set a timer for 5 minutes and tell me the current time.",
+        "response_text": "Timer set for 5 minutes. The time is 4:50 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 441.51,
+          "router_ms": 9.91,
+          "llm_ttft_ms": null,
+          "tool_ms": 19.48,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 474.16,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.0833,
+        "cer": 0.087,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "duration": true,
+        "persisted_timer": true
+      },
+      "passed": true
+    },
+    {
+      "id": "saved-hi",
+      "expected": {
+        "id": "saved-hi",
+        "intent": "SetTimer",
+        "language": "hi",
+        "text": "पांच मिनट का टाइमर लगाओ और अभी क्या समय हुआ है बताओ।",
+        "check": 300,
+        "category": "timer"
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "SetTimer",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "पाज मिन्त कर तामर लगाओ, और अभी क्या समे हुए है? बताव!",
+        "response_text": "\"कर\" 5 मिनट का टाइमर सेट कर दिया गया है। अभी सुबह के 4 बजकर 50 मिनट हुए हैं।",
+        "detected_language": "hi",
+        "response_language": "hi",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 875.39,
+          "router_ms": 7.91,
+          "llm_ttft_ms": null,
+          "tool_ms": 15.26,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 901.75,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.5833,
+        "cer": 0.25,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "duration": true,
+        "persisted_timer": true
+      },
+      "passed": true
+    },
+    {
+      "id": "saved-kn",
+      "expected": {
+        "id": "saved-kn",
+        "intent": "SetTimer",
+        "language": "kn",
+        "text": "ಐದು ನಿಮಿಷದ ಟೈಮರ್ ಇಡು ಮತ್ತು ಈಗ ಎಷ್ಟು ಗಂಟೆ ಆಗಿದೆ ಹೇಳು.",
+        "check": 300,
+        "category": "timer"
+      },
+      "input": "synthetic_audio",
+      "phase": null,
+      "compute": "auto",
+      "actual": {
+        "intent": "SetTimer",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "ಐದು ನಿಮಿಷದ ತೈಮರಿಿಡು ಮತ್ತು ಈಗ ಎಷ್ಟು ಗಂಟೆ ಆಗಿದೆ ಹೇಳು",
+        "response_text": "5 ನಿಮಿಷ ಟೈಮರ್ ಇಡಲಾಗಿದೆ. ಈಗ ಬೆಳಿಗ್ಗೆ 4 ಗಂಟೆ 50 ನಿಮಿಷ ಆಗಿದೆ.",
+        "detected_language": "kn",
+        "response_language": "kn",
+        "spoken_text": "",
+        "error": null,
+        "timings": {
+          "stt_ms": 4183.76,
+          "router_ms": 6.99,
+          "llm_ttft_ms": null,
+          "tool_ms": 17.7,
+          "tts_ms": null,
+          "time_to_first_audio_output_ms": null,
+          "total_turn_duration_ms": 4212.83,
+          "playback_duration_ms": null
+        },
+        "non_silent_output_callback": false,
+        "playback_completed": false,
+        "reply_language_valid": true,
+        "wer": 0.2,
+        "cer": 0.0714,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "duration": true,
+        "persisted_timer": true
+      },
+      "passed": true
+    }
+  ],
+  "devices": [],
+  "placement": {},
+  "resources": {},
+  "summary": {
+    "text:pass": 66,
+    "synthetic_audio:pass": 21,
+    "synthetic_audio:fail": 14
+  }
+}

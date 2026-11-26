@@ -1,0 +1,14 @@
+{
+  "code": "b04450e",
+  "mode": "strict_offline",
+  "database": "0005_phase4_personal_assistant",
+  "pgvector": "0.8.7",
+  "binding": "127.0.0.1",
+  "idle": "IDLE",
+  "microphone": true,
+  "speaker": true,
+  "web_asset": "./assets/index-Dao-CJVj.js",
+  "paths": 72,
+  "tasks_route": true,
+  "loopback_ollama": "http://127.0.0.1:11434"
+}

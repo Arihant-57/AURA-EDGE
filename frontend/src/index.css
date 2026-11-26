@@ -281,3 +281,31 @@ button.text-button:hover:not(:disabled) { text-decoration: underline; background
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; } }
 .reduced-motion *, .reduced-motion *::before, .reduced-motion *::after { animation-duration: 0s !important; transition-duration: 0s !important; }
+
+.simulator-layout { display:grid; grid-template-columns:minmax(150px,.65fr) minmax(240px,1.65fr) minmax(235px,1fr); gap:12px; align-items:start }
+.floor-plan { display:grid; grid-template-columns:1fr 1fr; gap:3px; padding:5px; border:2px solid var(--line) }
+.floor-plan button { min-height:66px; display:grid; align-content:center; text-align:left; border-radius:3px; padding:6px }
+.floor-plan button:first-child { grid-column:span 2 }
+.floor-plan button[aria-pressed=true] { background:var(--accent); color:#252919 }
+.floor-plan button[aria-pressed=true] small { color:inherit }
+.simulation-scene { position:relative; isolation:isolate; overflow:hidden; border-radius:16px; min-height:360px; padding:16px; display:grid; align-content:space-between; gap:20px; background:#29241d }
+.simulation-scene > img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:-2; transition:filter .25s }
+.simulation-scene::after { content:""; position:absolute; inset:0; background:linear-gradient(#201b16aa,transparent 40%,#201b16dc); z-index:-1 }
+.simulation-scene h2 { font-size:1.6rem; margin:0 }
+.simulation-scene small { display:block; color:#e2ddcf }
+.marker-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:6px }
+.device-marker { display:flex; align-items:center; gap:8px; background:#24221de8; border:1px solid var(--line); border-radius:8px; padding:8px; font-size:.82rem }
+.marker-symbol { display:grid; place-items:center; flex:none }
+.device-marker[data-running=true] .marker-symbol { color:var(--accent) }
+.device-marker[data-kind=fan][data-running=true] .marker-symbol, .device-marker[data-kind=washing_machine][data-running=true] .marker-symbol { animation:sim-spin 3s linear infinite }
+.device-marker[data-kind=robot_vacuum][data-running=true] .marker-symbol { animation:sim-travel 2s ease-in-out infinite alternate }
+.device-marker[data-kind=air_conditioner][data-running=true] .marker-symbol { animation:sim-flow 1.6s ease-in-out infinite alternate }
+.device-marker meter { width:80px; accent-color:var(--accent) }
+.simulation-history { grid-column:span 2 }
+@keyframes sim-spin { to { transform:rotate(360deg) } }
+@keyframes sim-travel { to { transform:translateX(5px) } }
+@keyframes sim-flow { to { opacity:.45 } }
+@media(max-width:1060px) { .simulator-layout {grid-template-columns:1fr 1fr} .simulator-layout > :first-child {grid-column:1/-1} .floor-plan {grid-template-columns:repeat(5,1fr)} .floor-plan button:first-child {grid-column:auto} .simulation-history {grid-column:auto} }
+@media(max-width:700px) { .simulator-layout {grid-template-columns:1fr} .floor-plan {grid-template-columns:repeat(2,1fr)} }
+@media(prefers-reduced-motion:reduce) { .simulator-layout .marker-symbol {animation:none!important} }
+.reduced-motion .simulator-layout .marker-symbol {animation:none!important}

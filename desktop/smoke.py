@@ -12,7 +12,8 @@ from urllib.request import Request, urlopen
 from companion import CAPSULE_WIDTH
 from local_server import start_server
 from main import ROOT, Desktop
-from PySide6.QtCore import QPoint, QProcess, QRect, QSettings, Qt
+from PySide6.QtCore import QPoint, QProcess, QRect, QSettings, Qt, QTimer
+from PySide6.QtGui import QContextMenuEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QWidget
 
@@ -128,6 +129,7 @@ def run(port, read_only, capture_dir=None, exercise_mic=False):
     def verify_pages():
         sections = {
             "Home": (),
+            "Simulator": (),
             "Automation": ("Activities",),
             "Rooms": (),
             "Tasks": ("Calendar", "Reminders"),
@@ -149,12 +151,49 @@ def run(port, read_only, capture_dir=None, exercise_mic=False):
                 wait_for(settled, f"{name} did not load")
                 errors = javascript("[...document.querySelectorAll('main .inline-error')].map(node => node.textContent).join(' | ')")
                 assert not errors, f"{name}: {errors}"
-        print("PASS live data across all eight dashboard pages and their tabs", flush=True)
+                if capture_dir and section == "Simulator":
+                    assert dashboard.grab().save(str(capture_dir / "08-simulator.png"))
+        print("PASS live data across all nine dashboard pages and their tabs", flush=True)
 
     try:
         wait_for(lambda: desktop.voice_model.online and desktop.voice_model.available, "Native voice snapshot unavailable")
         assert pet.isVisible() and desktop.mode == "PET_ONLY"
         assert pet.grab().toImage().pixelColor(0, 0).alpha() == 0, "Pet corner is not transparent"
+        # Exercise the actual context event and menu actions in the isolated
+        # smoke profile without relying on a human to dismiss the popup.
+        menu_labels = []
+        def inspect_menu():
+            if desktop.menu:
+                menu_labels.extend(a.text() for a in desktop.menu.actions())
+                desktop.menu.close()
+        QTimer.singleShot(180, inspect_menu)
+        point = QPoint(30, 30)
+        QApplication.sendEvent(pet, QContextMenuEvent(QContextMenuEvent.Reason.Mouse, point, pet.mapToGlobal(point)))
+        assert {"Talk to AURA", "Always on top", "Size", "Reduce motion"} <= set(menu_labels)
+        root = pet.pet.rootObject()
+        desktop.preference("reducedMotion", "false")
+        if desktop.voice_model.mood == "IDLE":
+            wait_for(lambda: root.property("motionStep") > 0, "Idle animation did not advance")
+            wait_for(lambda: root.property("blink"), "Idle eyes did not blink", timeout=7)
+        desktop.preference("reducedMotion", "true")
+        step = root.property("motionStep")
+        QTest.qWait(420)
+        assert root.property("reducedMotion") and root.property("motionStep") == step
+        desktop.preference("size", "large")
+        assert pet.width() == 108
+        desktop.preference("size", "medium")
+        desktop.preference("onTop", "true")
+        assert pet.windowFlags() & Qt.WindowType.WindowStaysOnTopHint
+        if desktop.tray.isVisible():
+            desktop.show_mode("HIDDEN")
+            assert not pet.isVisible()
+        for _ in range(3):
+            desktop.show_mode("MINI_ISLAND")
+            desktop.show_mode("PET_ONLY")
+        assert sum(w.windowTitle() == "AURA EDGE Companion" for w in app.topLevelWidgets()) == 1
+        assert backend("/voice/status")["active_state"] == "IDLE"
+        desktop.preference("reducedMotion", "false")
+        print("PASS context menu, idle and reduced motion, size, on-top and rapid transitions without capture", flush=True)
         if capture_dir:
             desktop.place_free(QRect(130, 104, pet.width(), pet.height()))
         capture("01-pet.png", pet)
@@ -225,25 +264,26 @@ def run(port, read_only, capture_dir=None, exercise_mic=False):
             QTest.qWait(240)
             assert dashboard.grab().save(str(capture_dir / "06-bedroom-controls.png"))
             click("Home", "document.querySelector('nav')")
-            verify_pages()
-            desktop.preference("pinned", "true")
-            outside.show()
-            outside.activateWindow()
-            wait_for(outside.isActiveWindow, "Could not focus an outside window")
-            assert desktop.mode == "EXPANDED_DASHBOARD", "Pin did not keep the dashboard open"
-            desktop.preference("pinned", "false")
-            desktop.show_mode("EXPANDED_DASHBOARD")
-            wait_for(dashboard.isActiveWindow, "Could not refocus the dashboard")
-            outside.activateWindow()
-            wait_for(lambda: desktop.mode == "PET_ONLY", "Outside click did not return to the pet")
-            desktop.show_mode("MINI_ISLAND")
-            wait_for(lambda: pet.reveal > .99 and pet.isActiveWindow(), "Mini island did not reopen")
-            outside.activateWindow()
-            wait_for(lambda: desktop.mode == "PET_ONLY" and pet.reveal == 0, "Mini island did not collapse")
-            assert pet.pos() == persisted
-            print("PASS pin, dashboard outside collapse and animated capsule collapse", flush=True)
+        verify_pages()
+        desktop.preference("pinned", "true")
+        outside.show()
+        outside.activateWindow()
+        wait_for(outside.isActiveWindow, "Could not focus an outside window")
+        assert desktop.mode == "EXPANDED_DASHBOARD", "Pin did not keep the dashboard open"
+        desktop.preference("pinned", "false")
+        desktop.show_mode("EXPANDED_DASHBOARD")
+        wait_for(dashboard.isActiveWindow, "Could not refocus the dashboard")
+        outside.activateWindow()
+        wait_for(lambda: desktop.mode == "PET_ONLY", "Outside click did not return to the pet")
+        desktop.show_mode("MINI_ISLAND")
+        wait_for(lambda: pet.reveal > .99 and pet.isActiveWindow(), "Mini island did not reopen")
+        outside.activateWindow()
+        wait_for(lambda: desktop.mode == "PET_ONLY" and pet.reveal == 0, "Mini island did not collapse")
+        assert pet.pos() == persisted
+        print("PASS pin, dashboard outside collapse and animated capsule collapse", flush=True)
 
         if not read_only:
+            desktop.show_mode("EXPANDED_DASHBOARD")
             # The disposable verification profile uses Asia/Kolkata (UTC+05:30).
             began = datetime.now(timezone(timedelta(hours=5, minutes=30)))
             due = (began + timedelta(minutes=1)).replace(second=0, microsecond=0)

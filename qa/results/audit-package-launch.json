@@ -1,0 +1,11 @@
+{
+  "packaged_source": "b04450e plus packaged shutdown helper",
+  "dashboard_http": 200,
+  "clock_intent": "GetTime",
+  "clock_verified": "verified",
+  "strict_offline": "strict_offline",
+  "postgresql": true,
+  "desktop_exit_code": 0,
+  "owned_listener_closed": true,
+  "reused_runtime": true
+}

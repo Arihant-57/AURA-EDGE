@@ -25,7 +25,7 @@ Registered local capabilities: {capabilities_description}
 Guidelines:
 1. Reply ONLY in {lang_name} unless the user explicitly asks to translate or repeat in another language. Never mix scripts unnecessarily (for Kannada, write Kannada script; for Hindi, write Devanagari script).
 2. Supported speech & text languages are strictly English, Hindi, and Kannada ONLY. NEVER claim to support Tagalog, Spanish, French, or any other language.
-3. Keep answers crisp and natural for spoken audio: 1 short sentence for greetings or quick factual answers; 1 to 2 short sentences for normal questions. Do NOT repeat introductions ("I am AURA EDGE...") or recite capability lists unless directly asked.
+3. Keep answers crisp and natural for spoken audio: 1 short sentence for greetings or quick factual answers; Start with the direct answer. Use one sentence of at most 25 words for ordinary questions, and a second short sentence only if needed. Give more detail when explicitly requested. Do NOT repeat introductions ("I am AURA EDGE...") or recite capability lists unless directly asked.
 4. No markdown formatting, no asterisks, no bullet lists, no tables, no emojis, and no ASCII symbols.
 5. Strictly respect tool verification: NEVER claim you changed a device state, smart-home device, or timer unless a verified tool actually executed. External actions outside local tools (internet search, emails, shopping, banking, door locks) are unsupported—refuse politely and briefly.
 6. Use the session conversation history for follow-ups like "explain that again", "make it shorter", "repeat in Kannada", "what did I just ask?", or "continue explaining"."""
@@ -39,8 +39,10 @@ _UNSUPPORTED_LANG_CLAIM_RE = re.compile(
 )
 _UNVERIFIED_ACTION_CLAIM_RE = re.compile(
     r"(?:\b(?:i(?:'ve|\s+have)?|done[.,!]?\s+i(?:'ve|\s+have)?)\s+"
-    r"(?:turned\s+(?:on|off)|switched\s+(?:on|off)|set\s+(?:the\s+|your\s+)?(?:ac|air\s+conditioner|fan|light|tv|temperature|timer|reminder)|"
+    r"(?:(?:turned|switched)\s+(?:(?:on|off)|(?:[\w-]+\s+){1,6}(?:on|off))|set\s+(?:the\s+|your\s+)?(?:ac|air\s+conditioner|fan|light|tv|temperature|timer|reminder)|"
+    r"set\s+(?:the|your)\s+(?:(?:bedroom|living room|kitchen|study)\s+)?(?:ac|air conditioner|fan|light|tv|temperature|timer|reminder)|"
     r"created|added|deleted|removed|forgot(?:ten)?|cancelled|canceled|updated|completed|scheduled|saved)\b|"
+    r"\b(?:your|the)\s+(?:(?:bedroom|living room|study|kitchen)\s+)?(?:light|fan|ac|tv|timer)\s+is\s+now\s+(?:on|off|set|running)\b|"
     r"\b(?:has|have)\s+been\s+(?:turned\s+(?:on|off)|set|created|deleted|removed|cancelled|canceled|scheduled|completed|saved)\b|"
     r"(?:मैंने\s+.*(?:कर\s+दिया|बंद\s+कर\s+दिया|चालू\s+कर\s+दिया|सेट\s+कर\s+दिया|हटा\s+दिया|रद्द\s+कर\s+दिया|सहेज\s+लिया|जोड़\s+दिया))|"
     r"(?:आन\s+कर\s+दिया|ऑफ\s+कर\s+दिया|बंद\s+कर\s+दिया\s+है|सेट\s+कर\s+दिया\s+है|हटा\s+दिया\s+है|रद्द\s+कर\s+दिया\s+है)|"
@@ -55,7 +57,9 @@ def validate_no_unverified_action_claim(
 ) -> tuple[bool, str]:
     """Ensure free-form conversation never claims a tool mutation executed without verification."""
     cleaned = (text or "").strip()
-    if cleaned and _UNVERIFIED_ACTION_CLAIM_RE.search(cleaned):
+    if re.search(r'["\'](?:intent_name|tool_calls?|function|sub_actions|duration_seconds|device_id)["\']\s*:', cleaned):
+        return False, "unverified_action_claim"
+    if cleaned and _UNVERIFIED_ACTION_CLAIM_RE.search(cleaned.replace("’", "'")):
         return False, "unverified_action_claim"
     return True, "ok"
 
@@ -266,6 +270,7 @@ class ConversationSession:
             return cleaned
         low = cleaned.lower()
         with self._lock:
+            self._expire_if_idle_locked()
             room = self.last_room
             dev_type = self.last_device_type
             rem_title = self.last_reminder_title
@@ -275,10 +280,12 @@ class ConversationSession:
             dev_txt = _DEVICE_TYPE_WORDS.get(dev_type, dev_type.replace("_", " "))
             target = f"{room_txt}{dev_txt}".strip()
 
-            if re.match(r"^(?:please\s+)?(?:turn|switch)\s+it\s+off[.!?]*$", low):
-                return f"turn off the {target}"
-            if re.match(r"^(?:please\s+)?(?:turn|switch)\s+it\s+on[.!?]*$", low):
-                return f"turn on the {target}"
+            power = re.fullmatch(
+                r"(?:please\s+)?(?:turn|switch)\s+it\s+(on|off)(\s+(?:in|after|for)\s+[^.!?]+)?[.!?]*",
+                low,
+            )
+            if power:
+                return f"turn {power[1]} the {target}{power[2] or ''}"
             if re.match(
                 r"^(?:please\s+)?set\s+it\s+to\s+(?:my\s+)?(?:preferred|favorite|usual)\s+(\w+)[.!?]*$",
                 low,

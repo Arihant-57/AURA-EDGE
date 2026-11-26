@@ -6,9 +6,11 @@ import logging
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import SQLAlchemyError
 
 from aura_edge import __version__
@@ -173,6 +175,9 @@ def create_app(
     app.include_router(notifications_router)
     app.include_router(personal_router)
     app.include_router(ws_router)
+    dashboard = Path(__file__).resolve().parents[3] / "frontend" / "dist"
+    if (dashboard / "index.html").is_file():
+        app.mount("/app", StaticFiles(directory=dashboard, html=True), name="dashboard")
     return app
 
 

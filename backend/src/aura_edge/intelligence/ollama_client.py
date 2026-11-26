@@ -24,6 +24,36 @@ from aura_edge.infrastructure.network_policy import (
 logger = logging.getLogger(__name__)
 
 
+class _AnswerContent:
+    """Keep streamed inline reasoning out of the answer, even across token boundaries."""
+
+    def __init__(self) -> None:
+        self._pending = ""
+        self._thinking = False
+
+    def push(self, token: str) -> str:
+        pending = self._pending + token
+        answer: list[str] = []
+        while pending:
+            tag = "</think>" if self._thinking else "<think>"
+            lowered = pending.lower()
+            index = lowered.find(tag)
+            if index >= 0:
+                if not self._thinking:
+                    answer.append(pending[:index])
+                self._thinking = not self._thinking
+                pending = pending[index + len(tag):]
+                continue
+
+            held = next((size for size in range(len(tag) - 1, 0, -1) if lowered.endswith(tag[:size])), 0)
+            if not self._thinking:
+                answer.append(pending[:-held] if held else pending)
+            self._pending = pending[-held:] if held else ""
+            return "".join(answer)
+        self._pending = ""
+        return "".join(answer)
+
+
 class OllamaUnavailableError(RuntimeError):
     """Raised when loopback Ollama is unreachable or blocked by policy."""
 
@@ -153,6 +183,7 @@ class OllamaClient:
         t0 = time.perf_counter()
         ttft_ms: float | None = None
         last_chunk: dict[str, Any] = {}
+        answer_content = _AnswerContent()
 
         async for chunk in self.stream_chat(
             messages,
@@ -165,7 +196,7 @@ class OllamaClient:
             if cancel_event is not None and cancel_event.is_set():
                 break
             msg = chunk.get("message") or {}
-            token = str(msg.get("content") or "")
+            token = answer_content.push(str(msg.get("content") or ""))
             if token and ttft_ms is None:
                 ttft_ms = round((time.perf_counter() - t0) * 1000.0, 2)
             last_chunk = chunk

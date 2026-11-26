@@ -489,6 +489,10 @@ class AudioCapture:
         self._last_capture_metrics = metrics
         return metrics
 
+    @property
+    def last_capture_reason(self) -> str:
+        return self._last_capture_reason
+
     def stop_capture(self, *, cancel: bool = False) -> tuple[np.ndarray, str]:
         """Stop active PTT capture and return ``(float32_audio_16k, reason)``."""
         self._cancelled = cancel

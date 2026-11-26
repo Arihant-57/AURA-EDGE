@@ -237,9 +237,11 @@ class AudioPlayback:
         tts_router: TTSRouter,
         *,
         output_device: int | str | None = None,
+        output_enabled: bool = True,
     ) -> None:
         self._tts = tts_router
         self._output_device = output_device
+        self._output_enabled = output_enabled
         self._owner_lock = asyncio.Lock()
         self._stream_lock = threading.Lock()
         self._stream: Any = None
@@ -428,6 +430,7 @@ class AudioPlayback:
         turn_start_perf: float | None = None,
     ) -> tuple[list[SynthesizedAudio], PlaybackMetrics]:
         """Consume streamed sentences with exclusive playback ownership and bounded prefetch."""
+        play_to_speaker = play_to_speaker and self._output_enabled
         async with self._owner_lock:
             base_perf = turn_start_perf if turn_start_perf is not None else time.perf_counter()
             if external_cancel is not None and external_cancel.is_set():

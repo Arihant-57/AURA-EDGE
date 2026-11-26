@@ -5,6 +5,7 @@ import { Card, ConfirmButton, field, formData, human, Icon, IconButton, Row, Sta
 
 const voiceEvents = /^(assistant_state_change|mic_mute_change|conversation_mode_change|language_change)$/;
 const zeros = Array<number>(14).fill(0);
+export const noSpeechMessage = "No usable speech was heard. Start listening and try again.";
 interface ActiveTurn extends Partial<Turn> { turn_id: string; provisional?: string }
 
 export function useVoice(online: boolean) {
@@ -12,12 +13,14 @@ export function useVoice(online: boolean) {
   const [events, setEvents] = useState<Partial<Voice>>({});
   const [wave, setWave] = useState(zeros);
   const [latest, setLatest] = useState<ActiveTurn | null>(null);
+  const [readyTurn, setReadyTurn] = useState<string>();
   const action = useAction();
   const typed = useAction();
   const state = { ...voice.data, ...events };
   const listening = state.active_state === "LISTENING" && !state.conversation_active;
+  const recordingReady = listening && !!readyTurn && readyTurn === state.active_turn_id;
   const label = !online ? "Backend disconnected" : state.mic_muted && state.active_state === "IDLE" ? "Microphone muted" :
-    state.active_state ? stateLabels[state.active_state] : "Connecting…";
+    recordingReady ? "Recording ready to send" : state.active_state ? stateLabels[state.active_state] : "Connecting…";
 
   function onEvent(event: LiveEvent) {
     const p = event.payload;
@@ -26,6 +29,7 @@ export function useVoice(online: boolean) {
       case "disconnected":
         setEvents({});
         setWave(zeros);
+        setReadyTurn(undefined);
         setLatest((old) => old?.outcome ? old : null);
         break;
       case "voice_status":
@@ -38,7 +42,12 @@ export function useVoice(online: boolean) {
       case "assistant_state_change":
         setEvents((old) => ({ ...old, active_state: p.state as Voice["active_state"], active_turn_id: p.turn_id as Voice["active_turn_id"], session_language: p.language as Language, ...(p.recognition_mode ? { stt_recognition_mode: p.recognition_mode as Voice["stt_recognition_mode"] } : {}) }));
         if (p.state !== "LISTENING") setWave(zeros);
+        setReadyTurn(undefined);
         if (p.turn_id && p.state === "LISTENING") setLatest((old) => old?.turn_id === p.turn_id ? old : { turn_id: String(p.turn_id) });
+        break;
+      case "ptt_capture_ready":
+        setReadyTurn(String(p.turn_id));
+        setWave(zeros);
         break;
       case "audio_level":
         if (typeof p.rms_db === "number") {
@@ -65,7 +74,10 @@ export function useVoice(online: boolean) {
         if (p.turn_id) setLatest((old) => ({ ...(old?.turn_id === p.turn_id ? old : {}), ...p, turn_id: String(p.turn_id) } as ActiveTurn));
         break;
       case "error":
-        if (p.turn_id) setLatest({ turn_id: String(p.turn_id), outcome: "runtime_failure", error: String(p.message) });
+        if (p.turn_id) {
+          if (p.code === "no_speech_timeout") setLatest({ turn_id: String(p.turn_id), status: "ignored_silence", silent: true });
+          else setLatest({ turn_id: String(p.turn_id), outcome: "runtime_failure", error: String(p.message) });
+        }
         break;
       case "conversation_history_updated":
         if (p.count === 0) setLatest(null);
@@ -115,7 +127,7 @@ export function useVoice(online: boolean) {
 
   return {
     state, label, online, listening, latest, control, type, language, refresh: voice.refresh,
-    wave: state.mic_muted || state.active_state !== "LISTENING" ? zeros : wave,
+    wave: state.mic_muted || state.active_state !== "LISTENING" || recordingReady ? zeros : wave,
     feedback: <>{action.feedback}{typed.feedback}<Status error={voice.error}/></>,
     canTalk: online && state.mic_detected && !state.mic_muted && !state.conversation_active && (state.active_state === "IDLE" || listening) && !action.pending && !typed.pending,
     canType: online && state.active_state === "IDLE" && !typed.pending,
@@ -125,7 +137,7 @@ export function useVoice(online: boolean) {
 export type Assistant = ReturnType<typeof useVoice>;
 export function VoiceButtons({ voice, mute = false }: { voice: Assistant; mute?: boolean }) {
   return <div className="voice-buttons">
-    <IconButton icon="mic" active label={voice.listening ? "Send recording" : "Talk to AURA"} disabled={!voice.canTalk} onClick={() => voice.control("talk")}/>
+    <IconButton icon={voice.listening ? "send" : "mic"} active label={voice.listening ? "Send recording" : "Talk to AURA"} disabled={!voice.canTalk} onClick={() => voice.control("talk")}/>
     <div className="waveform" aria-label="Live microphone input" role="img">{voice.wave.map((value, i) => <i key={i} style={{ height: `${2 + value * 22}px` }}/>)}</div>
     {mute && <IconButton icon={voice.state.mic_muted ? "mute" : "mic"} label={voice.state.mic_muted ? "Unmute microphone" : "Mute microphone"} disabled={!voice.online} onClick={() => voice.control("mute")}/>}
     <IconButton icon="stop" label="Stop assistant" disabled={!voice.canStop} onClick={() => voice.control("stop")}/>
@@ -160,6 +172,7 @@ export function AssistantView({ voice }: { voice: Assistant }) {
       <div className="conversation" aria-live="polite">
         <Status {...history} empty={!messages.length && !latest ? "Ask AURA about your home, tasks, or reminders." : undefined}/>
         {messages.map((message, index) => <div className={`bubble ${message.role}`} key={`${message.turn_id}-${index}`}><small>{message.role === "user" ? "You" : "AURA"}</small><p>{message.content}</p></div>)}
+        {latest?.status === "ignored_silence" && <p role="status">{noSpeechMessage}</p>}
         {latest && !latest.silent && <>
           {!inHistory && latest.transcript && <div className="bubble user"><small>You</small><p>{latest.transcript}</p></div>}
           {!inHistory && (latest.response_text || latest.provisional) && <div className="bubble assistant"><small>{latest.response_text ? "AURA" : "AURA · drafting"}</small><p>{latest.response_text || latest.provisional}</p></div>}

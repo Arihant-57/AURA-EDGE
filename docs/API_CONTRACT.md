@@ -177,6 +177,7 @@ Returns active FSM state, STT/VAD/TTS status, compute placement, hardware device
 - `POST /api/v1/voice/synthesize` — Body `{"text": "ಸಮಯ ಮುಗಿದಿದೆ", "language": "kn", "speed": 1.0}` (`speed` in `0.5..2.0`) -> `audio/wav` + headers `X-Aura-TTS-Backend`, `X-Aura-TTS-Model`, `X-Aura-TTS-Cached`, `X-Aura-TTS-Latency-Ms`.
 - `POST /api/v1/voice/cancel` — Body `{"turn_id": null}` -> `{"cancelled": bool, "turn_id": str|null, "completed_actions": [], "completed_actions_preserved": true}`.
 - `PUT /api/v1/voice/compute-mode` — Body `{"compute_mode": "auto"|"cpu"|"gpu"}` -> `ComputePlacement`.
+  `llm_device` describes dispatch policy. `cpu` forces CPU and `gpu` allows Ollama to place the model automatically. Resident VRAM is reported by Ollama's local `/api/ps` endpoint.
 
 ### 3.6 Continuous Conversation & History Endpoints (Phase 1.5+)
 - `POST /api/v1/voice/conversation/start` — Body `{"language": "auto"|"en"|"hi"|"kn"|null, "speak": true, "mode": "continuous"|"ptt", "silence_timeout_sec": 60.0}`.
@@ -207,6 +208,7 @@ All server frames share `{"type": string, "payload": object, "timestamp_utc": st
 |---|---|
 | `assistant_state_change` | `{"state": AssistantState, "turn_id": string\|null, "message"?: string\|null, "language": "auto"\|"en"\|"hi"\|"kn", "recognition_mode"?: "multilingual"\|"strict"}` *(initial connect snapshot includes `recognition_mode`)* |
 | `audio_level` | `{"rms_db": number, "peak": number}` |
+| `ptt_capture_ready` | `{"turn_id": string, "reason": "speech_end"\|"max_duration"}`. The manual recording has ended and the client can send it with `POST /api/v1/voice/mic/stop`. |
 | `transcript_ready` | `{"turn_id": string, "transcript": string, "language": "en"\|"hi"\|"kn", "preferred_reply_language": "auto"\|"en"\|"hi"\|"kn", "recognition_mode": "multilingual"\|"strict", "language_probability": number\|null, "transcript_confidence": number\|null, "model_size": string\|null, "stt_ms": number}` |
 | `response_text_delta` | `{"turn_id": string, "token": string, "language": "en"\|"hi"\|"kn"}` *(provisional tokens; final `response_completed` is authoritative)* |
 | `response_completed` | `{"turn_id": string, "outcome": TurnOutcome, "status": string, "action_executed": bool, "intent": string, "route_category": string, "language": "en"\|"hi"\|"kn", "detected_language": "en"\|"hi"\|"kn", "preferred_reply_language": "auto"\|"en"\|"hi"\|"kn", "response_text": string, "spoken_text": string, "silent": bool, "timings": TurnTimings, "stage_timestamps": StageTimestamps, "llm_ttft_ms"?: number\|null, "tts_ms"?: number\|null, "audio_startup_ms"?: number\|null, "playback_ms"?: number\|null, "ttfa_ms"?: number\|null, "rejection_reason"?: string, "error"?: string}` |

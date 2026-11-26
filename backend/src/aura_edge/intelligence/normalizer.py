@@ -76,8 +76,15 @@ _EN_NUMBER_WORDS: dict[str, int] = {
     "forty-five": 45,
     "fifty": 50,
     "sixty": 60,
+    "seventy": 70,
+    "eighty": 80,
     "ninety": 90,
 }
+
+_EN_COMPOUND_NUMBER = re.compile(
+    r"\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)[ -]"
+    r"(one|two|three|four|five|six|seven|eight|nine)\b", re.IGNORECASE
+)
 
 _INDIC_SCRIPT_NUMBER_WORDS: dict[str, int] = {
     "एक": 1,
@@ -95,6 +102,7 @@ _INDIC_SCRIPT_NUMBER_WORDS: dict[str, int] = {
     "पंद्रह": 15,
     "बीस": 20,
     "चौबीस": 24,
+    "चौबिस": 24,
     "पच्चीस": 25,
     "तीस": 30,
     "पैंतालीस": 45,
@@ -267,10 +275,10 @@ _UNIT_MULT = {
 }
 
 _DURATION_CHUNK_RE = re.compile(
-    r"(\d+)\s*(hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s|"
-    r"घंट[ाेों]|मिनट(?:ों|्स)?|सेक[ंडण्ड]+(?:्स)?|ghant[ae]|minat|"
-    r"ಗಂಟೆ(?:ಗಳು)?|ನಿಮಿಷ(?:ಗಳು|ದ)?|ಮಿನಿಟ್(?:ಸ್)?|ಸೆಕೆಂಡ್(?:‌ಗಳು|ಗಳು|ಸ್)?|ಸೆಕೆಂಡು(?:ಗಳು)?|"
-    r"gante|nimisha)",
+    r"(?<![\d.,−-])(\d+)\s*(?:[-‑–]\s*)?(hours?|hrs?|hr|h|minutes?|mins?|min|m|seconds?|secs?|sec|s|"
+    r"घंट(?:ों|[ाे])|मिनट(?:ों|्स)?|सेक[ंडण्ड]+(?:्स)?|ghant[ae]|minat|"
+    r"ಗಂಟೆ(?:ಗಳು)?|ನಿಮಿಷ(?:ಗಳು|ದ)?|ಮಿನಿಟ್(?:ಸ್)?|ಸೆಕೆಂಡ್(?:‌ಗಳು|ಗಳು|ಸ್)?|ಸೆಕೆಂಡ(?:ಿನ|ು(?:ಗಳು)?)|"
+    r"gante|nimisha)(?![A-Za-z\u0900-\u097F\u0C80-\u0CFF])",
     flags=re.IGNORECASE | re.UNICODE,
 )
 
@@ -416,6 +424,9 @@ def _replace_number_words(text: str, *, language: LanguageCode = "en") -> str:
     out = _HALF_HOUR_RE.sub("30 minutes", text)
     out = _ARTICLE_TIME_UNIT_RE.sub(r"1 \1", out)
     out = _replace_code_switched_loanwords(out)
+    out = _EN_COMPOUND_NUMBER.sub(
+        lambda m: str(_EN_NUMBER_WORDS[m[1].lower()] + _EN_NUMBER_WORDS[m[2].lower()]), out
+    )
 
     active_maps: list[tuple[dict[str, int], bool]] = [
         (_INDIC_SCRIPT_NUMBER_WORDS, False),
@@ -435,9 +446,21 @@ def _replace_number_words(text: str, *, language: LanguageCode = "en") -> str:
     return out
 
 
-def extract_duration_seconds(text: str) -> int | None:
+def extract_duration_seconds(text: str, *, require_all_quantities: bool = False) -> int | None:
     """Extract positive total duration in seconds from EN/HI/KN text, or None if absent."""
     prepared = _replace_number_words(text.translate(_DIGIT_TRANSLATION))
+    if require_all_quantities:
+        # Named timers may contain a number in their label. All quantities in
+        # the actual countdown must belong to a recognized duration unit.
+        prepared = re.sub(r"\b(?:named|called)\s+\w+", "", prepared, flags=re.IGNORECASE)
+        if re.search(r"(?<!\w)\d+", _DURATION_CHUNK_RE.sub(" ", prepared)):
+            return None
+    if re.search(
+        r"[-−]\s*\d|\d[.,]\d|\d\s+\d|"
+        r"\b\d+\s*[- ]?\s*(?:milliseconds?|days?|weeks?|months?|years?|hundred|thousand)\b",
+        prepared, re.IGNORECASE,
+    ):
+        return None
     total = 0
     found = False
     for match in _DURATION_CHUNK_RE.finditer(prepared):
@@ -460,13 +483,21 @@ def extract_duration_seconds(text: str) -> int | None:
 
 def _normalize_kannada_asr_variants(text: str) -> str:
     """Normalize known IndicConformer Kannada CTC character slips on timer/time commands."""
-    out = re.sub(r"(?:ತೈಮರಿ+|ಟೈಮರಿ+)ಡು", "ಟೈಮರ್ ಇಡು", text)
+    # Restore token boundaries without inferring a missing duration or action.
+    out = re.sub(
+        r"(ನಿಮಿಷದ|ಸೆಕೆಂಡಿನ|ಗಂಟೆಯ)(?=(?:ಟೈಮರ್|ತೈಮರ್)(?![\w\u0C80-\u0CFF]))",
+        r"\1 ",
+        text,
+    )
+    out = re.sub(r"(?<![\w\u0C80-\u0CFF])ಟೈಮರ್ತ್(?=\s+(?:ಇಡು|ಹಾಕು)\b)", "ಟೈಮರ್", out)
+    out = re.sub(r"(?:ತೈಮರಿ+|ಟೈಮರಿ+)ಡು", "ಟೈಮರ್ ಇಡು", out)
     # Preserve ಟೈಮ್ ("time", followed by Kannada virama \u0CCD) while normalizing slipped ಟೈಮ / ತೈಮರ್.
     out = re.sub(
         r"(?:ತ?ತೈಮರ್|ಟೈಮ(?!\u0CCD|ರ್|[\w\u0C80-\u0CFF])|ತೈಮ(?!\u0CCD|ರ್|[\w\u0C80-\u0CFF]))",
         "ಟೈಮರ್",
         out,
     )
+    out = re.sub(r"(?<![\w\u0C80-\u0CFF])ಎಷ್ಟು(?=ಗಂ[ಟತ]ೆ(?![\w\u0C80-\u0CFF]))", "ಎಷ್ಟು ", out)
     out = re.sub(r"ಗಂತೆ(?![\w\u0C80-\u0CFF])", "ಗಂಟೆ", out)
     out = re.sub(r"ನಿಮಿಸ(?![\w\u0C80-\u0CFF])", "ನಿಮಿಷ", out)
     out = re.sub(r"ಗದ್ದು(?=\s+(?:ಮಾಡು|ಗೊಳಿಸು))", "ರದ್ದು", out)
@@ -475,7 +506,8 @@ def _normalize_kannada_asr_variants(text: str) -> str:
 
 def _normalize_hindi_asr_variants(text: str) -> str:
     """Normalize known Whisper Hindi Devanagari phonetic variations on timer/clock commands."""
-    out = re.sub(r"(?:टाईमर|ताईमर|ताम्यर|टामर|तामर)", "टाइमर", text)
+    out = re.sub(r"(?:टाईमर|ताईमर|ताम्यर|टामर|तामर|ताीमर|तैमर|टायमर)", "टाइमर", text)
+    out = re.sub(r"(?<![\w\u0900-\u097F])सेकंद(?![\w\u0900-\u097F])", "सेकंड", out)
     out = re.sub(r"(?:मिन्त|मिनद|मिनत|मिंट)", "मिनट", out)
     out = re.sub(r"(?:समें|समे|समै)(?![\w\u0900-\u097F])", "समय", out)
     out = re.sub(r"लगा[ोूॉँ]+", "लगाओ", out)
@@ -524,6 +556,10 @@ def normalize_utterance(
         cleaned = re.sub(r"\btiner\b", "timer", cleaned, flags=re.IGNORECASE)
         cleaned = re.sub(r"\b(?:teat|T)(?=\s+timer\b)", "tea", cleaned)
     with_nums = _replace_number_words(cleaned, language=lang)
+    if lang == "hi" or script == "devanagari":
+        # The Hindi recognizer can split AC into two syllables. Require an
+        # explicit numeric temperature so ordinary Hindi text is unaffected.
+        with_nums = re.sub(r"(?<![\w\u0900-\u097F])ए\s+स(?=\s+\d+\s+डिग्री)", "एसी", with_nums)
     return NormalizedText(
         raw=text,
         normalized=with_nums,

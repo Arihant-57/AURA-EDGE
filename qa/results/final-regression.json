@@ -1,0 +1,11 @@
+{
+  "commit": "fa0e4ba",
+  "suite": "backend/tests",
+  "tests": 236,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "elapsed_seconds": 596.391,
+  "started": "2026-11-26T05:08:53.801556+05:30",
+  "required_live_database": true
+}

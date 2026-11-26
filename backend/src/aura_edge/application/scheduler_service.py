@@ -493,6 +493,9 @@ class SchedulerService:
                 result_json = res
                 if res["status"] == "partial":
                     exec_status = "partial"
+                elif res["status"] == "skipped_condition":
+                    exec_status = "failed"
+                    err_msg = "Routine conditions were not met. No steps ran."
                 elif res["status"] == "failed":
                     exec_status = "failed"
                     err_msg = "All routine actions failed."

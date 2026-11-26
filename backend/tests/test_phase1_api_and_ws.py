@@ -99,14 +99,18 @@ def test_phase1_intent_synthesize_transcribe_and_ws_live(monkeypatch: pytest.Mon
         # 4. Upload WAV fixture to /api/v1/voice/transcribe
         eval_wav = Path(cfg.models_dir) / "eval_audio" / "phase1a_tts_en.wav"
         assert eval_wav.is_file()
+        client.put("/api/v1/voice/language", json={"language": "kn", "recognition_mode": "multilingual"}).raise_for_status()
         with eval_wav.open("rb") as fh:
             up = client.post(
                 "/api/v1/voice/transcribe",
                 files={"file": ("sample.wav", fh, "audio/wav")},
-                data={"language": "en", "speak": "false", "allow_llm_fallback": "false"},
+                data={"language": "en", "recognition_mode": "strict", "speak": "false", "allow_llm_fallback": "false"},
             )
         assert up.status_code == 200
         assert len(up.json()["transcript"]) > 0
+        assert up.json()["response_language"] == "en"
+        saved = client.get("/api/v1/voice/status").json()
+        assert (saved["session_language"], saved["stt_recognition_mode"]) == ("kn", "multilingual")
 
         # 5. Cancel endpoint works cleanly
         cancel_resp = client.post("/api/v1/voice/cancel", json={})

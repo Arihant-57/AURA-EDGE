@@ -37,6 +37,7 @@ class VoiceConnection(QObject):
         self.muted = False
         self.available = False
         self.continuous = False
+        self.capture_ready = False
         self.transient = ""
         self.pending = 0
         self.levels = [0.0] * 16
@@ -82,6 +83,7 @@ class VoiceConnection(QObject):
         if self.online:
             self.online = False
             self.latest.clear()
+            self.capture_ready = False
             self.levels = [0.0] * len(self.levels)
             self.changed.emit()
             self.connection.emit(False)
@@ -112,6 +114,8 @@ class VoiceConnection(QObject):
             return
         if kind == "assistant_state_change":
             self.state = payload.get("state", "IDLE")
+            self.capture_ready = False
+            self.latest.pop("ptt_capture_ready", None)
             if self.state not in ("IDLE", "CANCELLED", "ERROR"):
                 self.transient = ""
             if self.state != "LISTENING":
@@ -122,6 +126,10 @@ class VoiceConnection(QObject):
                 self.levels = [0.0] * len(self.levels)
         elif kind == "conversation_mode_change":
             self.continuous = bool(payload.get("active"))
+        elif kind == "ptt_capture_ready":
+            self.capture_ready = True
+            self.latest[kind] = event
+            self.levels = [0.0] * len(self.levels)
         elif kind == "audio_level":
             if self.muted or self.state != "LISTENING":
                 return
@@ -132,6 +140,12 @@ class VoiceConnection(QObject):
         elif kind == "response_completed" and payload.get("action_executed") and payload.get("status") == "verified":
             self.transient = "SUCCESS"
             self.badge.start(1400)
+        elif kind == "response_completed" and payload.get("status") == "ignored_silence":
+            self.transient = "NO_SPEECH"
+            self.badge.start(4000)
+        elif kind == "error" and payload.get("code") in ("no_speech_timeout", "mic_unavailable"):
+            self.transient = "NO_SPEECH" if payload["code"] == "no_speech_timeout" else "MIC_ERROR"
+            self.badge.start(4000)
         elif kind == "notification_created" and payload.get("visual_enabled"):
             notice = payload.get("notification", {})
             notice_id = notice.get("id")

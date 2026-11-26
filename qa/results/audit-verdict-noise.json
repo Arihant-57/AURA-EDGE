@@ -1,0 +1,1616 @@
+[
+  {
+    "id": "turn-09",
+    "expected": {
+      "id": "turn-09",
+      "language": "en",
+      "text": "Turn on the bedroom light.",
+      "category": "home",
+      "intent": "DeviceControl",
+      "check": [
+        "light.bedroom_main",
+        "power",
+        true
+      ],
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "DeviceControl",
+      "outcome": "success",
+      "status": "verified",
+      "route_category": "tool",
+      "action_executed": true,
+      "transcript": "Turn on the bedroom light.",
+      "response_text": "Updated bedroom light.",
+      "detected_language": "en",
+      "response_language": "en",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 291.92,
+        "router_ms": 2.1,
+        "llm_ttft_ms": null,
+        "tool_ms": 49.82,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 346.06,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.0,
+      "cer": 0.0,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "persisted_state": true
+    },
+    "passed": true,
+    "condition": "clean"
+  },
+  {
+    "id": "turn-09",
+    "expected": {
+      "id": "turn-09",
+      "language": "en",
+      "text": "Turn on the bedroom light.",
+      "category": "home",
+      "intent": "DeviceControl",
+      "check": [
+        "light.bedroom_main",
+        "power",
+        true
+      ],
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "DeviceControl",
+      "outcome": "success",
+      "status": "verified",
+      "route_category": "tool",
+      "action_executed": true,
+      "transcript": "Turn on the bedroom light.",
+      "response_text": "Updated bedroom light.",
+      "detected_language": "en",
+      "response_language": "en",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 262.45,
+        "router_ms": 1.9,
+        "llm_ttft_ms": null,
+        "tool_ms": 59.92,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 327.57,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.0,
+      "cer": 0.0,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "persisted_state": true
+    },
+    "passed": true,
+    "condition": "quiet_-24db"
+  },
+  {
+    "id": "turn-09",
+    "expected": {
+      "id": "turn-09",
+      "language": "en",
+      "text": "Turn on the bedroom light.",
+      "category": "home",
+      "intent": "DeviceControl",
+      "check": [
+        "light.bedroom_main",
+        "power",
+        true
+      ],
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "DeviceControl",
+      "outcome": "success",
+      "status": "verified",
+      "route_category": "tool",
+      "action_executed": true,
+      "transcript": "turn on the bedroom light.",
+      "response_text": "Updated bedroom light.",
+      "detected_language": "en",
+      "response_language": "en",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 282.06,
+        "router_ms": 1.8,
+        "llm_ttft_ms": null,
+        "tool_ms": 32.67,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 318.03,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.0,
+      "cer": 0.0,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "persisted_state": true
+    },
+    "passed": true,
+    "condition": "fan_20db"
+  },
+  {
+    "id": "turn-09",
+    "expected": {
+      "id": "turn-09",
+      "language": "en",
+      "text": "Turn on the bedroom light.",
+      "category": "home",
+      "intent": "DeviceControl",
+      "check": [
+        "light.bedroom_main",
+        "power",
+        true
+      ],
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "DeviceControl",
+      "outcome": "success",
+      "status": "verified",
+      "route_category": "tool",
+      "action_executed": true,
+      "transcript": "turn on the bedroom light.",
+      "response_text": "Updated bedroom light.",
+      "detected_language": "en",
+      "response_language": "en",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 247.96,
+        "router_ms": 1.81,
+        "llm_ttft_ms": null,
+        "tool_ms": 34.61,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 286.28,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.0,
+      "cer": 0.0,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "persisted_state": true
+    },
+    "passed": true,
+    "condition": "fan_10db"
+  },
+  {
+    "id": "turn-09",
+    "expected": {
+      "id": "turn-09",
+      "language": "en",
+      "text": "Turn on the bedroom light.",
+      "category": "home",
+      "intent": "DeviceControl",
+      "check": [
+        "light.bedroom_main",
+        "power",
+        true
+      ],
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "DeviceControl",
+      "outcome": "success",
+      "status": "verified",
+      "route_category": "tool",
+      "action_executed": true,
+      "transcript": "turn on the bedroom light.",
+      "response_text": "Updated bedroom light.",
+      "detected_language": "en",
+      "response_language": "en",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 258.15,
+        "router_ms": 1.93,
+        "llm_ttft_ms": null,
+        "tool_ms": 28.16,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 290.43,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.0,
+      "cer": 0.0,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "persisted_state": true
+    },
+    "passed": true,
+    "condition": "fan_5db"
+  },
+  {
+    "id": "turn-09",
+    "expected": {
+      "id": "turn-09",
+      "language": "en",
+      "text": "Turn on the bedroom light.",
+      "category": "home",
+      "intent": "DeviceControl",
+      "check": [
+        "light.bedroom_main",
+        "power",
+        true
+      ],
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "DeviceControl",
+      "outcome": "success",
+      "status": "verified",
+      "route_category": "tool",
+      "action_executed": true,
+      "transcript": "Turn on the bedroom light.",
+      "response_text": "Updated bedroom light.",
+      "detected_language": "en",
+      "response_language": "en",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 283.67,
+        "router_ms": 1.2,
+        "llm_ttft_ms": null,
+        "tool_ms": 42.66,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 329.74,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.0,
+      "cer": 0.0,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "persisted_state": true
+    },
+    "passed": true,
+    "condition": "keyboard_10db"
+  },
+  {
+    "id": "turn-42",
+    "expected": {
+      "id": "turn-42",
+      "language": "hi",
+      "text": "दस सेकंड का टाइमर लगाओ।",
+      "category": "timer",
+      "intent": "SetTimer",
+      "check": 10,
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "Unsupported",
+      "outcome": "refusal",
+      "status": "refused",
+      "route_category": "refusal",
+      "action_executed": false,
+      "transcript": "10 सेकन्ण का तामर लगाो",
+      "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+      "detected_language": "hi",
+      "response_language": "hi",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 423.2,
+        "router_ms": 7.86,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.0,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 434.63,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.8,
+      "cer": 0.4444,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "duration": false
+    },
+    "passed": false,
+    "condition": "clean"
+  },
+  {
+    "id": "turn-42",
+    "expected": {
+      "id": "turn-42",
+      "language": "hi",
+      "text": "दस सेकंड का टाइमर लगाओ।",
+      "category": "timer",
+      "intent": "SetTimer",
+      "check": 10,
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "Unsupported",
+      "outcome": "refusal",
+      "status": "refused",
+      "route_category": "refusal",
+      "action_executed": false,
+      "transcript": "10 सेकन्ण का तामर लगाो",
+      "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+      "detected_language": "hi",
+      "response_language": "hi",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 384.58,
+        "router_ms": 3.26,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.0,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 391.12,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.8,
+      "cer": 0.4444,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "duration": false
+    },
+    "passed": false,
+    "condition": "quiet_-24db"
+  },
+  {
+    "id": "turn-42",
+    "expected": {
+      "id": "turn-42",
+      "language": "hi",
+      "text": "दस सेकंड का टाइमर लगाओ।",
+      "category": "timer",
+      "intent": "SetTimer",
+      "check": 10,
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "Unsupported",
+      "outcome": "refusal",
+      "status": "refused",
+      "route_category": "refusal",
+      "action_executed": false,
+      "transcript": "10 सेकண्न का ताईमर लगाो",
+      "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+      "detected_language": "hi",
+      "response_language": "hi",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 383.69,
+        "router_ms": 4.17,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.0,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 390.79,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.8,
+      "cer": 0.4444,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "duration": false
+    },
+    "passed": false,
+    "condition": "fan_20db"
+  },
+  {
+    "id": "turn-42",
+    "expected": {
+      "id": "turn-42",
+      "language": "hi",
+      "text": "दस सेकंड का टाइमर लगाओ।",
+      "category": "timer",
+      "intent": "SetTimer",
+      "check": 10,
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "Unsupported",
+      "outcome": "refusal",
+      "status": "refused",
+      "route_category": "refusal",
+      "action_executed": false,
+      "transcript": "10 से कண्निका ताईमर लगाो",
+      "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+      "detected_language": "hi",
+      "response_language": "hi",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 330.7,
+        "router_ms": 2.14,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.0,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 334.78,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 1.0,
+      "cer": 0.5,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "duration": false
+    },
+    "passed": false,
+    "condition": "fan_10db"
+  },
+  {
+    "id": "turn-42",
+    "expected": {
+      "id": "turn-42",
+      "language": "hi",
+      "text": "दस सेकंड का टाइमर लगाओ।",
+      "category": "timer",
+      "intent": "SetTimer",
+      "check": 10,
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "Unsupported",
+      "outcome": "refusal",
+      "status": "refused",
+      "route_category": "refusal",
+      "action_executed": false,
+      "transcript": "10 से कண்निका ताईमर लगाू",
+      "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+      "detected_language": "hi",
+      "response_language": "hi",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 363.03,
+        "router_ms": 1.96,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.0,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 366.73,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 1.0,
+      "cer": 0.5,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "duration": false
+    },
+    "passed": false,
+    "condition": "fan_5db"
+  },
+  {
+    "id": "turn-42",
+    "expected": {
+      "id": "turn-42",
+      "language": "hi",
+      "text": "दस सेकंड का टाइमर लगाओ।",
+      "category": "timer",
+      "intent": "SetTimer",
+      "check": 10,
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "Unsupported",
+      "outcome": "refusal",
+      "status": "refused",
+      "route_category": "refusal",
+      "action_executed": false,
+      "transcript": "दस सेकन्ड का तामर लगाो",
+      "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+      "detected_language": "hi",
+      "response_language": "hi",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 288.57,
+        "router_ms": 2.01,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.0,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 292.46,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.6,
+      "cer": 0.2778,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "duration": false
+    },
+    "passed": false,
+    "condition": "keyboard_10db"
+  },
+  {
+    "id": "turn-51",
+    "expected": {
+      "id": "turn-51",
+      "language": "kn",
+      "text": "ಇಂದಿನ ದಿನಾಂಕ ಏನು?",
+      "category": "date",
+      "intent": "GetDate",
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "GetDate",
+      "outcome": "success",
+      "status": "verified",
+      "route_category": "tool",
+      "action_executed": true,
+      "transcript": "ಇಂದಿನ ದಿನಾಂಕ ಏನು",
+      "response_text": "ಇಂದು ಗುರುವಾರ, ನವೆಂಬರ್ 26, 2026.",
+      "detected_language": "kn",
+      "response_language": "kn",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 1001.84,
+        "router_ms": 2.3,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.14,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 1007.33,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.0,
+      "cer": 0.0,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true,
+    "condition": "clean"
+  },
+  {
+    "id": "turn-51",
+    "expected": {
+      "id": "turn-51",
+      "language": "kn",
+      "text": "ಇಂದಿನ ದಿನಾಂಕ ಏನು?",
+      "category": "date",
+      "intent": "GetDate",
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "GetDate",
+      "outcome": "success",
+      "status": "verified",
+      "route_category": "tool",
+      "action_executed": true,
+      "transcript": "ಇಂದಿನ ದಿನಾಂಕ ಏನು",
+      "response_text": "ಇಂದು ಗುರುವಾರ, ನವೆಂಬರ್ 26, 2026.",
+      "detected_language": "kn",
+      "response_language": "kn",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 629.51,
+        "router_ms": 2.28,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.13,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 634.23,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.0,
+      "cer": 0.0,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true,
+    "condition": "quiet_-24db"
+  },
+  {
+    "id": "turn-51",
+    "expected": {
+      "id": "turn-51",
+      "language": "kn",
+      "text": "ಇಂದಿನ ದಿನಾಂಕ ಏನು?",
+      "category": "date",
+      "intent": "GetDate",
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "GetDate",
+      "outcome": "success",
+      "status": "verified",
+      "route_category": "tool",
+      "action_executed": true,
+      "transcript": "ಇಂದಿನ ದಿನಾಂಕ ಏನು",
+      "response_text": "ಇಂದು ಗುರುವಾರ, ನವೆಂಬರ್ 26, 2026.",
+      "detected_language": "kn",
+      "response_language": "kn",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 573.36,
+        "router_ms": 2.31,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.14,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 577.89,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.0,
+      "cer": 0.0,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true,
+    "condition": "fan_20db"
+  },
+  {
+    "id": "turn-51",
+    "expected": {
+      "id": "turn-51",
+      "language": "kn",
+      "text": "ಇಂದಿನ ದಿನಾಂಕ ಏನು?",
+      "category": "date",
+      "intent": "GetDate",
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "GetDate",
+      "outcome": "success",
+      "status": "verified",
+      "route_category": "tool",
+      "action_executed": true,
+      "transcript": "ಇಂದಿನ ದಿನಾಂಕ ಏನು",
+      "response_text": "ಇಂದು ಗುರುವಾರ, ನವೆಂಬರ್ 26, 2026.",
+      "detected_language": "kn",
+      "response_language": "kn",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 673.08,
+        "router_ms": 1.13,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.08,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 676.32,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.0,
+      "cer": 0.0,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true,
+    "condition": "fan_10db"
+  },
+  {
+    "id": "turn-51",
+    "expected": {
+      "id": "turn-51",
+      "language": "kn",
+      "text": "ಇಂದಿನ ದಿನಾಂಕ ಏನು?",
+      "category": "date",
+      "intent": "GetDate",
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "GetDate",
+      "outcome": "success",
+      "status": "verified",
+      "route_category": "tool",
+      "action_executed": true,
+      "transcript": "ಇಂದಿನ ದಿನಾಂಕ ಏನು",
+      "response_text": "ಇಂದು ಗುರುವಾರ, ನವೆಂಬರ್ 26, 2026.",
+      "detected_language": "kn",
+      "response_language": "kn",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 466.6,
+        "router_ms": 1.8,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.11,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 470.54,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.0,
+      "cer": 0.0,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true,
+    "condition": "fan_5db"
+  },
+  {
+    "id": "turn-51",
+    "expected": {
+      "id": "turn-51",
+      "language": "kn",
+      "text": "ಇಂದಿನ ದಿನಾಂಕ ಏನು?",
+      "category": "date",
+      "intent": "GetDate",
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "GetDate",
+      "outcome": "success",
+      "status": "verified",
+      "route_category": "tool",
+      "action_executed": true,
+      "transcript": "ಇಂದಿನ ದಿನಾಂಕ ಏನು",
+      "response_text": "ಇಂದು ಗುರುವಾರ, ನವೆಂಬರ್ 26, 2026.",
+      "detected_language": "kn",
+      "response_language": "kn",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 586.96,
+        "router_ms": 2.59,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.16,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 591.86,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.0,
+      "cer": 0.0,
+      "language_identification_match": true
+    },
+    "checks": {
+      "intent": true,
+      "outcome": true,
+      "verified": true,
+      "host_clock": true
+    },
+    "passed": true,
+    "condition": "keyboard_10db"
+  },
+  {
+    "id": "turn-58",
+    "expected": {
+      "id": "turn-58",
+      "language": "hinglish",
+      "text": "AC को twenty-four degrees पर set करो.",
+      "category": "negative",
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "DeviceControl",
+      "outcome": "clarification",
+      "status": "clarification_required",
+      "route_category": "tool",
+      "action_executed": false,
+      "transcript": "AC को 24 दिग्यीस पर सेत करो.",
+      "response_text": "कौन सा कमरा या उपकरण?",
+      "detected_language": "hi",
+      "response_language": "hi",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 422.77,
+        "router_ms": 2.8,
+        "llm_ttft_ms": null,
+        "tool_ms": 9.42,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 437.05,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.5,
+      "cer": 0.6897,
+      "language_identification_match": true
+    },
+    "checks": {
+      "safe": true
+    },
+    "passed": true,
+    "condition": "clean"
+  },
+  {
+    "id": "turn-58",
+    "expected": {
+      "id": "turn-58",
+      "language": "hinglish",
+      "text": "AC को twenty-four degrees पर set करो.",
+      "category": "negative",
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "Unsupported",
+      "outcome": "refusal",
+      "status": "refused",
+      "route_category": "refusal",
+      "action_executed": false,
+      "transcript": "आपा, अर्वेंटी को तुनति फोड़िगवीस पर सैथ करो.",
+      "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+      "detected_language": "hi",
+      "response_language": "hi",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 609.34,
+        "router_ms": 2.46,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.0,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 614.84,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.75,
+      "cer": 1.0345,
+      "language_identification_match": true
+    },
+    "checks": {
+      "safe": true
+    },
+    "passed": true,
+    "condition": "quiet_-24db"
+  },
+  {
+    "id": "turn-58",
+    "expected": {
+      "id": "turn-58",
+      "language": "hinglish",
+      "text": "AC को twenty-four degrees पर set करो.",
+      "category": "negative",
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "Unsupported",
+      "outcome": "refusal",
+      "status": "refused",
+      "route_category": "refusal",
+      "action_executed": false,
+      "transcript": "आजा, अर्दियों के सीक। बहुत लगा, पन्सम्लग,",
+      "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+      "detected_language": "hi",
+      "response_language": "hi",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 800.96,
+        "router_ms": 1.75,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.0,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 806.26,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 1.0,
+      "cer": 1.0345,
+      "language_identification_match": true
+    },
+    "checks": {
+      "safe": true
+    },
+    "passed": true,
+    "condition": "fan_20db"
+  },
+  {
+    "id": "turn-58",
+    "expected": {
+      "id": "turn-58",
+      "language": "hinglish",
+      "text": "AC को twenty-four degrees पर set करो.",
+      "category": "negative",
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "Unsupported",
+      "outcome": "refusal",
+      "status": "refused",
+      "route_category": "refusal",
+      "action_executed": false,
+      "transcript": "आजी को 20 for the bees per cert करो",
+      "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+      "detected_language": "hi",
+      "response_language": "hi",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 388.21,
+        "router_ms": 1.67,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.0,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 393.67,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.875,
+      "cer": 0.6552,
+      "language_identification_match": true
+    },
+    "checks": {
+      "safe": true
+    },
+    "passed": true,
+    "condition": "fan_10db"
+  },
+  {
+    "id": "turn-58",
+    "expected": {
+      "id": "turn-58",
+      "language": "hinglish",
+      "text": "AC को twenty-four degrees पर set करो.",
+      "category": "negative",
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "Unsupported",
+      "outcome": "refusal",
+      "status": "refused",
+      "route_category": "refusal",
+      "action_executed": false,
+      "transcript": "आजी को 20 for the bees, पर सेत करो.",
+      "response_text": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+      "detected_language": "hi",
+      "response_language": "hi",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 395.62,
+        "router_ms": 1.61,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.0,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 400.38,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.75,
+      "cer": 0.5862,
+      "language_identification_match": true
+    },
+    "checks": {
+      "safe": true
+    },
+    "passed": true,
+    "condition": "fan_5db"
+  },
+  {
+    "id": "turn-58",
+    "expected": {
+      "id": "turn-58",
+      "language": "hinglish",
+      "text": "AC को twenty-four degrees पर set करो.",
+      "category": "negative",
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "DeviceControl",
+      "outcome": "clarification",
+      "status": "clarification_required",
+      "route_category": "tool",
+      "action_executed": false,
+      "transcript": "AC को 20 फ़ा दिक्यीस पर सेत करो.",
+      "response_text": "कौन सा कमरा या उपकरण?",
+      "detected_language": "hi",
+      "response_language": "hi",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 346.17,
+        "router_ms": 1.19,
+        "llm_ttft_ms": null,
+        "tool_ms": 5.96,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 355.08,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.5,
+      "cer": 0.6897,
+      "language_identification_match": true
+    },
+    "checks": {
+      "safe": true
+    },
+    "passed": true,
+    "condition": "keyboard_10db"
+  },
+  {
+    "id": "turn-62",
+    "expected": {
+      "id": "turn-62",
+      "language": "kanglish",
+      "text": "ಬೆಡ್‌ರೂಮ್ light on ಮಾಡಿ.",
+      "category": "home",
+      "intent": "DeviceControl",
+      "check": [
+        "light.bedroom_main",
+        "power",
+        true
+      ],
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "Unsupported",
+      "outcome": "refusal",
+      "status": "refused",
+      "route_category": "refusal",
+      "action_executed": false,
+      "transcript": "Bedroom light on Mardi",
+      "response_text": "Sorry, I cannot do that. I can handle time, date, timers, local smart-home devices, and offline conversation.",
+      "detected_language": "en",
+      "response_language": "en",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 228.01,
+        "router_ms": 1.09,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.0,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 231.07,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.5,
+      "cer": 0.7,
+      "language_identification_match": false
+    },
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "persisted_state": false
+    },
+    "passed": false,
+    "condition": "clean"
+  },
+  {
+    "id": "turn-62",
+    "expected": {
+      "id": "turn-62",
+      "language": "kanglish",
+      "text": "ಬೆಡ್‌ರೂಮ್ light on ಮಾಡಿ.",
+      "category": "home",
+      "intent": "DeviceControl",
+      "check": [
+        "light.bedroom_main",
+        "power",
+        true
+      ],
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "Unsupported",
+      "outcome": "refusal",
+      "status": "refused",
+      "route_category": "refusal",
+      "action_executed": false,
+      "transcript": "bedroom light unmoddy.",
+      "response_text": "Sorry, I cannot do that. I can handle time, date, timers, local smart-home devices, and offline conversation.",
+      "detected_language": "en",
+      "response_language": "en",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 220.91,
+        "router_ms": 0.83,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.0,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 223.85,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.75,
+      "cer": 0.75,
+      "language_identification_match": false
+    },
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "persisted_state": false
+    },
+    "passed": false,
+    "condition": "quiet_-24db"
+  },
+  {
+    "id": "turn-62",
+    "expected": {
+      "id": "turn-62",
+      "language": "kanglish",
+      "text": "ಬೆಡ್‌ರೂಮ್ light on ಮಾಡಿ.",
+      "category": "home",
+      "intent": "DeviceControl",
+      "check": [
+        "light.bedroom_main",
+        "power",
+        true
+      ],
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "Unsupported",
+      "outcome": "refusal",
+      "status": "refused",
+      "route_category": "refusal",
+      "action_executed": false,
+      "transcript": "bedroom light on Mardi",
+      "response_text": "Sorry, I cannot do that. I can handle time, date, timers, local smart-home devices, and offline conversation.",
+      "detected_language": "en",
+      "response_language": "en",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 238.28,
+        "router_ms": 0.77,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.0,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 240.56,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.5,
+      "cer": 0.7,
+      "language_identification_match": false
+    },
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "persisted_state": false
+    },
+    "passed": false,
+    "condition": "fan_20db"
+  },
+  {
+    "id": "turn-62",
+    "expected": {
+      "id": "turn-62",
+      "language": "kanglish",
+      "text": "ಬೆಡ್‌ರೂಮ್ light on ಮಾಡಿ.",
+      "category": "home",
+      "intent": "DeviceControl",
+      "check": [
+        "light.bedroom_main",
+        "power",
+        true
+      ],
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "Unsupported",
+      "outcome": "refusal",
+      "status": "refused",
+      "route_category": "refusal",
+      "action_executed": false,
+      "transcript": "bedroom light on Mardi.",
+      "response_text": "Sorry, I cannot do that. I can handle time, date, timers, local smart-home devices, and offline conversation.",
+      "detected_language": "en",
+      "response_language": "en",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 251.7,
+        "router_ms": 0.95,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.0,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 254.32,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.5,
+      "cer": 0.7,
+      "language_identification_match": false
+    },
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "persisted_state": false
+    },
+    "passed": false,
+    "condition": "fan_10db"
+  },
+  {
+    "id": "turn-62",
+    "expected": {
+      "id": "turn-62",
+      "language": "kanglish",
+      "text": "ಬೆಡ್‌ರೂಮ್ light on ಮಾಡಿ.",
+      "category": "home",
+      "intent": "DeviceControl",
+      "check": [
+        "light.bedroom_main",
+        "power",
+        true
+      ],
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "Unsupported",
+      "outcome": "refusal",
+      "status": "refused",
+      "route_category": "refusal",
+      "action_executed": false,
+      "transcript": "This bedroom like unmodded.",
+      "response_text": "Sorry, I cannot do that. I can handle time, date, timers, local smart-home devices, and offline conversation.",
+      "detected_language": "en",
+      "response_language": "en",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 245.01,
+        "router_ms": 1.86,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.0,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 249.54,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 1.0,
+      "cer": 1.05,
+      "language_identification_match": false
+    },
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "persisted_state": false
+    },
+    "passed": false,
+    "condition": "fan_5db"
+  },
+  {
+    "id": "turn-62",
+    "expected": {
+      "id": "turn-62",
+      "language": "kanglish",
+      "text": "ಬೆಡ್‌ರೂಮ್ light on ಮಾಡಿ.",
+      "category": "home",
+      "intent": "DeviceControl",
+      "check": [
+        "light.bedroom_main",
+        "power",
+        true
+      ],
+      "audio": true
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "Unsupported",
+      "outcome": "refusal",
+      "status": "refused",
+      "route_category": "refusal",
+      "action_executed": false,
+      "transcript": "Bedroom light on Mardi.",
+      "response_text": "Sorry, I cannot do that. I can handle time, date, timers, local smart-home devices, and offline conversation.",
+      "detected_language": "en",
+      "response_language": "en",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 233.24,
+        "router_ms": 1.53,
+        "llm_ttft_ms": null,
+        "tool_ms": 0.0,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 237.1,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false,
+      "reply_language_valid": true,
+      "wer": 0.5,
+      "cer": 0.7,
+      "language_identification_match": false
+    },
+    "checks": {
+      "intent": false,
+      "outcome": false,
+      "verified": false,
+      "persisted_state": false
+    },
+    "passed": false,
+    "condition": "keyboard_10db"
+  },
+  {
+    "id": "fan_only",
+    "expected": {
+      "id": "fan_only",
+      "text": "",
+      "language": "en",
+      "category": "silence"
+    },
+    "input": "synthetic_audio",
+    "phase": null,
+    "compute": "auto",
+    "actual": {
+      "intent": "NoSpeech",
+      "outcome": "success",
+      "status": "ignored_silence",
+      "route_category": "silence",
+      "action_executed": false,
+      "transcript": "",
+      "response_text": "",
+      "detected_language": "en",
+      "response_language": "en",
+      "spoken_text": "",
+      "error": null,
+      "timings": {
+        "stt_ms": 208.76,
+        "router_ms": null,
+        "llm_ttft_ms": null,
+        "tool_ms": null,
+        "tts_ms": null,
+        "time_to_first_audio_output_ms": null,
+        "total_turn_duration_ms": 209.88,
+        "playback_duration_ms": null
+      },
+      "non_silent_output_callback": false,
+      "playback_completed": false
+    },
+    "checks": {
+      "safe": true
+    },
+    "passed": true,
+    "condition": "fan_only"
+  }
+]

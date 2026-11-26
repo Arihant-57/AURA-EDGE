@@ -1,0 +1,7 @@
+PASS Talk, live audio samples (10), Stop, mute and unmute
+PASS transparent pet, painted capsule, position persistence, single/double-click, live Home and dashboard glass (211/255 alpha)
+PASS live data across all nine dashboard pages and their tabs
+PASS pin, dashboard outside collapse and animated capsule collapse
+PASS capture activation/cancel/mute, browser-to-backend reminder, verified action synchronization, brightness, outside collapse and notification
+PASS dashboard Stop during backend speech
+PASS desktop shutdown leaves reused backend and data available

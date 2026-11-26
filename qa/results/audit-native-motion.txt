@@ -1,0 +1,5 @@
+PASS context menu, idle and reduced motion, size, on-top and rapid transitions without capture
+PASS transparent pet, painted capsule, position persistence, single/double-click, live Home and dashboard glass (211/255 alpha)
+PASS live data across all nine dashboard pages and their tabs
+PASS pin, dashboard outside collapse and animated capsule collapse
+[27508:30504:1126/055823.397:ERROR:../../../qtwebengine/src/3rdparty/chromium/gpu/ipc/client/command_buffer_proxy_impl.cc:327] GPU state invalid after WaitForGetOffsetInRange.

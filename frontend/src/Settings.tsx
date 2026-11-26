@@ -48,7 +48,7 @@ export function Settings({ tab, voice, prefs, timezone }: { tab: string; voice: 
         const mode = event.target.value;
         void action.run(async () => { await api("/voice/compute-mode", "PUT", { compute_mode: mode }); voice.refresh(); runtime.refresh(); });
       }}><option value="auto">Auto</option><option value="cpu">CPU</option><option value="gpu">GPU</option></select></Row>
-      <Row name="Effective compute" detail={compute ? `${compute.effective_mode.toUpperCase()} · STT ${compute.stt_device} · Ollama ${compute.llm_device}` : "Unavailable"}/>
+      <Row name="Effective compute" detail={compute ? `STT ${compute.stt_device} · Ollama ${compute.llm_device === "cpu" ? "CPU requested" : "automatic placement"}` : "Unavailable"}/>
       {compute?.fallback_reason && <Row name="Fallback reason" detail={compute.fallback_reason}/>}
       <Row name="Speech model" detail={voice.state.stt_model || "Unavailable"}/>
       <Status {...runtime}/>
