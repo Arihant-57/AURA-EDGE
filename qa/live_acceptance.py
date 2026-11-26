@@ -40,6 +40,13 @@ DEMO_CASES = [
 ]
 
 
+def save_results(output, rows):
+    output.parent.mkdir(parents=True, exist_ok=True)
+    pending = output.with_suffix(".tmp")
+    pending.write_text(json.dumps(rows, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    pending.replace(output)
+
+
 def run(port, output, sample_count, include_text=False, rehearsal=False):
     if rehearsal and not 8010 <= port <= 8099:
         raise SystemExit("Use the dedicated rehearsal backend for simulated mutations.")
@@ -63,18 +70,26 @@ def run(port, output, sample_count, include_text=False, rehearsal=False):
                 raise SystemExit("The existing session is busy or muted. Finish it before testing.")
             before_history = call("GET", "/smart-home/history?limit=1") if check == "history" else None
             before = time.time()
-            started = call("POST", "/voice/mic/start", {"language": "auto"})
+            try:
+                started = call("POST", "/voice/mic/start", {"language": "auto"})
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 503:
+                    raise
+                started = {"started": False, "reason": exc.response.text}
             turn_id = started.get("turn_id")
             if not started.get("started") or not turn_id:
                 print("The microphone could not start.")
-                rows.append({"language": language, "expected_intent": expected, "passed": False, "error": "capture_not_started"})
+                rows.append({"id": index, "prompt": phrase, "language": language, "expected_intent": expected,
+                             "passed": False, "error": "capture_not_started", "reason": started.get("reason")})
+                save_results(output, rows)
                 continue
             try:
                 input("Speak now. Press Enter when the phrase is complete.")
                 current = call("GET", "/voice/status")
                 if current["active_turn_id"] != turn_id:
                     print("Recording timed out or was interrupted. Repeat this check with the microphone ready.")
-                    rows.append({"language": language, "expected_intent": expected, "passed": False, "error": "capture_not_active"})
+                    rows.append({"id": index, "prompt": phrase, "turn_id": turn_id, "language": language,
+                                 "expected_intent": expected, "passed": False, "error": "capture_not_active"})
                     continue
                 result = call("POST", "/voice/mic/stop", {"speak": True})
                 print("Heard:", result.get("transcript") or "(no usable speech)")
@@ -122,8 +137,7 @@ def run(port, output, sample_count, include_text=False, rehearsal=False):
                     "passed": route_ok and result["response_language"] == expected_language and callback and audible and correct,
                 })
             finally:
-                output.parent.mkdir(parents=True, exist_ok=True)
-                output.write_text(json.dumps(rows, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                save_results(output, rows)
                 if call("GET", "/voice/status")["active_turn_id"] == turn_id:
                     call("POST", "/voice/cancel", {"turn_id": turn_id})
         if rehearsal:
@@ -135,13 +149,13 @@ def run(port, output, sample_count, include_text=False, rehearsal=False):
                 blocked = not call("POST", "/voice/mic/start", {})["started"]
             rows.append({"control": "mute", "server_muted": confirmed_mute, "capture_blocked": blocked,
                          "passed": confirmed_mute and blocked})
+            save_results(output, rows)
             input("Unmute. Ask for a long explanation, press Stop during audible playback, then press Enter here.")
             stopped = input("Did the sound stop immediately after your click? [y/N] ").strip().lower() == "y"
             idle = call("GET", "/voice/status")["active_state"] == "IDLE"
             rows.append({"control": "stop_during_playback", "human_heard_stop": stopped,
                          "server_idle": idle, "passed": stopped and idle})
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(rows, indent=2) + "\n", encoding="utf-8")
+    save_results(output, rows)
     print(f"Passed {sum(row['passed'] for row in rows)}/{len(rows)} human checks. Local result: {output}")
 
 
