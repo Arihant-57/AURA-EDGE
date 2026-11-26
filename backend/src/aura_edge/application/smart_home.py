@@ -458,7 +458,23 @@ class SmartHomeService:
             )
         try:
             changed = await self.command(row.id, action, slots.get("value"), source=source)
-        except (RuntimeError, ValueError) as exc:
+        except ValueError as exc:
+            spec = (row.capabilities or {}).get(action, {})
+            if "min" in spec and "max" in spec:
+                message = {
+                    "en": "Choose a value between {min} and {max}.",
+                    "hi": "{min} और {max} के बीच कोई मान चुनें।",
+                    "kn": "{min} ಮತ್ತು {max} ನಡುವಿನ ಮೌಲ್ಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+                }[language].format(**spec)
+            else:
+                message = {
+                    "en": "That setting is unavailable. Which setting should I use?",
+                    "hi": "यह सेटिंग उपलब्ध नहीं है। कौन सी सेटिंग चाहिए?",
+                    "kn": "ಆ ಸೆಟ್ಟಿಂಗ್ ಲಭ್ಯವಿಲ್ಲ. ಯಾವ ಸೆಟ್ಟಿಂಗ್ ಬಳಸಲಿ?",
+                }[language]
+            return VerifiedActionResult(success=False, action="DeviceControl", status="clarification_required",
+                                        message=message, error=str(exc))
+        except RuntimeError as exc:
             return VerifiedActionResult(
                 success=False, action="DeviceControl", status="failed",
                 message=str(exc), error=str(exc),

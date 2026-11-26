@@ -113,6 +113,7 @@ _LANG_NAME_MAP: dict[str, LanguageCode] = {
 }
 _RESTRICTED_ACTION_RE = re.compile(
     r"(?:\b(?:zomato|swiggy|amazon|flipkart|uber|ola)\b|"
+    r"^(?:book|reserve|purchase)\b[^.!?]*\b(?:flights?|tickets?|hotels?)\b|"
     r"\b(?:order|buy|purchase)\b.*\b(?:food|pizza|biryani|groceries|online)\b|"
     r"\btransfer\b.*\b(?:rupees|dollars|money|funds|bank|friend)\b|"
     r"\b(?:send|compose)\b.*\b(?:email|gmail|sms|whatsapp|message)\b|"
