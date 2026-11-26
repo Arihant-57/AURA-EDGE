@@ -1,0 +1,8 @@
+{
+  "processes": 3,
+  "seconds": 16.5923638,
+  "cpu_percent_of_machine": 0.061210386430895394,
+  "working_set_mib_sum": 109.5859375,
+  "gpu_peak_engine_percent": 0.0006568733513906866,
+  "gpu_samples": 8
+}

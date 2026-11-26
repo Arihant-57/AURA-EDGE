@@ -1,0 +1,74 @@
+[
+  {
+    "mood": "IDLE",
+    "frame_sha256": "80add5d77bcb68aa899a9624f60816f5bb6f235d7d1cc3967657a17b3e446a20",
+    "visible_center": true,
+    "state_applied": true
+  },
+  {
+    "mood": "LISTENING",
+    "frame_sha256": "9786f7f08c695d121e10590dcd7af9d6ee4883e6b8a7b6eb5603fd88616624a5",
+    "visible_center": true,
+    "state_applied": true
+  },
+  {
+    "mood": "THINKING",
+    "frame_sha256": "bd3c5ab79bf1641e4ce09c9694d72ea11633fcd1a71db5fc5a6d0f6e131ccd12",
+    "visible_center": true,
+    "state_applied": true
+  },
+  {
+    "mood": "EXECUTING",
+    "frame_sha256": "bd3c5ab79bf1641e4ce09c9694d72ea11633fcd1a71db5fc5a6d0f6e131ccd12",
+    "visible_center": true,
+    "state_applied": true
+  },
+  {
+    "mood": "VERIFYING",
+    "frame_sha256": "bd3c5ab79bf1641e4ce09c9694d72ea11633fcd1a71db5fc5a6d0f6e131ccd12",
+    "visible_center": true,
+    "state_applied": true
+  },
+  {
+    "mood": "SPEAKING",
+    "frame_sha256": "008ddaba40d49c472d5b8454644ea226b86b4b2cc8eca7186d14e59bd6797c7d",
+    "visible_center": true,
+    "state_applied": true
+  },
+  {
+    "mood": "SUCCESS",
+    "frame_sha256": "614dfa3ea3af774522bbfbeb84026fbc023b25d2c87eac4dc620016e6192ad89",
+    "visible_center": true,
+    "state_applied": true
+  },
+  {
+    "mood": "CLARIFYING",
+    "frame_sha256": "f14bb394c9210b9bb347394f342c3a2ba17619d0eccd97819d7a906c955ed6ba",
+    "visible_center": true,
+    "state_applied": true
+  },
+  {
+    "mood": "REMINDER",
+    "frame_sha256": "674abfa1c8f738385b4fe292fba764c09f2aea62ca18cae3a9402a93c2e52c64",
+    "visible_center": true,
+    "state_applied": true
+  },
+  {
+    "mood": "MUTED",
+    "frame_sha256": "b497c1d3379255607d92e9c5115fb34dcb49549541bde2e674ca51c483470a22",
+    "visible_center": true,
+    "state_applied": true
+  },
+  {
+    "mood": "ERROR",
+    "frame_sha256": "c1455e60a54f0db9e29eea997da454d32f96d1175287e522a5eb1389b53d2459",
+    "visible_center": true,
+    "state_applied": true
+  },
+  {
+    "mood": "OFFLINE",
+    "frame_sha256": "2dabd968b1b859badecd675b0134e65c3d82b1ae9ccd5ce72f626378512f6b33",
+    "visible_center": true,
+    "state_applied": true
+  }
+]

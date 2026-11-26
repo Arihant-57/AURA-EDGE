@@ -40,3 +40,5 @@ With the stabilized backend running, open [the local website](http://127.0.0.1:8
 For the Hindi-only demonstration on this laptop, select Hindi and strict speech recognition under Settings → Voice & language. Return recognition to multilingual for English or mixed speech. The optional local Hindi model was tested separately from automatic recognition. [Speech results](VOICE_ACCURACY_REPORT.md)
 
 ![Native mini island](../qa/screenshots/mini-island.png)
+
+From this checkout, `./scripts/stop-aura-desktop.ps1` requests graceful shutdown of a desktop launched from the script-enabled build. It uses the same shutdown path as the tray and stops an owned backend. Older already-running desktop instances can use **Exit AURA** in the tray. A release package includes the built dashboard. Pass `-DesktopPython` and `-BackendRoot` to its startup script when reusing installed environments from other directories.

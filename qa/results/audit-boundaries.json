@@ -1,0 +1,110 @@
+[
+  {
+    "input": "I do not want you to turn on the bedroom light",
+    "intent": "Clarify",
+    "outcome": "clarification",
+    "action_executed": false,
+    "changed_records": [],
+    "reply": "Could you clarify what you would like me to do?",
+    "passed": true
+  },
+  {
+    "input": "Don’t turn on the bedroom light",
+    "intent": "Clarify",
+    "outcome": "clarification",
+    "action_executed": false,
+    "changed_records": [],
+    "reply": "Could you clarify what you would like me to do?",
+    "passed": true
+  },
+  {
+    "input": "Never turn on the bedroom light",
+    "intent": "Clarify",
+    "outcome": "clarification",
+    "action_executed": false,
+    "changed_records": [],
+    "reply": "Could you clarify what you would like me to do?",
+    "passed": true
+  },
+  {
+    "input": "बेडरूम की लाइट ऑन नहीं करनी है",
+    "intent": "Clarify",
+    "outcome": "clarification",
+    "action_executed": false,
+    "changed_records": [],
+    "reply": "कृपया स्पष्ट बताएं कि आप क्या करवाना चाहते हैं?",
+    "passed": true
+  },
+  {
+    "input": "ಬೇಡ, ಬೆಡ್ ರೂಮ್ ಲೈಟ್ ಆನ್ ಮಾಡಿ",
+    "intent": "Clarify",
+    "outcome": "clarification",
+    "action_executed": false,
+    "changed_records": [],
+    "reply": "ದಯವಿಟ್ಟು ಏನು ಮಾಡಬೇಕೆಂದು ಸ್ಪಷ್ಟವಾಗಿ ಹೇಳಿ.",
+    "passed": true
+  },
+  {
+    "input": "Set the bedroom AC to 100 degrees",
+    "intent": "DeviceControl",
+    "outcome": "runtime_failure",
+    "action_executed": false,
+    "changed_records": [],
+    "reply": "temperature must be in 16..30.",
+    "passed": false
+  },
+  {
+    "input": "Set the study fan speed to 99",
+    "intent": "DeviceControl",
+    "outcome": "runtime_failure",
+    "action_executed": false,
+    "changed_records": [],
+    "reply": "speed must be in 1..5.",
+    "passed": false
+  },
+  {
+    "input": "Turn on the thing in that room",
+    "intent": "Clarify",
+    "outcome": "clarification",
+    "action_executed": false,
+    "changed_records": [],
+    "reply": "Could you clarify what you would like me to do?",
+    "passed": true
+  },
+  {
+    "input": "Set a timer for two boxes and one minute",
+    "intent": "Clarify",
+    "outcome": "clarification",
+    "action_executed": false,
+    "changed_records": [],
+    "reply": "Could you clarify what you would like me to do?",
+    "passed": true
+  },
+  {
+    "input": "Set a timer for one minute and two apples",
+    "intent": "Clarify",
+    "outcome": "clarification",
+    "action_executed": false,
+    "changed_records": [],
+    "reply": "Could you clarify what you would like me to do?",
+    "passed": true
+  },
+  {
+    "input": "Turn on the bedroom light and set the bedroom AC to 99 degrees",
+    "intent": "DeviceControl",
+    "outcome": "refusal",
+    "action_executed": false,
+    "changed_records": [],
+    "reply": "Sorry, I cannot do that. I can handle time, date, timers, local smart-home devices, and offline conversation.",
+    "passed": true
+  },
+  {
+    "input": "Book me an international flight",
+    "intent": "Conversation",
+    "outcome": "success",
+    "action_executed": false,
+    "changed_records": [],
+    "reply": "I cannot book flights as that is outside my local capabilities. I can only manage tasks, timers, appliances, and your calendar within this device.",
+    "passed": false
+  }
+]

@@ -1,0 +1,352 @@
+[
+  {
+    "id": "turn-42",
+    "group": "hi",
+    "prompt": "दस सेकंड का टाइमर लगाओ।",
+    "transcript": "10 सेकन्ण का तामर लगाो",
+    "normalized": "10 सेकन्ण का टाइमर लगाओ",
+    "detected": "hi",
+    "expected_intent": "SetTimer",
+    "fast_slots": {},
+    "actual_intent": "Unsupported",
+    "expected_criterion": 10,
+    "reported_action": false,
+    "outcome": "refusal",
+    "reply": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+    "reply_language": "hi",
+    "reference_text_pass": true,
+    "failed_checks": [
+      "intent",
+      "outcome",
+      "verified",
+      "duration"
+    ]
+  },
+  {
+    "id": "turn-43",
+    "group": "hi",
+    "prompt": "एक मिनट का टाइमर शुरू करो।",
+    "transcript": "एक मिनेद का तामर सुडो करो",
+    "normalized": "1 मिनेद का टाइमर सुडो करो",
+    "detected": "hi",
+    "expected_intent": "SetTimer",
+    "fast_slots": {},
+    "actual_intent": "Unsupported",
+    "expected_criterion": 60,
+    "reported_action": false,
+    "outcome": "refusal",
+    "reply": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+    "reply_language": "hi",
+    "reference_text_pass": true,
+    "failed_checks": [
+      "intent",
+      "outcome",
+      "verified",
+      "duration"
+    ]
+  },
+  {
+    "id": "turn-44",
+    "group": "hi",
+    "prompt": "बेडरूम की लाइट चालू करो।",
+    "transcript": "बेद्रुम की लायत चालों करो",
+    "normalized": "बेद्रुम की लायत चालों करो",
+    "detected": "hi",
+    "expected_intent": "DeviceControl",
+    "fast_slots": {},
+    "actual_intent": "Unsupported",
+    "expected_criterion": [
+      "light.bedroom_main",
+      "power",
+      true
+    ],
+    "reported_action": false,
+    "outcome": "refusal",
+    "reply": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+    "reply_language": "hi",
+    "reference_text_pass": true,
+    "failed_checks": [
+      "intent",
+      "outcome",
+      "verified",
+      "persisted_state"
+    ]
+  },
+  {
+    "id": "turn-45",
+    "group": "hi",
+    "prompt": "बेडरूम की लाइट बंद करो।",
+    "transcript": "बेद्रूम की लाइत बंद करो",
+    "normalized": "बेद्रूम की लाइत बंद करो",
+    "detected": "hi",
+    "expected_intent": "DeviceControl",
+    "fast_slots": {},
+    "actual_intent": "Clarify",
+    "expected_criterion": [
+      "light.bedroom_main",
+      "power",
+      false
+    ],
+    "reported_action": false,
+    "outcome": "clarification",
+    "reply": "कृपया स्पष्ट बताएं कि आप क्या करवाना चाहते हैं?",
+    "reply_language": "hi",
+    "reference_text_pass": true,
+    "failed_checks": [
+      "intent",
+      "outcome",
+      "verified",
+      "persisted_state"
+    ]
+  },
+  {
+    "id": "turn-47",
+    "group": "hi",
+    "prompt": "बेडरूम का एसी चौबीस डिग्री पर सेट करो।",
+    "transcript": "बेद्रुम का, AC24 ڈिक्रीपर सेत करो.",
+    "normalized": "बेद्रुम का, AC24 ڈिक्रीपर सेत करो",
+    "detected": "hi",
+    "expected_intent": "DeviceControl",
+    "fast_slots": {},
+    "actual_intent": "Unsupported",
+    "expected_criterion": [
+      "ac.bedroom",
+      "temperature",
+      24
+    ],
+    "reported_action": false,
+    "outcome": "refusal",
+    "reply": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+    "reply_language": "hi",
+    "reference_text_pass": true,
+    "failed_checks": [
+      "intent",
+      "outcome",
+      "verified",
+      "persisted_state"
+    ]
+  },
+  {
+    "id": "turn-48",
+    "group": "kn",
+    "prompt": "ಈಗ ಎಷ್ಟು ಗಂಟೆ ಆಗಿದೆ?",
+    "transcript": "",
+    "normalized": "",
+    "detected": "hi",
+    "expected_intent": "GetTime",
+    "fast_slots": {},
+    "actual_intent": "Clarify",
+    "expected_criterion": null,
+    "reported_action": false,
+    "outcome": "clarification",
+    "reply": "मुझे कुछ सुनाई नहीं दिया। कृपया फिर से बोलें।",
+    "reply_language": "hi",
+    "reference_text_pass": true,
+    "failed_checks": [
+      "intent",
+      "outcome",
+      "verified",
+      "host_clock"
+    ]
+  },
+  {
+    "id": "turn-52",
+    "group": "kn",
+    "prompt": "ಹತ್ತು ಸೆಕೆಂಡಿನ ಟೈಮರ್ ಇಡು.",
+    "transcript": "ಹತ್ತು ಸೆಕೆಂಡಿನ ತೈಮರ್ ಏಳು",
+    "normalized": "10 ಸೆಕೆಂಡಿನ ಟೈಮರ್ 7",
+    "detected": "kn",
+    "expected_intent": "SetTimer",
+    "fast_slots": {},
+    "actual_intent": "Unsupported",
+    "expected_criterion": 10,
+    "reported_action": false,
+    "outcome": "refusal",
+    "reply": "ಕ್ಷಮಿಸಿ, ನನಗೆ ಅದನ್ನು ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ. ನಾನು ಸಮಯ, ದಿನಾಂಕ, ಟೈಮರ್, ಸ್ಮಾರ್ಟ್ ಹೋಮ್ ಸಾಧನಗಳು ಮತ್ತು ಮಾತುಕತೆಗೆ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ.",
+    "reply_language": "kn",
+    "reference_text_pass": true,
+    "failed_checks": [
+      "intent",
+      "outcome",
+      "verified",
+      "duration"
+    ]
+  },
+  {
+    "id": "turn-53",
+    "group": "kn",
+    "prompt": "ಒಂದು ನಿಮಿಷದ ಟೈಮರ್ ಇಡು.",
+    "transcript": "ಒಂದು ನಿಮಿಷದ ತೈಮ ಬೀಡು",
+    "normalized": "1 ನಿಮಿಷದ ಟೈಮರ್ ಬೀಡು",
+    "detected": "kn",
+    "expected_intent": "SetTimer",
+    "fast_slots": {},
+    "actual_intent": "Unsupported",
+    "expected_criterion": 60,
+    "reported_action": false,
+    "outcome": "refusal",
+    "reply": "ಕ್ಷಮಿಸಿ, ನನಗೆ ಅದನ್ನು ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ. ನಾನು ಸಮಯ, ದಿನಾಂಕ, ಟೈಮರ್, ಸ್ಮಾರ್ಟ್ ಹೋಮ್ ಸಾಧನಗಳು ಮತ್ತು ಮಾತುಕತೆಗೆ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ.",
+    "reply_language": "kn",
+    "reference_text_pass": true,
+    "failed_checks": [
+      "intent",
+      "outcome",
+      "verified",
+      "duration"
+    ]
+  },
+  {
+    "id": "turn-54",
+    "group": "kn",
+    "prompt": "ಬೆಡ್‌ರೂಮ್ ಲೈಟ್ ಆನ್ ಮಾಡು.",
+    "transcript": "ಬೆಡ್ ರೂಮ್ ಲೈಕ್ ಅನ್ ಮಾಡು",
+    "normalized": "ಬೆಡ್ ರೂಮ್ ಲೈಕ್ ಅನ್ ಮಾಡು",
+    "detected": "kn",
+    "expected_intent": "DeviceControl",
+    "fast_slots": {},
+    "actual_intent": "Unsupported",
+    "expected_criterion": [
+      "light.bedroom_main",
+      "power",
+      true
+    ],
+    "reported_action": false,
+    "outcome": "refusal",
+    "reply": "ಕ್ಷಮಿಸಿ, ನನಗೆ ಅದನ್ನು ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ. ನಾನು ಸಮಯ, ದಿನಾಂಕ, ಟೈಮರ್, ಸ್ಮಾರ್ಟ್ ಹೋಮ್ ಸಾಧನಗಳು ಮತ್ತು ಮಾತುಕತೆಗೆ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ.",
+    "reply_language": "kn",
+    "reference_text_pass": true,
+    "failed_checks": [
+      "intent",
+      "outcome",
+      "verified",
+      "persisted_state"
+    ]
+  },
+  {
+    "id": "turn-55",
+    "group": "kn",
+    "prompt": "ಬೆಡ್‌ರೂಮ್ ಲೈಟ್ ಆಫ್ ಮಾಡು.",
+    "transcript": "ಬೆಡ್ ರೂಮ್ ಲೈಟ್ ಆದು ಮಾಡು",
+    "normalized": "ಬೆಡ್ ರೂಮ್ ಲೈಟ್ ಆದು ಮಾಡು",
+    "detected": "kn",
+    "expected_intent": "DeviceControl",
+    "fast_slots": {},
+    "actual_intent": "Unsupported",
+    "expected_criterion": [
+      "light.bedroom_main",
+      "power",
+      false
+    ],
+    "reported_action": false,
+    "outcome": "refusal",
+    "reply": "ಕ್ಷಮಿಸಿ, ನನಗೆ ಅದನ್ನು ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ. ನಾನು ಸಮಯ, ದಿನಾಂಕ, ಟೈಮರ್, ಸ್ಮಾರ್ಟ್ ಹೋಮ್ ಸಾಧನಗಳು ಮತ್ತು ಮಾತುಕತೆಗೆ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ.",
+    "reply_language": "kn",
+    "reference_text_pass": true,
+    "failed_checks": [
+      "intent",
+      "outcome",
+      "verified",
+      "persisted_state"
+    ]
+  },
+  {
+    "id": "turn-57",
+    "group": "hinglish",
+    "prompt": "Bedroom की light चालू करो.",
+    "transcript": "बेदूम की लैंचालो करो",
+    "normalized": "बेदूम की लैंचालो करो",
+    "detected": "hi",
+    "expected_intent": "DeviceControl",
+    "fast_slots": {},
+    "actual_intent": "Unsupported",
+    "expected_criterion": [
+      "light.bedroom_main",
+      "power",
+      true
+    ],
+    "reported_action": false,
+    "outcome": "refusal",
+    "reply": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+    "reply_language": "hi",
+    "reference_text_pass": true,
+    "failed_checks": [
+      "intent",
+      "outcome",
+      "verified",
+      "persisted_state"
+    ]
+  },
+  {
+    "id": "turn-59",
+    "group": "hinglish",
+    "prompt": "मुझे thirty seconds के बाद पानी पीने का reminder देना.",
+    "transcript": "मुजे जेती सक्यंस के बात पानि पीने का विमान्द देना",
+    "normalized": "मुजे जेती सक्यंस के बात पानि पीने का विमान्द देना",
+    "detected": "hi",
+    "expected_intent": "CreateReminder",
+    "fast_slots": {},
+    "actual_intent": "Unsupported",
+    "expected_criterion": null,
+    "reported_action": false,
+    "outcome": "refusal",
+    "reply": "माफ कीजिए, मैं यह नहीं कर सकता। मैं समय, तारीख, टाइमर, स्मार्ट होम डिवाइस और ऑफ़लाइन बातचीत कर सकता हूँ।",
+    "reply_language": "hi",
+    "reference_text_pass": true,
+    "failed_checks": [
+      "intent",
+      "outcome",
+      "verified",
+      "tool_result"
+    ]
+  },
+  {
+    "id": "turn-62",
+    "group": "kanglish",
+    "prompt": "ಬೆಡ್‌ರೂಮ್ light on ಮಾಡಿ.",
+    "transcript": "Bedroom light on Mardi",
+    "normalized": "Bedroom light on Mardi",
+    "detected": "en",
+    "expected_intent": "DeviceControl",
+    "fast_slots": {},
+    "actual_intent": "Unsupported",
+    "expected_criterion": [
+      "light.bedroom_main",
+      "power",
+      true
+    ],
+    "reported_action": false,
+    "outcome": "refusal",
+    "reply": "Sorry, I cannot do that. I can handle time, date, timers, local smart-home devices, and offline conversation.",
+    "reply_language": "en",
+    "reference_text_pass": true,
+    "failed_checks": [
+      "intent",
+      "outcome",
+      "verified",
+      "persisted_state"
+    ]
+  },
+  {
+    "id": "turn-64",
+    "group": "kanglish",
+    "prompt": "ನನಗೆ thirty seconds ಆದ್ಮೇಲೆ reminder ಕೊಡಿ.",
+    "transcript": "ನನಗೆತ್ತರ್ತಿ ಸೆಕೊಂಡಸ್ ಆದ್ಮೇಲೆ ರೆಮಿನಿಯರ್ ಕೊಡಿ",
+    "normalized": "ನನಗೆತ್ತರ್ತಿ ಸೆಕೊಂಡಸ್ ಆದ್ಮೇಲೆ ರೆಮಿನಿಯರ್ ಕೊಡಿ",
+    "detected": "kn",
+    "expected_intent": "CreateReminder",
+    "fast_slots": {},
+    "actual_intent": "Unsupported",
+    "expected_criterion": null,
+    "reported_action": false,
+    "outcome": "refusal",
+    "reply": "ಕ್ಷಮಿಸಿ, ನನಗೆ ಅದನ್ನು ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ. ನಾನು ಸಮಯ, ದಿನಾಂಕ, ಟೈಮರ್, ಸ್ಮಾರ್ಟ್ ಹೋಮ್ ಸಾಧನಗಳು ಮತ್ತು ಮಾತುಕತೆಗೆ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ.",
+    "reply_language": "kn",
+    "reference_text_pass": true,
+    "failed_checks": [
+      "intent",
+      "outcome",
+      "verified",
+      "tool_result"
+    ]
+  }
+]

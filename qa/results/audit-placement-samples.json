@@ -1,0 +1,410 @@
+[
+  {
+    "time": "2026-11-26T06:01:33.4353535+05:30",
+    "state": "UNDERSTANDING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "3, 1468",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:34.6107448+05:30",
+    "state": "UNDERSTANDING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "0, 1468",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:35.9439663+05:30",
+    "state": "UNDERSTANDING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "0, 1468",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:37.0599395+05:30",
+    "state": "UNDERSTANDING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "1, 1463",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:38.2054639+05:30",
+    "state": "UNDERSTANDING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "3, 1468",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:39.3906047+05:30",
+    "state": "UNDERSTANDING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "0, 1468",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:40.7258248+05:30",
+    "state": "UNDERSTANDING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "3, 1463",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:41.9561572+05:30",
+    "state": "UNDERSTANDING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "4, 1468",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:43.1250985+05:30",
+    "state": "UNDERSTANDING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "1, 1468",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:44.2757334+05:30",
+    "state": "UNDERSTANDING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "0, 1463",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:45.4425480+05:30",
+    "state": "SPEAKING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "3, 1469",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:46.6113217+05:30",
+    "state": "SPEAKING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "1, 1469",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:47.7134280+05:30",
+    "state": "SPEAKING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "0, 1468",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:48.8141690+05:30",
+    "state": "SPEAKING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "2, 1463",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:50.0339859+05:30",
+    "state": "SPEAKING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "3, 1468",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:51.1311399+05:30",
+    "state": "SPEAKING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "0, 1468",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:52.3310561+05:30",
+    "state": "SPEAKING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "3, 1463",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:53.9321782+05:30",
+    "state": "SPEAKING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "4, 1468",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:55.0517164+05:30",
+    "state": "IDLE",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "0, 1456",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:56.2417523+05:30",
+    "state": "IDLE",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "0, 1463",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:57.4450247+05:30",
+    "state": "IDLE",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "3, 1468",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:58.5595519+05:30",
+    "state": "IDLE",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "3, 1469",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:01:59.6493670+05:30",
+    "state": "SPEAKING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "0, 1463",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  },
+  {
+    "time": "2026-11-26T06:02:00.7173107+05:30",
+    "state": "SPEAKING",
+    "mode": "gpu",
+    "stt": "cuda",
+    "gpu": "2, 1463",
+    "ollama": [
+      {
+        "name": "qwen3.5:4b",
+        "size_vram": 0
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_vram": 0
+      }
+    ]
+  }
+]

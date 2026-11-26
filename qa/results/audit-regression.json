@@ -1,0 +1,293 @@
+{
+  "backend_commit": "b04450e",
+  "disposable_database": "final_serial_verify",
+  "method": "Each backend test module was run sequentially in its own pytest process against a fresh migrated audit database, with offline models and required live database checks.",
+  "prior_checkpoints": {
+    "7fb2fb4": {
+      "tests": 236,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 236,
+      "elapsed_seconds": 719.87
+    },
+    "duration_and_routing": {
+      "tests": 244,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 244,
+      "elapsed_seconds": 783.6
+    },
+    "upload_isolation": {
+      "tests": 247,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 247,
+      "elapsed_seconds": 838.55
+    },
+    "boundary_outcomes": {
+      "tests": 248,
+      "errors": 0,
+      "failures": 1,
+      "skipped": 0,
+      "passed": 247,
+      "elapsed_seconds": 761.68,
+      "failed_cases": [
+        {
+          "test": "tests.test_phase4_tasks_calendar_briefing::test_task_lifecycle_with_scheduler_reminder_and_restart",
+          "reason": "onnxruntime.capi.onnxruntime_pybind11_state.Fail: [ONNXRuntimeError] : 1 : FAIL : Load model from C:\\Users\\ariha\\Desktop\\AURA-EDGE\\models\\vad\\silero_vad.onnx failed:bad allocation"
+        }
+      ]
+    }
+  },
+  "interrupted_full_run": "A concurrent full-suite run exited 1 after 30 progress dots without producing JUnit XML. No per-case verdict can be inferred for that run. The prior checkpoint had a recorded ONNX model allocation failure under load.",
+  "final_counts": {
+    "tests": 249,
+    "passed": 249,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0
+  },
+  "modules": {
+    "test_config_and_db_guard": {
+      "tests": 5,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 5,
+      "elapsed_seconds": 0.34
+    },
+    "test_db_live_integration": {
+      "tests": 1,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 1,
+      "elapsed_seconds": 0.63
+    },
+    "test_health_api": {
+      "tests": 3,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 3,
+      "elapsed_seconds": 1.52
+    },
+    "test_network_policy": {
+      "tests": 5,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 5,
+      "elapsed_seconds": 0.19
+    },
+    "test_part_a_multilingual_grounding": {
+      "tests": 8,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 8,
+      "elapsed_seconds": 26.67
+    },
+    "test_phase1_5_conversation": {
+      "tests": 7,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 7,
+      "elapsed_seconds": 25.73
+    },
+    "test_phase1_api_and_ws": {
+      "tests": 2,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 2,
+      "elapsed_seconds": 41.47
+    },
+    "test_phase1_audio_and_vad": {
+      "tests": 6,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 6,
+      "elapsed_seconds": 1.75
+    },
+    "test_phase1_multilingual_router": {
+      "tests": 119,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 119,
+      "elapsed_seconds": 3.69
+    },
+    "test_phase1_state_machine": {
+      "tests": 2,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 2,
+      "elapsed_seconds": 0.03
+    },
+    "test_phase1_stt_and_compute": {
+      "tests": 4,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 4,
+      "elapsed_seconds": 16.32
+    },
+    "test_phase1_timers_live_db": {
+      "tests": 1,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 1,
+      "elapsed_seconds": 0.72
+    },
+    "test_phase1_tts_and_playback": {
+      "tests": 3,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 3,
+      "elapsed_seconds": 2.75
+    },
+    "test_phase1_voice_conversations": {
+      "tests": 3,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 3,
+      "elapsed_seconds": 21.06
+    },
+    "test_phase2_smart_home": {
+      "tests": 4,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 4,
+      "elapsed_seconds": 32.01
+    },
+    "test_phase3_e2e_demo": {
+      "tests": 1,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 1,
+      "elapsed_seconds": 17.28
+    },
+    "test_phase3_memory": {
+      "tests": 4,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 4,
+      "elapsed_seconds": 39.48
+    },
+    "test_phase3_notifications": {
+      "tests": 2,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 2,
+      "elapsed_seconds": 14.79
+    },
+    "test_phase3_scheduler_and_routines": {
+      "tests": 3,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 3,
+      "elapsed_seconds": 32.95
+    },
+    "test_phase3_voice_fixes": {
+      "tests": 3,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 3,
+      "elapsed_seconds": 14.52
+    },
+    "test_phase4_groceries_expenses_parcels": {
+      "tests": 2,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 2,
+      "elapsed_seconds": 14.64
+    },
+    "test_phase4_tasks_calendar_briefing": {
+      "tests": 2,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 2,
+      "elapsed_seconds": 20.21
+    },
+    "test_ptt_capture_recovery": {
+      "tests": 3,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 3,
+      "elapsed_seconds": 20.81
+    },
+    "test_routine_voice_results": {
+      "tests": 3,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 3,
+      "elapsed_seconds": 0.65
+    },
+    "test_speech_generation_and_streaming": {
+      "tests": 7,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 7,
+      "elapsed_seconds": 10.58
+    },
+    "test_speech_recognition_gate": {
+      "tests": 4,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 4,
+      "elapsed_seconds": 3.94
+    },
+    "test_stabilization_routing": {
+      "tests": 21,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 21,
+      "elapsed_seconds": 0.58
+    },
+    "test_voice_bugfixes": {
+      "tests": 7,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 7,
+      "elapsed_seconds": 33.65
+    },
+    "test_voice_orchestrator_outcomes": {
+      "tests": 14,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 14,
+      "elapsed_seconds": 93.62
+    }
+  },
+  "frontend": {
+    "passed": 7,
+    "failed": 0,
+    "typecheck": true,
+    "build": true
+  }
+}

@@ -1,0 +1,1868 @@
+{
+  "kind": "benchmark",
+  "turns": [
+    {
+      "id": "turn-01",
+      "expected": {
+        "id": "turn-01",
+        "language": "en",
+        "text": "What time is it?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "text",
+      "phase": "first_after_placement",
+      "compute": "cpu",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What time is it?",
+        "response_text": "The time is 5:56 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "The time is 5:56 AM (India Standard Time).",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 2.18,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.2,
+          "tts_ms": 435.91,
+          "time_to_first_audio_output_ms": 564.78,
+          "total_turn_duration_ms": 4644.7,
+          "playback_duration_ms": 3214.21
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-37",
+      "expected": {
+        "id": "turn-37",
+        "language": "en",
+        "text": "Why do leaves change color?",
+        "category": "conversation"
+      },
+      "input": "text",
+      "phase": "first_after_placement",
+      "compute": "cpu",
+      "actual": {
+        "intent": "Conversation",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "conversation",
+        "action_executed": false,
+        "transcript": "Why do leaves change color?",
+        "response_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 2.34,
+          "llm_ttft_ms": 29858.71,
+          "tool_ms": 0.0,
+          "tts_ms": 1502.87,
+          "time_to_first_audio_output_ms": 37587.93,
+          "total_turn_duration_ms": 46113.11,
+          "playback_duration_ms": 7666.46
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "outcome": true,
+        "no_action": true,
+        "reply": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-09",
+      "expected": {
+        "id": "turn-09",
+        "language": "en",
+        "text": "Turn on the bedroom light.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": "first_after_placement",
+      "compute": "cpu",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Turn on the bedroom light.",
+        "response_text": "Updated bedroom light.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Updated bedroom light.",
+        "error": null,
+        "timings": {
+          "stt_ms": 5013.41,
+          "router_ms": 16.66,
+          "llm_ttft_ms": null,
+          "tool_ms": 92.23,
+          "tts_ms": 101.94,
+          "time_to_first_audio_output_ms": 8117.57,
+          "total_turn_duration_ms": 10742.96,
+          "playback_duration_ms": 1754.87
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-01",
+      "expected": {
+        "id": "turn-01",
+        "language": "en",
+        "text": "What time is it?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "cpu",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What time is it?",
+        "response_text": "The time is 5:58 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "The time is 5:58 AM (India Standard Time).",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 5.61,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.23,
+          "tts_ms": 150.67,
+          "time_to_first_audio_output_ms": 269.28,
+          "total_turn_duration_ms": 4327.84,
+          "playback_duration_ms": 3191.11
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-37",
+      "expected": {
+        "id": "turn-37",
+        "language": "en",
+        "text": "Why do leaves change color?",
+        "category": "conversation"
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "cpu",
+      "actual": {
+        "intent": "Conversation",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "conversation",
+        "action_executed": false,
+        "transcript": "Why do leaves change color?",
+        "response_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 2.6,
+          "llm_ttft_ms": 8641.85,
+          "tool_ms": 0.0,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 15733.73,
+          "total_turn_duration_ms": 24225.41,
+          "playback_duration_ms": 7649.91
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "outcome": true,
+        "no_action": true,
+        "reply": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-09",
+      "expected": {
+        "id": "turn-09",
+        "language": "en",
+        "text": "Turn on the bedroom light.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": "warm",
+      "compute": "cpu",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Turn on the bedroom light.",
+        "response_text": "Updated bedroom light.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Updated bedroom light.",
+        "error": null,
+        "timings": {
+          "stt_ms": 5666.42,
+          "router_ms": 2.16,
+          "llm_ttft_ms": null,
+          "tool_ms": 41.95,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 5833.38,
+          "total_turn_duration_ms": 8422.71,
+          "playback_duration_ms": 1748.52
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-01",
+      "expected": {
+        "id": "turn-01",
+        "language": "en",
+        "text": "What time is it?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "cpu",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What time is it?",
+        "response_text": "The time is 5:58 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "The time is 5:58 AM (India Standard Time).",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.04,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.13,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 91.17,
+          "total_turn_duration_ms": 4119.1,
+          "playback_duration_ms": 3173.34
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-37",
+      "expected": {
+        "id": "turn-37",
+        "language": "en",
+        "text": "Why do leaves change color?",
+        "category": "conversation"
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "cpu",
+      "actual": {
+        "intent": "Conversation",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "conversation",
+        "action_executed": false,
+        "transcript": "Why do leaves change color?",
+        "response_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 2.3,
+          "llm_ttft_ms": 7170.55,
+          "tool_ms": 0.0,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 12357.63,
+          "total_turn_duration_ms": 20847.61,
+          "playback_duration_ms": 7648.47
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "outcome": true,
+        "no_action": true,
+        "reply": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-09",
+      "expected": {
+        "id": "turn-09",
+        "language": "en",
+        "text": "Turn on the bedroom light.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": "warm",
+      "compute": "cpu",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Turn on the bedroom light.",
+        "response_text": "Updated bedroom light.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Updated bedroom light.",
+        "error": null,
+        "timings": {
+          "stt_ms": 4309.15,
+          "router_ms": 2.01,
+          "llm_ttft_ms": null,
+          "tool_ms": 31.94,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 4454.26,
+          "total_turn_duration_ms": 7030.31,
+          "playback_duration_ms": 1748.67
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-01",
+      "expected": {
+        "id": "turn-01",
+        "language": "en",
+        "text": "What time is it?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "cpu",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What time is it?",
+        "response_text": "The time is 5:59 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "The time is 5:59 AM (India Standard Time).",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.18,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.09,
+          "tts_ms": 142.09,
+          "time_to_first_audio_output_ms": 241.45,
+          "total_turn_duration_ms": 4400.53,
+          "playback_duration_ms": 3296.19
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-37",
+      "expected": {
+        "id": "turn-37",
+        "language": "en",
+        "text": "Why do leaves change color?",
+        "category": "conversation"
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "cpu",
+      "actual": {
+        "intent": "Conversation",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "conversation",
+        "action_executed": false,
+        "transcript": "Why do leaves change color?",
+        "response_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.76,
+          "llm_ttft_ms": 7507.06,
+          "tool_ms": 0.0,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 12820.78,
+          "total_turn_duration_ms": 21330.51,
+          "playback_duration_ms": 7650.09
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "outcome": true,
+        "no_action": true,
+        "reply": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-09",
+      "expected": {
+        "id": "turn-09",
+        "language": "en",
+        "text": "Turn on the bedroom light.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": "warm",
+      "compute": "cpu",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Turn on the bedroom light.",
+        "response_text": "Updated bedroom light.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Updated bedroom light.",
+        "error": null,
+        "timings": {
+          "stt_ms": 3650.32,
+          "router_ms": 1.72,
+          "llm_ttft_ms": null,
+          "tool_ms": 28.3,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 3781.78,
+          "total_turn_duration_ms": 6399.57,
+          "playback_duration_ms": 1749.73
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-01",
+      "expected": {
+        "id": "turn-01",
+        "language": "en",
+        "text": "What time is it?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "text",
+      "phase": "first_after_placement",
+      "compute": "gpu",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What time is it?",
+        "response_text": "The time is 5:59 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "The time is 5:59 AM (India Standard Time).",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.0,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.11,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 88.42,
+          "total_turn_duration_ms": 4238.33,
+          "playback_duration_ms": 3291.71
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-37",
+      "expected": {
+        "id": "turn-37",
+        "language": "en",
+        "text": "Why do leaves change color?",
+        "category": "conversation"
+      },
+      "input": "text",
+      "phase": "first_after_placement",
+      "compute": "gpu",
+      "actual": {
+        "intent": "Conversation",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "conversation",
+        "action_executed": false,
+        "transcript": "Why do leaves change color?",
+        "response_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.46,
+          "llm_ttft_ms": 7387.29,
+          "tool_ms": 0.0,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 12335.99,
+          "total_turn_duration_ms": 20838.31,
+          "playback_duration_ms": 7646.36
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "outcome": true,
+        "no_action": true,
+        "reply": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-09",
+      "expected": {
+        "id": "turn-09",
+        "language": "en",
+        "text": "Turn on the bedroom light.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": "first_after_placement",
+      "compute": "gpu",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Turn on the bedroom light.",
+        "response_text": "Updated bedroom light.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Updated bedroom light.",
+        "error": null,
+        "timings": {
+          "stt_ms": 408.3,
+          "router_ms": 2.63,
+          "llm_ttft_ms": null,
+          "tool_ms": 54.53,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 3513.33,
+          "total_turn_duration_ms": 6127.07,
+          "playback_duration_ms": 1760.68
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-01",
+      "expected": {
+        "id": "turn-01",
+        "language": "en",
+        "text": "What time is it?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "gpu",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What time is it?",
+        "response_text": "The time is 6:00 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "The time is 6:00 AM (India Standard Time).",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.79,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.14,
+          "tts_ms": 375.17,
+          "time_to_first_audio_output_ms": 564.59,
+          "total_turn_duration_ms": 4145.4,
+          "playback_duration_ms": 2699.04
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-37",
+      "expected": {
+        "id": "turn-37",
+        "language": "en",
+        "text": "Why do leaves change color?",
+        "category": "conversation"
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "gpu",
+      "actual": {
+        "intent": "Conversation",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "conversation",
+        "action_executed": false,
+        "transcript": "Why do leaves change color?",
+        "response_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.59,
+          "llm_ttft_ms": 7489.57,
+          "tool_ms": 0.0,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 11920.8,
+          "total_turn_duration_ms": 20428.4,
+          "playback_duration_ms": 7652.79
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "outcome": true,
+        "no_action": true,
+        "reply": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-09",
+      "expected": {
+        "id": "turn-09",
+        "language": "en",
+        "text": "Turn on the bedroom light.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": "warm",
+      "compute": "gpu",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Turn on the bedroom light.",
+        "response_text": "Updated bedroom light.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Updated bedroom light.",
+        "error": null,
+        "timings": {
+          "stt_ms": 300.23,
+          "router_ms": 1.64,
+          "llm_ttft_ms": null,
+          "tool_ms": 31.43,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 435.23,
+          "total_turn_duration_ms": 3015.01,
+          "playback_duration_ms": 1747.92
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-01",
+      "expected": {
+        "id": "turn-01",
+        "language": "en",
+        "text": "What time is it?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "gpu",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What time is it?",
+        "response_text": "The time is 6:00 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "The time is 6:00 AM (India Standard Time).",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.74,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.18,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 102.65,
+          "total_turn_duration_ms": 3650.86,
+          "playback_duration_ms": 2718.04
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-37",
+      "expected": {
+        "id": "turn-37",
+        "language": "en",
+        "text": "Why do leaves change color?",
+        "category": "conversation"
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "gpu",
+      "actual": {
+        "intent": "Conversation",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "conversation",
+        "action_executed": false,
+        "transcript": "Why do leaves change color?",
+        "response_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.08,
+          "llm_ttft_ms": 7261.19,
+          "tool_ms": 0.0,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 11731.42,
+          "total_turn_duration_ms": 20243.72,
+          "playback_duration_ms": 7667.87
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "outcome": true,
+        "no_action": true,
+        "reply": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-09",
+      "expected": {
+        "id": "turn-09",
+        "language": "en",
+        "text": "Turn on the bedroom light.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": "warm",
+      "compute": "gpu",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Turn on the bedroom light.",
+        "response_text": "Updated bedroom light.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Updated bedroom light.",
+        "error": null,
+        "timings": {
+          "stt_ms": 345.49,
+          "router_ms": 2.09,
+          "llm_ttft_ms": null,
+          "tool_ms": 61.87,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 521.79,
+          "total_turn_duration_ms": 3135.49,
+          "playback_duration_ms": 1754.74
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-01",
+      "expected": {
+        "id": "turn-01",
+        "language": "en",
+        "text": "What time is it?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "gpu",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What time is it?",
+        "response_text": "The time is 6:01 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "The time is 6:01 AM (India Standard Time).",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 2.09,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.15,
+          "tts_ms": 659.76,
+          "time_to_first_audio_output_ms": 926.67,
+          "total_turn_duration_ms": 4954.86,
+          "playback_duration_ms": 3162.34
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-37",
+      "expected": {
+        "id": "turn-37",
+        "language": "en",
+        "text": "Why do leaves change color?",
+        "category": "conversation"
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "gpu",
+      "actual": {
+        "intent": "Conversation",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "conversation",
+        "action_executed": false,
+        "transcript": "Why do leaves change color?",
+        "response_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 3.3,
+          "llm_ttft_ms": 18707.07,
+          "tool_ms": 0.0,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 23989.88,
+          "total_turn_duration_ms": 32504.24,
+          "playback_duration_ms": 7674.25
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "outcome": true,
+        "no_action": true,
+        "reply": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-09",
+      "expected": {
+        "id": "turn-09",
+        "language": "en",
+        "text": "Turn on the bedroom light.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": "warm",
+      "compute": "gpu",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Turn on the bedroom light.",
+        "response_text": "Updated bedroom light.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Updated bedroom light.",
+        "error": null,
+        "timings": {
+          "stt_ms": 334.34,
+          "router_ms": 4.22,
+          "llm_ttft_ms": null,
+          "tool_ms": 49.88,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 511.79,
+          "total_turn_duration_ms": 3128.7,
+          "playback_duration_ms": 1761.29
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-01",
+      "expected": {
+        "id": "turn-01",
+        "language": "en",
+        "text": "What time is it?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "text",
+      "phase": "first_after_placement",
+      "compute": "auto",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What time is it?",
+        "response_text": "The time is 6:02 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "The time is 6:02 AM (India Standard Time).",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.23,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.12,
+          "tts_ms": 180.24,
+          "time_to_first_audio_output_ms": 285.09,
+          "total_turn_duration_ms": 4487.11,
+          "playback_duration_ms": 3368.37
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-37",
+      "expected": {
+        "id": "turn-37",
+        "language": "en",
+        "text": "Why do leaves change color?",
+        "category": "conversation"
+      },
+      "input": "text",
+      "phase": "first_after_placement",
+      "compute": "auto",
+      "actual": {
+        "intent": "Conversation",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "conversation",
+        "action_executed": false,
+        "transcript": "Why do leaves change color?",
+        "response_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.28,
+          "llm_ttft_ms": 7616.91,
+          "tool_ms": 0.0,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 12347.37,
+          "total_turn_duration_ms": 20841.6,
+          "playback_duration_ms": 7649.65
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "outcome": true,
+        "no_action": true,
+        "reply": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-09",
+      "expected": {
+        "id": "turn-09",
+        "language": "en",
+        "text": "Turn on the bedroom light.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": "first_after_placement",
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Turn on the bedroom light.",
+        "response_text": "Updated bedroom light.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Updated bedroom light.",
+        "error": null,
+        "timings": {
+          "stt_ms": 269.32,
+          "router_ms": 1.74,
+          "llm_ttft_ms": null,
+          "tool_ms": 49.82,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 410.09,
+          "total_turn_duration_ms": 3026.36,
+          "playback_duration_ms": 1753.56
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-01",
+      "expected": {
+        "id": "turn-01",
+        "language": "en",
+        "text": "What time is it?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "auto",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What time is it?",
+        "response_text": "The time is 6:02 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "The time is 6:02 AM (India Standard Time).",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.2,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.12,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 81.79,
+          "total_turn_duration_ms": 4314.43,
+          "playback_duration_ms": 3370.67
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-37",
+      "expected": {
+        "id": "turn-37",
+        "language": "en",
+        "text": "Why do leaves change color?",
+        "category": "conversation"
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "auto",
+      "actual": {
+        "intent": "Conversation",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "conversation",
+        "action_executed": false,
+        "transcript": "Why do leaves change color?",
+        "response_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.59,
+          "llm_ttft_ms": 6709.46,
+          "tool_ms": 0.0,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 11396.78,
+          "total_turn_duration_ms": 19913.32,
+          "playback_duration_ms": 7651.34
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "outcome": true,
+        "no_action": true,
+        "reply": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-09",
+      "expected": {
+        "id": "turn-09",
+        "language": "en",
+        "text": "Turn on the bedroom light.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": "warm",
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Turn on the bedroom light.",
+        "response_text": "Updated bedroom light.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Updated bedroom light.",
+        "error": null,
+        "timings": {
+          "stt_ms": 240.26,
+          "router_ms": 1.15,
+          "llm_ttft_ms": null,
+          "tool_ms": 18.14,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 330.7,
+          "total_turn_duration_ms": 2939.57,
+          "playback_duration_ms": 1756.08
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-01",
+      "expected": {
+        "id": "turn-01",
+        "language": "en",
+        "text": "What time is it?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "auto",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What time is it?",
+        "response_text": "The time is 6:03 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "The time is 6:03 AM (India Standard Time).",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.05,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.1,
+          "tts_ms": 166.82,
+          "time_to_first_audio_output_ms": 274.44,
+          "total_turn_duration_ms": 4243.15,
+          "playback_duration_ms": 3111.82
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-37",
+      "expected": {
+        "id": "turn-37",
+        "language": "en",
+        "text": "Why do leaves change color?",
+        "category": "conversation"
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "auto",
+      "actual": {
+        "intent": "Conversation",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "conversation",
+        "action_executed": false,
+        "transcript": "Why do leaves change color?",
+        "response_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.18,
+          "llm_ttft_ms": 5481.74,
+          "tool_ms": 0.0,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 9896.97,
+          "total_turn_duration_ms": 18405.33,
+          "playback_duration_ms": 7657.67
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "outcome": true,
+        "no_action": true,
+        "reply": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-09",
+      "expected": {
+        "id": "turn-09",
+        "language": "en",
+        "text": "Turn on the bedroom light.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": "warm",
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Turn on the bedroom light.",
+        "response_text": "Updated bedroom light.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Updated bedroom light.",
+        "error": null,
+        "timings": {
+          "stt_ms": 289.31,
+          "router_ms": 1.02,
+          "llm_ttft_ms": null,
+          "tool_ms": 29.78,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 411.48,
+          "total_turn_duration_ms": 2989.72,
+          "playback_duration_ms": 1745.03
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-01",
+      "expected": {
+        "id": "turn-01",
+        "language": "en",
+        "text": "What time is it?",
+        "category": "time",
+        "intent": "GetTime",
+        "audio": true
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "auto",
+      "actual": {
+        "intent": "GetTime",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "What time is it?",
+        "response_text": "The time is 6:03 AM (India Standard Time).",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "The time is 6:03 AM (India Standard Time).",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.38,
+          "llm_ttft_ms": null,
+          "tool_ms": 0.12,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 100.02,
+          "total_turn_duration_ms": 4089.75,
+          "playback_duration_ms": 3109.57
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "host_clock": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-37",
+      "expected": {
+        "id": "turn-37",
+        "language": "en",
+        "text": "Why do leaves change color?",
+        "category": "conversation"
+      },
+      "input": "text",
+      "phase": "warm",
+      "compute": "auto",
+      "actual": {
+        "intent": "Conversation",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "conversation",
+        "action_executed": false,
+        "transcript": "Why do leaves change color?",
+        "response_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Leaves change color because chlorophyll breaks down in the fall, revealing other pigments like carotenoids and anthocyanins that were hidden all summer.",
+        "error": null,
+        "timings": {
+          "stt_ms": null,
+          "router_ms": 1.84,
+          "llm_ttft_ms": 5996.85,
+          "tool_ms": 0.0,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 11040.1,
+          "total_turn_duration_ms": 19573.78,
+          "playback_duration_ms": 7652.82
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true
+      },
+      "checks": {
+        "outcome": true,
+        "no_action": true,
+        "reply": true,
+        "audio_output": true
+      },
+      "passed": true
+    },
+    {
+      "id": "turn-09",
+      "expected": {
+        "id": "turn-09",
+        "language": "en",
+        "text": "Turn on the bedroom light.",
+        "category": "home",
+        "intent": "DeviceControl",
+        "check": [
+          "light.bedroom_main",
+          "power",
+          true
+        ],
+        "audio": true
+      },
+      "input": "synthetic_audio",
+      "phase": "warm",
+      "compute": "auto",
+      "actual": {
+        "intent": "DeviceControl",
+        "outcome": "success",
+        "status": "verified",
+        "route_category": "tool",
+        "action_executed": true,
+        "transcript": "Turn on the bedroom light.",
+        "response_text": "Updated bedroom light.",
+        "detected_language": "en",
+        "response_language": "en",
+        "spoken_text": "Updated bedroom light.",
+        "error": null,
+        "timings": {
+          "stt_ms": 246.69,
+          "router_ms": 1.1,
+          "llm_ttft_ms": null,
+          "tool_ms": 14.53,
+          "tts_ms": 0.0,
+          "time_to_first_audio_output_ms": 333.96,
+          "total_turn_duration_ms": 2911.67,
+          "playback_duration_ms": 1748.03
+        },
+        "non_silent_output_callback": true,
+        "playback_completed": true,
+        "reply_language_valid": true,
+        "wer": 0.0,
+        "cer": 0.0,
+        "language_identification_match": true
+      },
+      "checks": {
+        "intent": true,
+        "outcome": true,
+        "verified": true,
+        "persisted_state": true,
+        "audio_output": true
+      },
+      "passed": true
+    }
+  ],
+  "devices": [],
+  "placement": {
+    "cpu": {
+      "requested_mode": "cpu",
+      "effective_mode": "cpu",
+      "stt_device": "cpu",
+      "llm_device": "cpu",
+      "vad_device": "cpu",
+      "tts_device": "cpu",
+      "fallback_reason": null
+    },
+    "gpu": {
+      "requested_mode": "gpu",
+      "effective_mode": "gpu",
+      "stt_device": "cuda",
+      "llm_device": "gpu",
+      "vad_device": "cpu",
+      "tts_device": "cpu",
+      "fallback_reason": null
+    },
+    "auto": {
+      "requested_mode": "auto",
+      "effective_mode": "gpu",
+      "stt_device": "cuda",
+      "llm_device": "gpu",
+      "vad_device": "cpu",
+      "tts_device": "cpu",
+      "fallback_reason": null
+    }
+  },
+  "resources": {
+    "cpu": {
+      "cpu_percent": 79.3,
+      "ram_used_gb": 13.14,
+      "ram_total_gb": 15.78,
+      "gpu": {
+        "available": true,
+        "name": "NVIDIA GeForce RTX 3050 6GB Laptop GPU",
+        "vram_total_mb": 6144,
+        "vram_used_mb": 1343,
+        "driver_version": "621.24",
+        "error": null
+      }
+    },
+    "gpu": {
+      "cpu_percent": 82.3,
+      "ram_used_gb": 13.58,
+      "ram_total_gb": 15.78,
+      "gpu": {
+        "available": true,
+        "name": "NVIDIA GeForce RTX 3050 6GB Laptop GPU",
+        "vram_total_mb": 6144,
+        "vram_used_mb": 1610,
+        "driver_version": "621.24",
+        "error": null
+      }
+    },
+    "auto": {
+      "cpu_percent": 68.0,
+      "ram_used_gb": 14.29,
+      "ram_total_gb": 15.78,
+      "gpu": {
+        "available": true,
+        "name": "NVIDIA GeForce RTX 3050 6GB Laptop GPU",
+        "vram_total_mb": 6144,
+        "vram_used_mb": 1610,
+        "driver_version": "621.24",
+        "error": null
+      }
+    }
+  },
+  "summary": {
+    "text:pass": 24,
+    "synthetic_audio:pass": 12
+  }
+}

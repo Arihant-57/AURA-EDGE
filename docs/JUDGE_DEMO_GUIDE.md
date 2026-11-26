@@ -13,3 +13,7 @@ Launch from the integration checkout with `./scripts/start-aura-desktop.ps1`. On
 9. Complete the physical disconnect steps and sign the [acceptance checklist](TESTING_TODO.md) before presenting offline acceptance as verified.
 
 Use disposable demo data for reminders, memory and scheduled mutations. [Voice results](VOICE_ACCURACY_REPORT.md) · [Benchmarks](CPU_GPU_BENCHMARK_REPORT.md)
+
+## Rehearsal on the installed laptop
+
+Run `./scripts/start-aura-desktop.ps1` for the standard app, or `./scripts/test-aura-microphone.ps1` for the prepared isolated human acceptance session. Use that session’s printed dashboard address when checking its device state. For a Hindi-only demo, select Hindi with strict recognition. Restore Auto with multilingual recognition before the mixed-language tests. A saved reply-language selection intentionally determines how the assistant responds. [Independent voice outcomes](FINAL_VOICE_ACCEPTANCE.md) · [Current performance measurements](FINAL_BENCHMARK_REPORT.md)

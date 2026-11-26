@@ -1,0 +1,14 @@
+{
+  "initial_power": true,
+  "manual_readback": false,
+  "strict_hindi_clock": "GetTime",
+  "strict_hindi_reply": "hi",
+  "session_after_upload": "auto",
+  "mode_after_upload": "multilingual",
+  "english_status_query": "The bedroom light is off.",
+  "english_status_language": "en",
+  "voice_transcript": "Turn on the bedroom light.",
+  "voice_verified": "verified",
+  "stored_after_voice": true,
+  "shown_after_voice": true
+}

@@ -1,0 +1,13 @@
+{
+  "typecheck_exit_code": 0,
+  "vitest_files": 2,
+  "tests_passed": 7,
+  "tests_failed": 0,
+  "build_exit_code": 0,
+  "vite": "6.4.6",
+  "modules_transformed": 36,
+  "assets": [
+    "index-M0QiO-Vg.css",
+    "index-Dao-CJVj.js"
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "pages": [
+    {
+      "name": "Home",
+      "errors": [],
+      "width": [
+        1280,
+        1280
+      ]
+    },
+    {
+      "name": "Simulator",
+      "errors": [],
+      "width": [
+        1280,
+        1280
+      ]
+    },
+    {
+      "name": "Automation",
+      "errors": [],
+      "width": [
+        1280,
+        1280
+      ]
+    },
+    {
+      "name": "Rooms",
+      "errors": [],
+      "width": [
+        1280,
+        1280
+      ]
+    },
+    {
+      "name": "Tasks",
+      "errors": [],
+      "width": [
+        1280,
+        1280
+      ]
+    },
+    {
+      "name": "Routines",
+      "errors": [],
+      "width": [
+        1280,
+        1280
+      ]
+    },
+    {
+      "name": "Assistant",
+      "errors": [],
+      "width": [
+        1280,
+        1280
+      ]
+    },
+    {
+      "name": "Household",
+      "errors": [],
+      "width": [
+        1280,
+        1280
+      ]
+    },
+    {
+      "name": "Settings",
+      "errors": [],
+      "width": [
+        1280,
+        1280
+      ]
+    }
+  ],
+  "hosts": [
+    "http://127.0.0.1:8000"
+  ],
+  "ws": [
+    "ws://127.0.0.1:8000/api/v1/ws/live"
+  ],
+  "errors": []
+}

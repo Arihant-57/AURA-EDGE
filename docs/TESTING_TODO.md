@@ -7,11 +7,7 @@
 - [ ] During a long explanation press Stop. Test mute before Talk and confirm unrelated speech during standby never changes a device. Spoken interruption and wake-word activation are separate, unsupported demo steps.
 - [ ] In the simulator, make a verified appliance change, follow it with a pronoun and check the actual device, value and audit time. In a disposable session, try a malformed duration and confirm the timer count is unchanged.
 
-Run from the integration repository. Text logging is optional and writes only to the local ignored runtime directory. Use the supplied phrases when logging text.
-
-```powershell
-& "$env:USERPROFILE/Desktop/AURA-EDGE/.venv/Scripts/python.exe" -m qa.live_acceptance --samples 16 --include-text
-```
+Use the isolated joint acceptance runner below for all 24 public prompts.
 
 ## Physical disconnection
 
@@ -23,3 +19,8 @@ Run from the integration repository. Text logging is optional and writes only to
 
 | Date and build | Speaker or operator | Prompt and noise | Transcript and intended language | Heard answer and state readback | Pass or failure |
 | --- | --- | --- | --- | --- | --- |
+
+## Joint acceptance session
+
+- [ ] Launch the single operator session from the integration checkout with `./scripts/test-aura-microphone.ps1`. The setup-only check passed. The session uses temporary test data, logs results locally and saves no raw audio. Enter the transcript, intended and heard language, start delay, audible ending, and verified state for any failed turn.
+- [ ] During the same session test physical Stop and mute, a real fan and nearby conversation. Complete the physical disconnection and normal desktop restart above together with the operator. Record a pass only after observing the result.

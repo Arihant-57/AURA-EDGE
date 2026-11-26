@@ -1,0 +1,126 @@
+[
+  {
+    "id": "sky",
+    "question": "Why is the sky blue?",
+    "reply": "The sky appears blue because Earth's atmosphere scatters shorter wavelengths of light (like blue) more than longer wavelengths.",
+    "intent": "Conversation",
+    "criteria": [
+      "scatter",
+      "blue"
+    ],
+    "checks": {
+      "concepts": true,
+      "response_language": true,
+      "route": true
+    },
+    "passed": true
+  },
+  {
+    "id": "shorter",
+    "question": "Make that explanation shorter.",
+    "reply": "Blue light scatters more in the atmosphere than other colors, making the sky look blue.",
+    "intent": "Conversation",
+    "criteria": [
+      "scatter",
+      "blue"
+    ],
+    "checks": {
+      "concepts": true,
+      "response_language": true,
+      "route": true
+    },
+    "passed": true
+  },
+  {
+    "id": "arithmetic",
+    "question": "What is seventeen multiplied by six?",
+    "reply": "The answer is 102.",
+    "intent": "Calculate",
+    "criteria": [
+      "102|one hundred (and )?two"
+    ],
+    "checks": {
+      "concepts": true,
+      "response_language": true,
+      "route": true
+    },
+    "passed": true
+  },
+  {
+    "id": "reasoning",
+    "question": "Which is heavier, one kilogram of steel or one kilogram of cotton?",
+    "reply": "They weigh exactly the same because both are one kilogram.",
+    "intent": "Conversation",
+    "criteria": [
+      "same|equal|both weigh"
+    ],
+    "checks": {
+      "concepts": true,
+      "response_language": true,
+      "route": true
+    },
+    "passed": true
+  },
+  {
+    "id": "hindi",
+    "question": "पृथ्वी का प्राकृतिक उपग्रह कौन सा है?",
+    "reply": "पृथ्वी का प्राकृतिक उपग्रह चंद्रमा है।",
+    "intent": "Conversation",
+    "criteria": [
+      "चंद्रमा|चन्द्रमा|चाँद|चांद"
+    ],
+    "checks": {
+      "concepts": true,
+      "response_language": true,
+      "route": true
+    },
+    "passed": true
+  },
+  {
+    "id": "kannada",
+    "question": "ನೀರಿನ ರಾಸಾಯನಿಕ ಸೂತ್ರ ಯಾವುದು?",
+    "reply": "ನೀರಿನ ರಾಸಾಯನಿಕ ಸೂತ್ರ H2O.",
+    "intent": "Conversation",
+    "criteria": [
+      "h₂o|h2o|ಎಚ್.*ಒ"
+    ],
+    "checks": {
+      "concepts": true,
+      "response_language": true,
+      "route": true
+    },
+    "passed": true
+  },
+  {
+    "id": "capabilities",
+    "question": "What can you do?",
+    "reply": "I can tell the time and date, set timers, do simple arithmetic, control simulated appliances and routines, remember preferences, set reminders and schedule actions, manage tasks, manage your calendar, summarize your day, check groceries, inventory and recipes, record expenses and check saved deliveries.",
+    "intent": "Help",
+    "criteria": [
+      "timer",
+      "reminder",
+      "expense"
+    ],
+    "checks": {
+      "concepts": true,
+      "response_language": true,
+      "route": true
+    },
+    "passed": true
+  },
+  {
+    "id": "weather",
+    "question": "Is it raining in Mumbai right now?",
+    "reply": "I cannot access real-time weather data or external internet sources to check the current conditions in Mumbai.",
+    "intent": "Conversation",
+    "criteria": [
+      "offline|real.time|live|internet|cannot|can't|unable"
+    ],
+    "checks": {
+      "concepts": true,
+      "response_language": true,
+      "route": true
+    },
+    "passed": true
+  }
+]

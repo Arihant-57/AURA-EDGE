@@ -1,0 +1,40 @@
+{
+  "ids": {
+    "task": "47728ef6-ef88-4a0a-b09f-c39778324f97",
+    "calendar": "1937a9d9-c68e-40dd-baae-de2da00752b0",
+    "reminder": "438163ec-4562-409b-aea9-7ac3c5b54178",
+    "memory": "ead17e8e-dbe8-490b-87de-d9f9b1076fcd",
+    "timer": "34e8e3ae-b492-404d-9291-3bbaeccd0b69",
+    "schedule": "879f48e5-337b-4c35-8630-6d112ebd3bd6"
+  },
+  "checks": {
+    "spoken_number_32_minutes": true,
+    "paused": true,
+    "resumed": true,
+    "cancelled": true,
+    "unsupported_duration_refused": true,
+    "light_initially_on": true
+  },
+  "before_restart": {
+    "task": true,
+    "calendar": true,
+    "reminder": true,
+    "memory": true,
+    "light_off": true,
+    "timer_completed": true,
+    "schedule_executed_once": true,
+    "schedule_notification": true,
+    "timer_notification": true
+  },
+  "after_restart": {
+    "task": true,
+    "calendar": true,
+    "reminder": true,
+    "memory": true,
+    "light_off": true,
+    "timer_completed": true,
+    "schedule_executed_once": true,
+    "schedule_notification": true,
+    "timer_notification": true
+  }
+}
