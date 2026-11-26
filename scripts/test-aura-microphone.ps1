@@ -88,9 +88,14 @@ try {
     }
     else {
         Write-Output "The rehearsal dashboard is http://127.0.0.1:$port/app/. Use this instance during the session."
-        $checks = if ($KannadaCheck) { @("--kannada-check") } else { @("--samples", "16", "--rehearsal") }
+        $checks = @("--samples", "16", "--rehearsal")
+        if ($KannadaCheck) { $checks = @("--kannada-check") }
         & $python -m qa.live_acceptance --port $port --include-text --output $result @checks
-        if ($LASTEXITCODE) { throw "Session interrupted. Completed checks are saved in $result." }
+        if ($LASTEXITCODE -eq 130) { return }
+        if ($LASTEXITCODE) {
+            if (Test-Path -LiteralPath $result) { throw "Session failed. Completed checks are saved in $result." }
+            throw "Session failed before any results were saved."
+        }
     }
 } finally {
     if ($server -and -not $server.HasExited) {

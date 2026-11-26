@@ -198,4 +198,10 @@ if __name__ == "__main__":
     parser.add_argument("--rehearsal", action="store_true", help="Add simulated device and timer readbacks on a disposable backend.")
     parser.add_argument("--kannada-check", action="store_true", help="Run the short Kannada microphone and playback check.")
     options = parser.parse_args()
-    run(options.port, options.output, options.samples, options.include_text, options.rehearsal, options.kannada_check)
+    try:
+        run(options.port, options.output, options.samples, options.include_text, options.rehearsal, options.kannada_check)
+    except (KeyboardInterrupt, EOFError):
+        print("\nMicrophone session ended.")
+        if options.output.is_file():
+            print(f"Completed checks are saved in {options.output}.")
+        raise SystemExit(130) from None
