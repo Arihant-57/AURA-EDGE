@@ -1,77 +1,58 @@
-# AURA EDGE — Phase 0 Test & Verification Report
+# AURA EDGE — Consolidated Test & Verification Report
 
-**Date:** 2026-11-25
+**Date:** 2026-11-26
+**Branch:** `feat/backend-intelligence`  
 **Host Hardware & Toolchain (Observed):**
 - **OS:** Microsoft Windows 11 Home Single Language (`10.0.26300`, 64-bit)
 - **CPU:** 13th Gen Intel(R) Core(TM) i7-13650HX (14 cores / 20 logical processors)
 - **RAM:** 15.78 GB
 - **GPU:** NVIDIA GeForce RTX 3050 6GB Laptop GPU (`6144` MiB VRAM via `nvidia-smi`, Driver `621.24`)
-- **Toolchains:** Python `3.13.2` (plus `3.12`), `uv`, Node.js `v26.13.1`, npm `11.20.0`, Git `2.55.0.windows.5`, Docker Engine `29.8.0`, Ollama `0.40.16` (stopped during checks)
+- **Toolchains:** Python `3.13.2`, Ruff, Pytest `9.2.0`, PostgreSQL `16.16` (`pgvector 0.8.7`), Ollama `0.40.16`
 
-## 1. Backend Lint & Automated Tests (`ruff` + `pytest`)
+---
 
-Commands executed from `C:\Users\ariha\Desktop\AURA-EDGE`:
+## 1. Consolidated Backend Lint & Full Phase 0–4 Regression Suite
 
-```powershell
-$env:PYTHONPATH = "C:\Users\ariha\Desktop\AURA-EDGE\backend\src"
-$env:AURA_EDGE_REQUIRE_LIVE_DB = "1"
-.\.venv\Scripts\ruff.exe check .\backend
-.\.venv\Scripts\pytest.exe -v .\backend\tests
-```
-
-Observed results:
-- `ruff check`: **All checks passed!** (0 errors)
-- `pytest`: **14 passed, 0 skipped, 0 failed** in `1.10s` (1 deprecation warning from FastAPI `TestClient` regarding `httpx2`):
-  - `test_config_and_db_guard.py`: 5 passed (strict_offline default, SQLite rejection, non-loopback strict bind host rejection, `lan_only` non-loopback bind host permission, CSV env list parsing)
-  - `test_db_live_integration.py`: 1 passed (real PostgreSQL + pgvector write/read/L2-distance verification)
-  - `test_health_api.py`: 3 passed (`/api/v1/health`, `/api/v1/policy`, `/api/v1/policy/check`, `/api/v1/readiness` 200 ready and 503 unavailable states)
-  - `test_network_policy.py`: 5 passed (strict_offline loopback-only, sync & async `PolicyEnforcingTransport` zero-I/O enforcement, `lan_only` RFC1918 & metadata blocking, `online_opt_in` host allowlist)
-
-## 2. PostgreSQL + pgvector Migration & Restart Persistence Smoke Test
-
-Commands executed against local Docker container `aura-edge-postgres` (`pgvector/pgvector:pg16`, bound to `127.0.0.1:5432`):
+Executed from `C:\Users\ariha\Desktop\AURA-EDGE` against live PostgreSQL (`aura-edge-postgres`, revision `0005_phase4_personal_assistant`):
 
 ```powershell
-docker compose up -d postgres
-.\.venv\Scripts\alembic.exe -c backend\alembic.ini upgrade head
-.\.venv\Scripts\python.exe backend\scripts\db_smoke_test.py --phase write --token phase0-restart-check
-docker compose restart postgres
-.\.venv\Scripts\python.exe backend\scripts\db_smoke_test.py --phase verify --token phase0-restart-check
-.\.venv\Scripts\alembic.exe -c backend\alembic.ini downgrade base
-.\.venv\Scripts\alembic.exe -c backend\alembic.ini upgrade head
+.\.venv\Scripts\python.exe -m ruff check .\backend
+git diff --check
+$env:AURA_EDGE_REQUIRE_LIVE_DB="1"
+.\.venv\Scripts\python.exe -m pytest -v .\backend\tests
 ```
 
-Observed results:
-- `upgrade head`: applied `0001_phase0_foundation` (`CREATE EXTENSION IF NOT EXISTS vector`, `system_settings`, `connectivity_audit_events`, `phase0_vector_smoke`).
-- `--phase write`: committed `SystemSetting` (`phase0.smoke.phase0-restart-check`) and 3-D vector (`smoke-phase0-restart-check`) with `pgvector_version: "0.8.7"`.
-- `docker compose restart postgres`: container restarted cleanly and returned `healthy` after 6s.
-- `--phase verify`: verified persisted JSON payload, `l2_distance: 0.0`, and cleaned up smoke records (`status: "verified"`).
-- `downgrade base` + `upgrade head`: cleanly reversed and re-applied `0001_phase0_foundation`.
+**Observed Results:**
+- `ruff check .\backend`: **All checks passed!** (`0` errors)
+- `git diff --check`: Clean (`0` whitespace errors)
+- `pytest -v .\backend\tests`: **`191 passed, 0 failed, 0 skipped` in `426.72s` (`0:07:06`)**
 
-## 3. Live FastAPI HTTP Smoke Test
+### Suite Breakdown (`191` Tests Total)
+- **Phase 0 Foundation (`14` passed):** `test_config_and_db_guard.py` (`5`), `test_db_live_integration.py` (`1`), `test_health_api.py` (`3`), `test_network_policy.py` (`5`).
+- **Part A Multilingual Grounding (`4` passed):** `test_part_a_multilingual_grounding.py` (`4`).
+- **Phase 1 Core (`121` passed):** `test_phase1_multilingual_router.py` (`100`), `test_phase1_audio_and_vad.py` (`6`), `test_phase1_stt_and_compute.py` (`4`), `test_phase1_tts_and_playback.py` (`3`), `test_phase1_state_machine.py` (`2`), `test_phase1_timers_live_db.py` (`1`), `test_phase1_api_and_ws.py` (`2`), `test_phase1_voice_conversations.py` (`3`).
+- **Phase 1.5 & Phase 2 (`10` passed):** `test_phase1_5_conversation.py` (`7`), `test_phase2_smart_home.py` (`3`).
+- **Stabilization & Cross-Track Integration (`25` passed):** `test_speech_recognition_gate.py` (`4`), `test_speech_generation_and_streaming.py` (`7`), `test_voice_bugfixes.py` (`6`), `test_voice_orchestrator_outcomes.py` (`8`).
+- **Phase 3 Persistent Memory, Scheduling, Routines & Notifications (`13` passed):** `test_phase3_voice_fixes.py` (`3`), `test_phase3_memory.py` (`4`), `test_phase3_scheduler_and_routines.py` (`3`), `test_phase3_notifications.py` (`2`), `test_phase3_e2e_demo.py` (`1`).
+- **Phase 4 Personal Secretary (`4` passed):** `test_phase4_tasks_calendar_briefing.py` (`2`), `test_phase4_groceries_expenses_parcels.py` (`2`). Detailed breakdown in [`docs/PHASE_4_TEST_REPORT.md`](./PHASE_4_TEST_REPORT.md).
 
-Started `uvicorn aura_edge.main:app --host 127.0.0.1 --port 8000` with live `aura-edge-postgres` running:
-- `GET http://127.0.0.1:8000/api/v1/health` -> HTTP `200`, `status: "ok"`, `connectivity_mode: "strict_offline"`, `bind_host: "127.0.0.1"`.
-- `GET http://127.0.0.1:8000/api/v1/readiness` -> HTTP `200`, `ready: true`, `postgres_version: "PostgreSQL 16.16 (Debian 16.16-1.pgdg12+1)..."`, `pgvector_installed: true`, `pgvector_version: "0.8.7"`, `alembic_revision: "0001_phase0_foundation"`, GPU `NVIDIA GeForce RTX 3050 6GB Laptop GPU` (`6144` MiB VRAM), Ollama `reachable: false` (server stopped).
-- `POST http://127.0.0.1:8000/api/v1/policy/check` with `{"url":"https://example.com"}` -> `allowed: false` (`strict_offline permits loopback targets only; non-loopback host denied.`).
-- `POST http://127.0.0.1:8000/api/v1/policy/check` with `{"url":"http://127.0.0.1:11434/api/tags"}` -> `allowed: true`.
+---
 
-## 4. Frontend Typecheck, Tests & Offline Asset Verification
+## 2. Independent Code Review (`R1`: CodeRabbit CLI + Local Diff Review)
 
-Commands executed inside `C:\Users\ariha\Desktop\AURA-EDGE\frontend`:
+1. **CodeRabbit CLI Executions:**
+   - **Baseline (`d56a0ac..d429f44`):** `coderabbit review --agent --committed --base-commit d56a0ac --dir backend/src/aura_edge` emitted 4 `"reviewing"` heartbeats over ~237s with 0 findings before timeout cancellation; local review identified 24 confirmed + 3 partial baseline defects.
+   - **Post-Edit (`--uncommitted`):** `coderabbit review --agent --uncommitted --dir backend/src/aura_edge` emitted 4 `"reviewing"` heartbeats over >240s with 0 findings (`task-130` cancelled cleanly at 240s notification).
+2. **Local Diff Review (`git diff -- backend/src/aura_edge` across 21 modified source files + `voice_cli.py`):**
+   - Verified all 24 confirmed + 3 partial baseline defects resolved (`_turn_lock` around `start_ptt()`/`cancel_turn()`, background task error callbacks, half-duplex resume ordering, lock-free `_BoundedPcmBuffer`, 2-frame VAD onset + pre-roll + stream reuse, R2 STT/reply decoupling, R4 quality gate, R5 `response_completed` + `CLARIFYING` transitions, R6 Kannada transliteration, R7 Ollama `cancel_event` racing, R8 per-chunk validation + monotonic `stage_timestamps`).
+   - Caught and fixed two additional cross-track integration issues during verification:
+     - `fast_router.py`: fixed `\b` word-boundary failure after Indic characters (`"ಬೆಡ್‌ರೂಮ್ light on ಮಾಡು"`) and added Romanized Hinglish/Kanglish power verbs (`on karo`, `on maadu`, `off maadu`).
+     - `normalizer.py`: added context-guarded `"पाज -> पांच"` and `"मिनद -> मिनट"` ASR normalization so `faster-whisper-small`'s Hindi transcript of `phase1a_tts_hi.wav` routes deterministically to `SetTimer + GetTime` instead of falling back to Qwen.
 
-```powershell
-npx tsc --noEmit
-npm test -- --run
-npm run build
-```
+---
 
-Observed results:
-- `npx tsc --noEmit`: exit code `0` (0 errors).
-- `npm test -- --run` (Vitest `v3.2.7`): **Test Files 1 passed (1), Tests 3 passed (3)** (`src/App.test.tsx`: ready metrics, HTTP 503 DB failure honesty, network unreachable alert).
-- `npm run build`: built `dist/index.html` (`0.48 kB`), `dist/assets/index-D_m0w1Kw.css` (`15.95 kB`), `dist/assets/index-BRSYkTM-.js` (`154.83 kB`).
-- `dist/index.html` contains only local `/assets/...` bundle references (zero external CSS/JS/font links).
+## 3. Empirical Benchmarks & Next Gate
 
-## 5. Original AURA V4 Untouched Check
-
-- `git -C C:\Users\ariha\local-ai-lab\phase4-agent status` confirmed unchanged relative to session start (zero edits inside `C:\Users\ariha\local-ai-lab\phase4-agent`).
+- **STT WER/CER, R4 Noise Probe & Kannada TTS Evaluation:** See [`docs/MULTILINGUAL_TEST_REPORT.md`](./MULTILINGUAL_TEST_REPORT.md) (`models/eval_audio/phase1_5_stabilization_benchmarks.json`).
+- **Ollama Placement & Monotonic Pipeline Latencies:** See [`docs/VOICE_LATENCY_REPORT.md`](./VOICE_LATENCY_REPORT.md).
+- **Human Acceptance Gate (`3–5 min`):** See [`docs/VOICE_BUGFIX_REPORT.md`](./VOICE_BUGFIX_REPORT.md). Automated verification did **not** test physical microphone acoustics, room echo, or human regional Karnataka speech; those require the human acceptance test before Phase 3.

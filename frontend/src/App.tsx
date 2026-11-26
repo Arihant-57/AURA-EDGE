@@ -1,360 +1,149 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import {
-  checkPolicyUrl,
-  fetchSystemSnapshot,
-  PolicyDecision,
-  SystemSnapshotResult,
-} from "./api/client";
+import { useEffect, useState } from "react";
+import { Ask, AssistantView, useVoice, VoiceButtons } from "./Assistant";
+import { Automation, Routines } from "./Automation";
+import { Home, Rooms, useHome } from "./Home";
+import { Household, householdTabs } from "./Household";
+import { startLive, useConnection, useLive, useResource } from "./live";
+import { Planner, plannerTabs } from "./Planner";
+import { NotificationCenter, Preferences, Settings, settingsTabs, useNotices } from "./Settings";
+import { NoticePrefs } from "./api/desktop";
+import { Icon, IconButton, Tabs } from "./ui";
 
-type LoadState =
-  | { kind: "loading" }
-  | { kind: "loaded"; data: SystemSnapshotResult }
-  | { kind: "unreachable"; message: string };
-
-const UNIMPLEMENTED_PHASES = [
-  "Phase 1: Multilingual STT/TTS (EN/HI/KN), timers, date/time, refusal",
-  "Phase 2: Virtual home simulator & optional ESP32 MQTT adapter",
-  "Phase 3: Persistent preferences, local retrieval & scheduled events",
-  "Phase 4: Tasks, calendar, groceries, recipes, expenses & parcel records",
-  "Phase 5: Full dashboard, Dynamic Island & live WebSocket state stream",
-];
-
-function StatusBadge({
-  tone,
-  label,
-}: {
-  tone: "ok" | "warn" | "error" | "neutral";
-  label: string;
-}) {
-  const styles = {
-    ok: "border-emerald-700/70 bg-emerald-950/60 text-emerald-300",
-    warn: "border-amber-700/70 bg-amber-950/60 text-amber-300",
-    error: "border-rose-700/70 bg-rose-950/60 text-rose-300",
-    neutral: "border-zinc-700 bg-zinc-900 text-zinc-300",
-  }[tone];
-
-  return (
-    <span
-      className={`inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-medium tracking-wide ${styles}`}
-    >
-      {label}
-    </span>
-  );
+const pages = ["Home", "Automation", "Rooms", "Tasks", "Routines", "Assistant", "Household", "Settings"] as const;
+type Page = typeof pages[number];
+const headings: Record<Page, string> = {
+  Home: "Home", Automation: "Automation", Rooms: "Rooms", Tasks: "Tasks & Planner",
+  Routines: "Routines", Assistant: "Assistant", Household: "Household", Settings: "Settings",
+};
+const subtitles: Partial<Record<Page, string>> = {
+  Automation: "Schedule device actions and review their results.",
+  Rooms: "Explore your simulated home and control each room’s devices.",
+  Tasks: "Your tasks, calendar and reminders.",
+  Routines: "Group home actions and run them together.",
+  Assistant: "Talk or type in English, Hindi or Kannada.",
+  Household: "Shopping, pantry, recipes, expenses and saved deliveries.",
+};
+function defaultTab(page: Page) {
+  if (page === "Tasks") return "Tasks";
+  if (page === "Household") return "Groceries";
+  if (page === "Automation") return "Schedules";
+  if (page === "Settings") return "General";
+  return "";
 }
 
 export function App() {
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
-  const [testUrl, setTestUrl] = useState("https://example.com");
-  const [policyDecision, setPolicyDecision] = useState<PolicyDecision | null>(null);
-  const [policyError, setPolicyError] = useState<string | null>(null);
-  const [checkingPolicy, setCheckingPolicy] = useState(false);
+  const [navigation, setNavigation] = useState<{ page: Page; tab: string }>({ page: "Home", tab: "" });
+  const [smallNav, setSmallNav] = useState(false);
+  const [showNotices, setShowNotices] = useState(false);
+  const [alert, setAlert] = useState("");
+  const [prefs, setPrefs] = useState<Preferences>();
+  const [bridgeReady, setBridgeReady] = useState(Boolean(window.auraDesktop));
+  const online = useConnection();
+  const voice = useVoice(online);
+  const home = useHome();
+  const notices = useNotices();
+  const noticePrefs = useResource<NoticePrefs>("/notifications/preferences", /^notification_preferences_/);
+  const timezone = noticePrefs.data?.timezone_name ?? "Asia/Kolkata";
+  const { page, tab } = navigation;
 
-  const loadStatus = useCallback(async () => {
-    setState({ kind: "loading" });
-    try {
-      const snapshot = await fetchSystemSnapshot();
-      setState({ kind: "loaded", data: snapshot });
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to reach local FastAPI backend.";
-      setState({ kind: "unreachable", message });
+  function open(destination: string, next?: string) {
+    const target = pages.find((item) => item === destination);
+    if (!target) return;
+    setNavigation({ page: target, tab: next ?? defaultTab(target) });
+    setShowNotices(false);
+  }
+
+  useLive((event) => {
+    if (event.type === "notification_created" && event.payload.visual_enabled && !window.auraDesktop) {
+      const notice = event.payload.notification as { title?: string; message?: string } | undefined;
+      if (notice) setAlert(notice.title ?? notice.message ?? "");
     }
+    if (event.type === "desktop_voice_error") setAlert(String(event.payload.message ?? ""));
+  });
+
+  useEffect(() => {
+    const initialize = () => setBridgeReady(true);
+    window.addEventListener("aura-desktop-ready", initialize);
+    if (window.auraDesktop) initialize();
+    return () => window.removeEventListener("aura-desktop-ready", initialize);
   }, []);
 
   useEffect(() => {
-    void loadStatus();
-  }, [loadStatus]);
+    if ((import.meta.env.DEV && import.meta.env.MODE !== "test") || bridgeReady) startLive();
+  }, [bridgeReady]);
 
-  async function handlePolicyCheck(event: FormEvent) {
-    event.preventDefault();
-    setPolicyError(null);
-    setCheckingPolicy(true);
-    try {
-      const result = await checkPolicyUrl(testUrl);
-      setPolicyDecision(result);
-    } catch (err) {
-      setPolicyDecision(null);
-      setPolicyError(err instanceof Error ? err.message : "Policy check request failed.");
-    } finally {
-      setCheckingPolicy(false);
-    }
-  }
+  useEffect(() => {
+    const bridge = window.auraDesktop;
+    if (!bridgeReady || !bridge) return;
+    const receive = (raw: string, initial = false) => {
+      const value = JSON.parse(raw) as Preferences;
+      setPrefs(value);
+      if (initial && value.page) open(value.page);
+    };
+    const onPreferences = (raw: string) => receive(raw);
+    bridge.preferences((raw) => receive(raw, true));
+    bridge.preferencesChanged.connect(onPreferences);
+    bridge.navigate.connect(open);
+    return () => {
+      bridge.preferencesChanged.disconnect?.(onPreferences);
+      bridge.navigate.disconnect?.(open);
+    };
+  }, [bridgeReady]);
 
-  return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-4 border-b border-zinc-800 pb-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
-                AURA EDGE
-              </h1>
-              <StatusBadge tone="neutral" label="Phase 0 · Foundation Shell" />
-              {state.kind === "loaded" && (
-                <StatusBadge
-                  tone={state.data.readiness.ready ? "ok" : "warn"}
-                  label={
-                    state.data.readiness.ready
-                      ? "Backend + DB Ready"
-                      : "Backend Up · DB Not Ready"
-                  }
-                />
-              )}
-              {state.kind === "unreachable" && (
-                <StatusBadge tone="error" label="Backend Unreachable" />
-              )}
-            </div>
-            <p className="mt-2 text-sm text-zinc-400">
-              Offline-first multilingual personal AI assistant runtime verification console.
-              Local assets only; no external CDN or telemetry dependencies.
-            </p>
-          </div>
+  useEffect(() => {
+    if (!alert) return;
+    const timer = window.setTimeout(() => setAlert(""), 5500);
+    return () => window.clearTimeout(timer);
+  }, [alert]);
 
-          <button
-            type="button"
-            onClick={() => void loadStatus()}
-            className="inline-flex items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500"
-          >
-            Refresh Status
-          </button>
-        </header>
-
-        <main className="mt-8 space-y-6">
-          {state.kind === "loading" && (
-            <section
-              aria-live="polite"
-              className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 text-sm text-zinc-300"
-            >
-              Querying local backend at <code>/api/v1/health</code> and{" "}
-              <code>/api/v1/readiness</code>...
-            </section>
-          )}
-
-          {state.kind === "unreachable" && (
-            <section
-              role="alert"
-              className="rounded-xl border border-rose-800/80 bg-rose-950/30 p-6"
-            >
-              <h2 className="text-base font-semibold text-rose-200">
-                Local Backend Unreachable
-              </h2>
-              <p className="mt-2 text-sm text-rose-300">{state.message}</p>
-              <p className="mt-3 text-xs text-zinc-400">
-                Start the FastAPI backend on <code>127.0.0.1:8000</code> and select{" "}
-                <strong>Refresh Status</strong>.
-              </p>
-            </section>
-          )}
-
-          {state.kind === "loaded" && (
-            <>
-              <div className="grid gap-6 md:grid-cols-2">
-                {/* Backend Liveness */}
-                <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-base font-semibold text-zinc-100">
-                      Backend Liveness
-                    </h2>
-                    <StatusBadge tone="ok" label={state.data.health.status.toUpperCase()} />
-                  </div>
-                  <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                    <dt className="text-zinc-400">Service</dt>
-                    <dd className="font-mono text-zinc-200">{state.data.health.service}</dd>
-                    <dt className="text-zinc-400">Version</dt>
-                    <dd className="font-mono text-zinc-200">{state.data.health.version}</dd>
-                    <dt className="text-zinc-400">Bind Host</dt>
-                    <dd className="font-mono text-zinc-200">{state.data.health.bind_host}</dd>
-                    <dt className="text-zinc-400">Compute Pref</dt>
-                    <dd className="font-mono text-zinc-200">{state.data.health.compute_mode}</dd>
-                    <dt className="text-zinc-400">Checked UTC</dt>
-                    <dd className="font-mono text-xs text-zinc-300">
-                      {state.data.health.timestamp_utc}
-                    </dd>
-                  </dl>
-                </section>
-
-                {/* PostgreSQL + pgvector */}
-                <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-base font-semibold text-zinc-100">
-                      PostgreSQL &amp; pgvector
-                    </h2>
-                    <StatusBadge
-                      tone={state.data.readiness.database.status === "ok" ? "ok" : "error"}
-                      label={
-                        state.data.readiness.database.status === "ok"
-                          ? "CONNECTED"
-                          : `UNAVAILABLE (HTTP ${state.data.readinessHttpStatus})`
-                      }
-                    />
-                  </div>
-                  <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                    <dt className="text-zinc-400">Connected</dt>
-                    <dd className="font-mono text-zinc-200">
-                      {String(state.data.readiness.database.connected)}
-                    </dd>
-                    <dt className="text-zinc-400">pgvector Extension</dt>
-                    <dd className="font-mono text-zinc-200">
-                      {state.data.readiness.database.pgvector_installed
-                        ? `v${state.data.readiness.database.pgvector_version ?? "unknown"}`
-                        : "not installed"}
-                    </dd>
-                    <dt className="text-zinc-400">Alembic Revision</dt>
-                    <dd className="font-mono text-zinc-200">
-                      {state.data.readiness.database.alembic_revision ?? "none"}
-                    </dd>
-                    <dt className="text-zinc-400">Server Version</dt>
-                    <dd className="truncate font-mono text-xs text-zinc-300">
-                      {state.data.readiness.database.postgres_version ?? "unavailable"}
-                    </dd>
-                  </dl>
-                  {state.data.readiness.database.error && (
-                    <div
-                      role="alert"
-                      className="mt-4 rounded-lg border border-rose-800/70 bg-rose-950/40 p-3 text-xs text-rose-200"
-                    >
-                      {state.data.readiness.database.error}
-                    </div>
-                  )}
-                </section>
-
-                {/* Connectivity Policy & Dry-Run Check */}
-                <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-base font-semibold text-zinc-100">
-                      Connectivity Policy
-                    </h2>
-                    <StatusBadge
-                      tone={
-                        state.data.readiness.connectivity.external_requests_blocked
-                          ? "ok"
-                          : "warn"
-                      }
-                      label={state.data.readiness.connectivity.mode}
-                    />
-                  </div>
-                  <p className="mt-2 text-xs text-zinc-400">
-                    External outbound requests:{" "}
-                    <strong className="text-zinc-200">
-                      {state.data.readiness.connectivity.external_requests_blocked
-                        ? "Blocked (fail-closed)"
-                        : "Opt-in hosts allowed"}
-                    </strong>
-                  </p>
-
-                  <form onSubmit={(e) => void handlePolicyCheck(e)} className="mt-4 space-y-2">
-                    <label
-                      htmlFor="policy-url-input"
-                      className="block text-xs font-medium text-zinc-300"
-                    >
-                      Test URL against centralized policy (no outbound traffic sent)
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        id="policy-url-input"
-                        type="text"
-                        value={testUrl}
-                        onChange={(e) => setTestUrl(e.target.value)}
-                        className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-1.5 font-mono text-xs text-zinc-100 focus:border-zinc-500 focus:outline-none"
-                      />
-                      <button
-                        type="submit"
-                        disabled={checkingPolicy}
-                        className="shrink-0 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-100 hover:bg-zinc-700 disabled:opacity-50"
-                      >
-                        {checkingPolicy ? "Checking..." : "Evaluate"}
-                      </button>
-                    </div>
-                  </form>
-
-                  {policyError && (
-                    <p className="mt-3 text-xs text-rose-300">{policyError}</p>
-                  )}
-
-                  {policyDecision && (
-                    <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-950/70 p-3 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-zinc-300">
-                          {policyDecision.host || policyDecision.target}
-                        </span>
-                        <StatusBadge
-                          tone={policyDecision.allowed ? "ok" : "error"}
-                          label={policyDecision.allowed ? "ALLOWED" : "DENIED"}
-                        />
-                      </div>
-                      <p className="mt-1 text-zinc-400">{policyDecision.reason}</p>
-                    </div>
-                  )}
-                </section>
-
-                {/* Measured Hardware & Ollama */}
-                <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-base font-semibold text-zinc-100">
-                      Host Hardware &amp; Local Runtime
-                    </h2>
-                    <StatusBadge
-                      tone="neutral"
-                      label={`Compute: ${state.data.readiness.hardware.effective_compute_backend}`}
-                    />
-                  </div>
-                  <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                    <dt className="text-zinc-400">OS / Arch</dt>
-                    <dd className="font-mono text-xs text-zinc-200">
-                      {state.data.readiness.hardware.os} (
-                      {state.data.readiness.hardware.architecture})
-                    </dd>
-                    <dt className="text-zinc-400">CPU Cores / Load</dt>
-                    <dd className="font-mono text-zinc-200">
-                      {state.data.readiness.hardware.cpu_cores_physical ?? "?"}C /{" "}
-                      {state.data.readiness.hardware.cpu_cores_logical ?? "?"}T ·{" "}
-                      {state.data.readiness.hardware.cpu_percent}%
-                    </dd>
-                    <dt className="text-zinc-400">System RAM</dt>
-                    <dd className="font-mono text-zinc-200">
-                      {state.data.readiness.hardware.ram_used_gb} /{" "}
-                      {state.data.readiness.hardware.ram_total_gb} GB (
-                      {state.data.readiness.hardware.ram_percent}%)
-                    </dd>
-                    <dt className="text-zinc-400">GPU</dt>
-                    <dd className="font-mono text-xs text-zinc-200">
-                      {state.data.readiness.hardware.gpu.available
-                        ? `${state.data.readiness.hardware.gpu.name} (${state.data.readiness.hardware.gpu.vram_total_mb} MiB)`
-                        : `Unavailable (${state.data.readiness.hardware.gpu.error ?? "no GPU"})`}
-                    </dd>
-                    <dt className="text-zinc-400">Ollama Loopback</dt>
-                    <dd className="font-mono text-xs text-zinc-200">
-                      {state.data.readiness.hardware.ollama.reachable
-                        ? `Reachable (${state.data.readiness.hardware.ollama.models.length} models)`
-                        : "Not running / unreachable"}
-                    </dd>
-                  </dl>
-                </section>
-              </div>
-            </>
-          )}
-
-          {/* Honest Scope Boundary */}
-          <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-300">
-              Phase 0 Scope Boundary (Not Yet Implemented)
-            </h2>
-            <p className="mt-1 text-xs text-zinc-400">
-              Only foundation health, offline connectivity enforcement, hardware inspection,
-              and PostgreSQL+pgvector persistence are active in Phase 0.
-            </p>
-            <ul className="mt-3 grid gap-2 text-xs text-zinc-400 sm:grid-cols-2">
-              {UNIMPLEMENTED_PHASES.map((item) => (
-                <li key={item} className="rounded-md border border-zinc-800/80 bg-zinc-950/60 px-3 py-2">
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </section>
+  const bridge = window.auraDesktop;
+  const devices = home.devices.data ?? [];
+  const unread = notices.data?.unread_count ?? 0;
+  const plannerTab = plannerTabs.find((item) => item === tab) ?? "Tasks";
+  const householdTab = householdTabs.find((item) => item === tab) ?? "Groceries";
+  const settingsTab = settingsTabs.find((item) => item === tab) ?? "General";
+  const choose = (next: string) => open(page, next);
+  return <div className={`desktop-stage ${window.auraNative || bridgeReady ? "native" : "standalone"} ${prefs?.reducedMotion ? "reduced-motion" : ""}`}>
+    <div className={`shell ${prefs?.translucent === false ? "opaque" : ""}`}>
+      <header className="topbar">
+        <div className="brand" onPointerDown={bridge ? () => bridge.windowAction("move") : undefined}>
+          <Icon name="logo" size={35}/><h1>AURA <span>EDGE</span></h1><span className="brand-caption">AI Home Assistant</span>
+        </div>
+        <Ask voice={voice} header onSend={() => open("Assistant")}/>
+        <VoiceButtons voice={voice}/>
+        <div className="header-actions">
+          <span className={`connection-indicator ${online ? "online" : ""}`} role="status" title={voice.label} aria-label={voice.label}/>
+          <div className="bell-wrap"><IconButton icon="bell" label={`Notifications${unread ? `, ${unread} unread` : ""}`} onClick={() => setShowNotices(!showNotices)}/>{unread > 0 && <i/>}</div>
+          <IconButton icon="calendar" label="Calendar" onClick={() => open("Tasks", "Calendar")}/>
+          {bridge && <>
+            <IconButton icon="pin" label={prefs?.pinned ? "Unpin dashboard" : "Pin dashboard"} active={prefs?.pinned} onClick={() => bridge.windowAction("pin")}/>
+            <IconButton icon="minimize" label="Minimize to pet" onClick={() => bridge.windowAction("minimize")}/>
+            <IconButton icon="shutdown" label="Shutdown AURA" onClick={() => bridge.windowAction("shutdown")}/>
+          </>}
+        </div>
+      </header>
+      <div className={`shell-body ${smallNav ? "small-nav" : ""}`}>
+        <nav aria-label="Main navigation" className="sidebar">
+          {pages.map((item) => <button key={item} type="button" aria-current={page === item ? "page" : undefined} aria-label={item} title={item} onClick={() => open(item)}><Icon name={item.toLowerCase()}/><span>{item}</span></button>)}
+          <IconButton icon={smallNav ? "right" : "left"} label={smallNav ? "Expand navigation" : "Collapse navigation"} onClick={() => setSmallNav(!smallNav)}/>
+        </nav>
+        <main className="workspace" key={page}>
+          {!online && <div className="connection-banner" role="status">Local backend disconnected. Reconnecting…</div>}
+          {page !== "Home" && <div className="page-heading"><h2>{headings[page]}</h2>{subtitles[page] && <p>{subtitles[page]}</p>}</div>}
+          {page === "Home" && <Home data={home} timezone={timezone} open={open} briefingLanguage={voice.state.session_language ?? "auto"}/>}
+          {page === "Rooms" && <div className="rooms-grid"><Rooms data={home} schedule={(id) => open("Automation", id)}/></div>}
+          {page === "Automation" && <><Tabs options={["Schedules", "Activities"]} selected={tab === "Activities" ? "Activities" : "Schedules"} choose={choose}/><Automation key={tab} devices={devices} timezone={timezone} requested={tab}/></>}
+          {page === "Routines" && <Routines devices={devices} schedule={(id) => open("Automation", `routine:${id}`)}/>}
+          {page === "Tasks" && <><Tabs options={plannerTabs} selected={plannerTab} choose={choose}/><Planner key={tab} requested={tab} timezone={timezone}/></>}
+          {page === "Assistant" && <AssistantView voice={voice}/>}
+          {page === "Household" && <><Tabs options={householdTabs} selected={householdTab} choose={choose}/><Household tab={householdTab} timezone={timezone}/></>}
+          {page === "Settings" && <div className="settings-grid"><div className="settings-nav"><Tabs options={settingsTabs} selected={settingsTab} choose={choose}/></div><Settings key={settingsTab} tab={settingsTab} voice={voice} prefs={prefs} timezone={timezone}/></div>}
         </main>
       </div>
+      {showNotices && <NotificationCenter notices={notices} timezone={timezone} close={() => setShowNotices(false)}/>}
+      {alert && <button className="toast" role="status" onClick={() => setAlert("")}>{alert}<Icon name="close"/></button>}
     </div>
-  );
+  </div>;
 }
 
 export default App;

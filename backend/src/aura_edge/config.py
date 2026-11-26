@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import ipaddress
+import os
 from enum import Enum
-from typing import Annotated
+from pathlib import Path
+from typing import Annotated, Literal
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+_DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[3]
+_DEFAULT_MODELS_DIR = _DEFAULT_REPO_ROOT / "models"
 
 
 class ConnectivityMode(str, Enum):
@@ -79,7 +84,57 @@ class Settings(BaseSettings):
         "http://localhost:5173",
     ]
 
-    @field_validator("lan_allowed_cidrs", "online_allowed_hosts", "cors_origins", mode="before")
+    # Phase 1 Voice, Speech & Local Intelligence Settings
+    models_dir: Path = _DEFAULT_MODELS_DIR
+    stt_model_size: Literal["base", "small"] = "small"
+    stt_language: Literal["auto", "en", "hi", "kn"] = "auto"
+    stt_recognition_mode: Literal["multilingual", "strict"] = "multilingual"
+    ollama_model: str = "qwen3.5:4b"
+    ollama_num_ctx: int = 4096
+    ollama_timeout_sec: float = 30.0
+    ollama_keep_alive: str = "15m"
+    default_language: Literal["auto", "en", "hi", "kn"] = "auto"
+
+    audio_sample_rate: int = 16000
+    audio_frame_samples: int = 512
+    audio_preroll_sec: float = 3.0
+    audio_input_device: int | str | None = None
+    audio_output_device: int | str | None = None
+    vad_threshold: float = 0.45
+    vad_initial_timeout_sec: float = 3.0
+    vad_trailing_silence_sec: float = 1.2
+    audio_post_playback_cooldown_sec: float = 0.65
+
+    tts_backend: str = "sherpa_onnx"
+    tts_cache_max_entries: int = 64
+    tts_default_speed: float = 1.0
+    cuda_dll_dirs: Annotated[list[str], NoDecode] = []
+
+    # Phase 3 Persistent Memory, Scheduler & Proactive Notification Settings
+    default_timezone: str = "Asia/Kolkata"
+    embedding_model: str = "nomic-embed-text:latest"
+    embedding_dim: int = 768
+    scheduler_poll_interval_sec: float = 1.0
+    scheduler_missed_grace_sec: float = 60.0
+    notification_audio_queue_max: int = 16
+
+    @field_validator("audio_post_playback_cooldown_sec")
+    @classmethod
+    def _non_negative_cooldown(cls, value: float) -> float:
+        return max(0.0, float(value))
+
+    @field_validator("tts_default_speed")
+    @classmethod
+    def _clamp_tts_speed(cls, value: float) -> float:
+        return max(0.5, min(2.0, float(value)))
+
+    @field_validator(
+        "lan_allowed_cidrs",
+        "online_allowed_hosts",
+        "cors_origins",
+        "cuda_dll_dirs",
+        mode="before",
+    )
     @classmethod
     def _coerce_csv_list(cls, value: str | list[str]) -> list[str]:
         return _parse_csv_list(value)
@@ -113,6 +168,13 @@ class Settings(BaseSettings):
                 "only loopback addresses (127.0.0.1, ::1, localhost) are permitted."
             )
         return self
+
+
+def apply_offline_env_guards(settings: Settings) -> None:
+    """Disable runtime Hugging Face / Transformers network downloads in offline/LAN modes."""
+    if settings.connectivity_mode != ConnectivityMode.ONLINE_OPT_IN:
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        os.environ["TRANSFORMERS_OFFLINE"] = "1"
 
 
 def get_settings() -> Settings:

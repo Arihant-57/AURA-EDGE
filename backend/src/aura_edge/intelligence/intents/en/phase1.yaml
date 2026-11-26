@@ -1,0 +1,97 @@
+language: "en"
+intents:
+  GetTime:
+    data:
+      - sentences:
+          - "(what is|whats|what's|tell me) [the] [current] time [right now|now]"
+          - "what time is it [right now|now]"
+          - "[current] time [please|now]"
+  GetDate:
+    data:
+      - sentences:
+          - "(what is|whats|what's|tell me) [today's|todays|the] date [today]"
+          - "[today's|todays] date [today]"
+          - "date today"
+          - "what day is [it] [today]"
+          - "what is the day today"
+  SetTimer:
+    data:
+      - sentences:
+          - "(set|start|create|add) [a] [new] [<label>] timer [for] <duration>"
+          - "(set|start|create) [a] timer [for] <duration> [(for|named|called) <label>]"
+          - "remind me in <duration>"
+  ListTimers:
+    data:
+      - sentences:
+          - "(list|show|check|what are) [all] [my|the] [active|running] timers"
+          - "(do i have|are there) any [active] timers"
+  GetTimerRemaining:
+    data:
+      - sentences:
+          - "(how much time|how long) [is] left [on] [the] [<label>] timer"
+          - "(check|status of) [the] [<label>] timer"
+  PauseTimer:
+    data:
+      - sentences:
+          - "(pause|hold) [the] [<label>] timer"
+  ResumeTimer:
+    data:
+      - sentences:
+          - "(resume|unpause|continue|restart) [the] [<label>] timer"
+  CancelTimer:
+    data:
+      - sentences:
+          - "(cancel|stop|delete|remove|clear) [the] [<label>] timer"
+  CancelAllTimers:
+    data:
+      - sentences:
+          - "(cancel|stop|delete|remove|clear) all [the|my] timers"
+  Help:
+    data:
+      - sentences:
+          - "[i need] help"
+          - "what can you do"
+  StopAssistant:
+    data:
+      - sentences:
+          - "(stop|quiet|shut up|nevermind|never mind|cancel that)"
+
+expansion_rules:
+  duration: "{number} {unit} [{number2} {unit2}]"
+  label: "{timer_label}"
+
+lists:
+  number:
+    range:
+      type: "number"
+      from: 1
+      to: 1440
+  number2:
+    range:
+      type: "number"
+      from: 1
+      to: 60
+  unit:
+    values:
+      - "second"
+      - "seconds"
+      - "sec"
+      - "secs"
+      - "minute"
+      - "minutes"
+      - "min"
+      - "mins"
+      - "hour"
+      - "hours"
+      - "hr"
+      - "hrs"
+  unit2:
+    values:
+      - "second"
+      - "seconds"
+      - "sec"
+      - "minute"
+      - "minutes"
+      - "min"
+  timer_label:
+    wildcard: true

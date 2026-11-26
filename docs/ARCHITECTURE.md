@@ -1,38 +1,48 @@
-# AURA EDGE — System Architecture (Phase 0 Baseline)
+# AURA EDGE — System Architecture (Phase 0 – Phase 4)
+
+## Phase 4 Personal Secretary & Shared Multilingual Grounding
+
+Part A & Phase 4 extend the offline modular monolith with unified code-switched EN/HI/KN/Hinglish/Kanglish normalization and execution grounding alongside PostgreSQL-backed personal tasks, offline calendar (with conflict detection & recurrence), daily briefings, household groceries/recipes, exact-paise expense tracking, and cached parcel records (`0005_phase4_personal_assistant`).
 
 ## 1. Architectural Pattern
 
-AURA EDGE uses a **layered modular monolith** combined with an **event-driven automation boundary** (implemented incrementally across phases). One deployable core FastAPI application houses strict domain boundaries, backed by local supporting processes (PostgreSQL + pgvector, Ollama, and later Mosquitto MQTT).
+AURA EDGE uses a **layered modular monolith** combined with an **event-driven automation & voice pipeline**. One deployable core FastAPI application houses bounded modules backed by local supporting processes (PostgreSQL 16 + `pgvector`, local Ollama, and offline ONNX/CTranslate2 speech runtimes).
 
-> Status note: Only **Phase 0 (Foundation)** is implemented today. Speech, intelligence routing/planning, smart home devices, personal tools, and WebSockets are defined as package boundaries only.
+> **Scope Status:** **Phases 0, 1, 1.5, 2, 3, and Phase 4 core Personal Secretary modules** (tasks, offline calendar, daily briefing, groceries/recipes, expenses/CSV import, and cached parcels + Part A multilingual grounding) are implemented on `feat/backend-intelligence`. Optional local document RAG/desktop launcher and Phase 6 external online connectors remain deferred.
 
-## 2. Phase 0 Module Layout (`backend/src/aura_edge/`)
+## 2. Module Layout (`backend/src/aura_edge/`)
 
-| Layer | Module / Path | Responsibility (Phase 0 Status) |
+| Layer | Module / Path | Responsibility |
 |---|---|---|
-| Configuration | `config.py` | Loads `AURA_EDGE_*` settings; defaults to `strict_offline`; enforces loopback bind host in strict mode; rejects non-PostgreSQL URLs (e.g. SQLite). |
-| Infrastructure | `infrastructure/network_policy.py` | Centralized fail-closed `NetworkPolicyEnforcer` + `PolicyEnforcingTransport` / `AsyncPolicyEnforcingTransport` for `httpx`. Evaluates `strict_offline`, `lan_only`, and `online_opt_in` without external DNS lookups. |
-| Infrastructure | `infrastructure/hardware.py` | Measured host CPU/RAM (`psutil`), NVIDIA GPU/VRAM (`pynvml`), and loopback Ollama (`GET /api/tags`) via `NetworkPolicyEnforcer`. |
-| Data | `data/models.py`, `data/database.py` | SQLAlchemy 2.0 ORM (`system_settings`, `connectivity_audit_events`, `phase0_vector_smoke`), PostgreSQL engine guard, and live `DatabaseReadiness` probe (`pgvector` + Alembic revision check). |
-| API | `api/routes_health.py`, `main.py` | `GET /api/v1/health`, `GET /api/v1/readiness` (200 ready / 503 honest unavailability), `GET /api/v1/policy`, `POST /api/v1/policy/check`. |
-| Presentation | `frontend/` | Local Vite + React 18 + TypeScript + Tailwind CSS v4 shell; zero external fonts or CDNs; renders real backend, DB, policy, and hardware diagnostics. |
-| Reserved Domain Boundaries | `speech/`, `intelligence/`, `application/`, `execution/` | Package boundaries reserved for Phases 1–4. No stubbed/fake runtime handlers. |
+| **Configuration** | `config.py` | Loads `AURA_EDGE_*` settings; defaults to `strict_offline` and `Asia/Kolkata` timezone; configures `nomic-embed-text:latest` (`dim=768`), scheduler poll/grace intervals, and notification audio queue capacity; rejects SQLite/non-PostgreSQL URLs. |
+| **Infrastructure** | `infrastructure/network_policy.py`, `hardware.py`, `compute.py` | Fail-closed `NetworkPolicyEnforcer`, host CPU/RAM/GPU telemetry, `ComputeManager` (`auto` \| `cpu` \| `gpu`), Windows CUDA DLL handle caching. |
+| **Speech** | `speech/audio_capture.py`, `vad.py`, `stt.py`, `playback.py`, `tts_router.py` | 16 kHz PortAudio capture with half-duplex suspension & sticky user mute, CPU Silero VAD (`onset_frames=2`), decoupled multilingual STT (`faster-whisper` + mixed-script preservation + selective `indic-conformer-kn`), R4 noise/silence gate, lock-free SPSC PCM playback & `sherpa-onnx` EN/HI/KN TTS. |
+| **Intelligence** | `intelligence/normalizer.py`, `fast_router.py`, `planner.py`, `conversation.py`, `embedder.py`, `response_catalog.py` | Code-switched EN/HI/KN/Hinglish/Kanglish normalizer (transliterated English numbers/units + script-count language precedence), deterministic `MultilingualFastRouter` (Phase 1–4 tools), `HybridPlanner` (operational grounding gate & boolean coercion), `ConversationSession` (verified-entity anaphora + post-delete memory scrubbing + `validate_no_unverified_action_claim`), and CPU-only loopback `LocalEmbedder`. |
+| **Application** | `application/smart_home.py`, `memory_service.py`, `scheduler_service.py`, `notification_service.py`, `personal/*`, `voice_orchestrator.py` | Capability-validated `SmartHomeService`; `MemoryService`; `SchedulerService`; `NotificationService`; Phase 4 `TaskService`, `CalendarService`, `BriefingService`, `GroceryService`, `ExpenseService`, and `ParcelService`; and `VoiceOrchestrator`. |
+| **Execution** | `execution/state_machine.py`, `tool_registry.py`, `tools/` | 10-state `AssistantStateMachine`, `ToolRegistry` enforcing schema/capability validation and verified state post-checks across Phase 1–4 intents, `DateTimeTool`, and `TimerManager`. |
+| **Data** | `data/models.py`, `database.py`, `repositories/{timer,memory,scheduler,notification,personal}_repo...` | SQLAlchemy 2.0 ORM and Alembic revisions `0001`–`0005` (`tasks`, `calendar_events`, `grocery_items`, `shopping_list_items`, `local_recipes`, `expense_imports`, `expense_transactions`, `parcels`). |
+| **API** | `api/routes_{health,voice,timers,smart_home,memory,scheduler,notifications,personal}.py`, `ws_events.py`, `main.py` | REST endpoints and `/api/v1/ws/live` WebSocket hub with ordered startup/shutdown lifespan and offline recipe seeding. |
 
-## 3. Connectivity Contract
+## 3. 10-State Voice Turn Lifecycle
+
+```mermaid
+flowchart LR
+  IDLE --> LISTENING --> TRANSCRIBING --> UNDERSTANDING
+  IDLE --> UNDERSTANDING
+  UNDERSTANDING --> CLARIFYING --> SPEAKING --> IDLE
+  UNDERSTANDING --> EXECUTING --> VERIFYING --> SPEAKING --> IDLE
+  LISTENING --> CANCELLED --> IDLE
+  TRANSCRIBING --> CANCELLED
+  UNDERSTANDING --> CANCELLED
+  EXECUTING --> CANCELLED
+  SPEAKING --> CANCELLED
+  ERROR --> IDLE
+```
+
+## 4. Connectivity Contract
 
 | Mode | Default? | Permitted Targets | Denied Targets |
 |---|---|---|---|
-| `strict_offline` | **Yes** | Loopback only (`127.0.0.1`, `::1`, `localhost`) | All public domains/IPs, RFC1918 LAN IPs, link-local metadata (`169.254.0.0/16`), non-loopback server bind hosts |
+| `strict_offline` | **Yes** | Loopback only (`127.0.0.1`, `::1`, `localhost`) | All public domains/IPs, RFC1918 LAN IPs, link-local metadata (`169.254.0.0/16`), non-loopback bind hosts; `HF_HUB_OFFLINE=1` enforced |
 | `lan_only` | No | Loopback + configured private RFC1918 CIDRs (`AURA_EDGE_LAN_ALLOWED_CIDRS`) | Public internet domains/IPs, link-local metadata, multicast/unspecified IPs |
 | `online_opt_in` | No | Loopback + configured LAN + exact hostnames in `AURA_EDGE_ONLINE_ALLOWED_HOSTS` | Unlisted external hosts, link-local metadata, multicast/unspecified IPs |
-
-## 4. Planned Implementation Order (Phases 0–7)
-
-- **Phase 0 (Current)**: Standalone repository, config & strict offline policy, PostgreSQL + pgvector + Alembic foundation, real health/readiness API, minimal local UI shell, baseline verification.
-- **Phase 1**: EN/HI/KN microphone-to-STT-to-router-to-TTS, CPU/GPU compute selection, system clock date/time, persistent real timers, safe refusal.
-- **Phase 2**: Device registry, stateful smart-home simulator, UI device cards, room/group commands, basic routines, optional LAN ESP32 MQTT adapter.
-- **Phase 3**: PostgreSQL preferences & conversation history, local multilingual retrieval (pgvector), APScheduler / persistent jobs, event/notification bus, restart recovery.
-- **Phase 4**: Personal assistant tools (tasks, calendar, briefings, groceries, recipes, deduplicated expense import, cached parcels, allowlisted desktop/file ops).
-- **Phase 5**: Full desktop-first dashboard, Dynamic Island integration/equivalent, WebSocket state stream, optional paired phone LAN interface.
-- **Phase 6**: Opt-in read-only sync and official service handoff (no automated checkout or payment).
-- **Phase 7**: Full regression, security/privacy audit, offline/LAN demonstration, CPU vs GPU benchmarks.
