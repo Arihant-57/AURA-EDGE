@@ -60,3 +60,13 @@ def test_countdown_does_not_silently_drop_part_of_a_quantity(phrase, seconds):
     else:
         assert result.intent_name == IntentName.SET_TIMER
         assert result.slots["duration_seconds"] == seconds
+
+
+def test_strict_hindi_ac_temperature_transcript_keeps_exact_room_and_quantity():
+    router = MultilingualFastRouter()
+    text = "बेडरूम का ए स चौबिस डिग्री पर सेट करो"
+    result, _ = router.route(text)
+    assert result is not None and result.intent_name == IntentName.DEVICE_CONTROL
+    assert result.slots == {"room": "bedroom", "device_type": "air_conditioner", "action": "temperature", "value": 24}
+    negated, _ = router.route(text.replace("सेट करो", "सेट मत करो"))
+    assert negated.intent_name == IntentName.CLARIFY

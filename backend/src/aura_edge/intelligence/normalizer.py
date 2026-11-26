@@ -102,6 +102,7 @@ _INDIC_SCRIPT_NUMBER_WORDS: dict[str, int] = {
     "पंद्रह": 15,
     "बीस": 20,
     "चौबीस": 24,
+    "चौबिस": 24,
     "पच्चीस": 25,
     "तीस": 30,
     "पैंतालीस": 45,
@@ -542,6 +543,10 @@ def normalize_utterance(
         cleaned = re.sub(r"\btiner\b", "timer", cleaned, flags=re.IGNORECASE)
         cleaned = re.sub(r"\b(?:teat|T)(?=\s+timer\b)", "tea", cleaned)
     with_nums = _replace_number_words(cleaned, language=lang)
+    if lang == "hi" or script == "devanagari":
+        # The Hindi recognizer can split AC into two syllables. Require an
+        # explicit numeric temperature so ordinary Hindi text is unaffected.
+        with_nums = re.sub(r"(?<![\w\u0900-\u097F])ए\s+स(?=\s+\d+\s+डिग्री)", "एसी", with_nums)
     return NormalizedText(
         raw=text,
         normalized=with_nums,
