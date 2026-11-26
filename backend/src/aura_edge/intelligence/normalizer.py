@@ -76,8 +76,15 @@ _EN_NUMBER_WORDS: dict[str, int] = {
     "forty-five": 45,
     "fifty": 50,
     "sixty": 60,
+    "seventy": 70,
+    "eighty": 80,
     "ninety": 90,
 }
+
+_EN_COMPOUND_NUMBER = re.compile(
+    r"\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)[ -]"
+    r"(one|two|three|four|five|six|seven|eight|nine)\b", re.IGNORECASE
+)
 
 _INDIC_SCRIPT_NUMBER_WORDS: dict[str, int] = {
     "एक": 1,
@@ -416,6 +423,9 @@ def _replace_number_words(text: str, *, language: LanguageCode = "en") -> str:
     out = _HALF_HOUR_RE.sub("30 minutes", text)
     out = _ARTICLE_TIME_UNIT_RE.sub(r"1 \1", out)
     out = _replace_code_switched_loanwords(out)
+    out = _EN_COMPOUND_NUMBER.sub(
+        lambda m: str(_EN_NUMBER_WORDS[m[1].lower()] + _EN_NUMBER_WORDS[m[2].lower()]), out
+    )
 
     active_maps: list[tuple[dict[str, int], bool]] = [
         (_INDIC_SCRIPT_NUMBER_WORDS, False),
@@ -438,7 +448,11 @@ def _replace_number_words(text: str, *, language: LanguageCode = "en") -> str:
 def extract_duration_seconds(text: str) -> int | None:
     """Extract positive total duration in seconds from EN/HI/KN text, or None if absent."""
     prepared = _replace_number_words(text.translate(_DIGIT_TRANSLATION))
-    if re.search(r"(?:[-−]\s*\d|\d[.,]\d)", prepared):
+    if re.search(
+        r"[-−]\s*\d|\d[.,]\d|\d\s+\d|"
+        r"\b\d+\s*[- ]?\s*(?:milliseconds?|days?|weeks?|months?|years?|hundred|thousand)\b",
+        prepared, re.IGNORECASE,
+    ):
         return None
     total = 0
     found = False

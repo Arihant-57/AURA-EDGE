@@ -43,3 +43,20 @@ def test_delayed_power_resolves_only_from_verified_context():
     assert intent is not None and intent.intent_name == IntentName.SCHEDULE_DEVICE_ACTION
     assert intent.slots["delay_seconds"] == 60
     assert intent.slots["room"] == "bedroom" and intent.slots["value"] is False
+
+@pytest.mark.parametrize(("phrase", "seconds"), [
+    ("thirty two minutes", 1920),
+    ("eighty-seven seconds", 87),
+    ("one minute and thirty two seconds", 92),
+    ("one day and five minutes", None),
+    ("one hundred and five seconds", None),
+    ("one minute and two milliseconds", None),
+    ("3 2 minutes", None),
+])
+def test_countdown_does_not_silently_drop_part_of_a_quantity(phrase, seconds):
+    result, _ = MultilingualFastRouter().route(f"Set a timer for {phrase}")
+    if seconds is None:
+        assert result.intent_name == IntentName.CLARIFY
+    else:
+        assert result.intent_name == IntentName.SET_TIMER
+        assert result.slots["duration_seconds"] == seconds
