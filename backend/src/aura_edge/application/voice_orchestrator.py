@@ -748,13 +748,9 @@ class VoiceOrchestrator:
     ) -> ProcessTurnOutput:
         await self._preempt_idle_listening()
         async with self._turn_lock:
-            if language is not None:
-                self.set_language(language, recognition_mode=recognition_mode)
-            elif recognition_mode is not None:
-                self.set_recognition_mode(recognition_mode)
             ctx = await self.fsm.start_turn(
                 source=source,
-                language=self._last_resolved_language,
+                language=language if language in ("en", "hi", "kn") else self._last_resolved_language,
                 initial_state=AssistantState.TRANSCRIBING,
             )
             return await self._process_audio_with_turn(
@@ -764,6 +760,7 @@ class VoiceOrchestrator:
                 speak=speak,
                 allow_llm_fallback=allow_llm_fallback,
                 recognition_mode=recognition_mode,
+                reply_language_override=language,
             )
 
     def _invoke_stt(
@@ -834,12 +831,15 @@ class VoiceOrchestrator:
         allow_llm_fallback: bool = True,
         silent_empty: bool = False,
         recognition_mode: Literal["multilingual", "strict"] | None = None,
+        reply_language_override: RequestedLanguage | None = None,
     ) -> ProcessTurnOutput:
         t_start = time.perf_counter()
         loop = asyncio.get_running_loop()
         timestamps = _empty_stage_timestamps()
 
-        capture_metrics = getattr(self.audio_capture, "last_capture_metrics", None)
+        capture_metrics = (
+            getattr(self.audio_capture, "last_capture_metrics", None) if ctx.source != "audio_upload" else None
+        )
         vad_voiced_ms = getattr(capture_metrics, "voiced_ms", None) if capture_metrics is not None else None
         noise_floor_rms = getattr(capture_metrics, "noise_floor_rms", None) if capture_metrics is not None else None
         speech_end_mono = getattr(capture_metrics, "speech_end_mono", None) if capture_metrics is not None else None
@@ -849,7 +849,7 @@ class VoiceOrchestrator:
         base_mono = speech_end_mono if speech_end_mono is not None else t_start
 
         rec_mode: Literal["multilingual", "strict"] = recognition_mode or self.stt_recognition_mode
-        preferred_reply_lang = self.session_language
+        preferred_reply_lang = reply_language_override or self.session_language
         if rec_mode == "strict" and preferred_reply_lang != "auto":
             stt_lang: RequestedLanguage = preferred_reply_lang
             strict_flag = True

@@ -134,7 +134,7 @@ async def stop_microphone_capture(
 async def transcribe_uploaded_audio(
     request: Request,
     file: Annotated[UploadFile, _FILE_PARAM],
-    language: Annotated[RequestedLanguage, _FORM_PARAM] = "auto",
+    language: Annotated[RequestedLanguage | None, _FORM_PARAM] = None,
     recognition_mode: Annotated[Literal["multilingual", "strict"] | None, _FORM_PARAM] = None,
     speak: Annotated[bool, _FORM_PARAM] = False,
     allow_llm_fallback: Annotated[bool, _FORM_PARAM] = True,

@@ -182,6 +182,17 @@ def test_r2_decoupled_stt_language_and_capture_metrics_forwarding(monkeypatch: A
         assert captured_calls[-1]["recognition_mode"] == "strict"
         assert captured_calls[-1]["strict_language"] is True
 
+        # The previous microphone endpoint and noise measurements belong to
+        # that capture, not to this independent uploaded WAV.
+        uploaded = asyncio.run(orch.process_audio_samples(
+            np.ones(1600, dtype=np.float32) * 0.1, language="auto", recognition_mode="multilingual",
+        ))
+        assert captured_calls[-1]["vad_voiced_ms"] is None
+        assert captured_calls[-1]["noise_floor_rms"] is None
+        assert uploaded.stage_timestamps["speech_end"] is None
+        assert uploaded.response_language == "en"
+        assert orch.session_language == "kn" and orch.stt_recognition_mode == "strict"
+
 
 def test_r4_quality_gate_silence_vs_unclear_speech(monkeypatch: Any) -> None:
     app = _make_offline_app()
